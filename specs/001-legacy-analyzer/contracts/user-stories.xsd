@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Reforge User Stories Schema
+  Defines structure for generated modernization user stories (user-stories.xml)
+  Version: 1.0.0
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:rf="http://reforge.dev/schema/user-stories"
+           targetNamespace="http://reforge.dev/schema/user-stories"
+           elementFormDefault="qualified">
+
+  <!-- Root Element -->
+  <xs:element name="user-stories">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="epic" type="rf:EpicType" minOccurs="0" maxOccurs="unbounded"/>
+        <xs:element name="story" type="rf:UserStoryType" minOccurs="0" maxOccurs="unbounded"/>
+      </xs:sequence>
+      <xs:attribute name="project-id" type="xs:string" use="required"/>
+      <xs:attribute name="version" type="xs:string" use="required"/>
+      <xs:attribute name="generated" type="xs:dateTime" use="required"/>
+      <xs:attribute name="epic-count" type="xs:integer" use="required"/>
+      <xs:attribute name="story-count" type="xs:integer" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Epic (groups related stories) -->
+  <xs:complexType name="EpicType">
+    <xs:sequence>
+      <xs:element name="description" type="xs:string"/>
+      <xs:element name="stories" type="rf:StoryRefsType"/>
+      <xs:element name="traceability" type="rf:TraceabilityType"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:string" use="required"/>
+    <xs:attribute name="title" type="xs:string" use="required"/>
+    <xs:attribute name="priority" type="rf:PriorityType" use="required"/>
+  </xs:complexType>
+
+  <!-- Story References -->
+  <xs:complexType name="StoryRefsType">
+    <xs:sequence>
+      <xs:element name="story-ref" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- User Story -->
+  <xs:complexType name="UserStoryType">
+    <xs:sequence>
+      <xs:element name="as-a" type="xs:string"/>
+      <xs:element name="i-want" type="xs:string"/>
+      <xs:element name="so-that" type="xs:string"/>
+      <xs:element name="acceptance-criteria" type="rf:AcceptanceCriteriaType"/>
+      <xs:element name="traceability" type="rf:TraceabilityType"/>
+      <xs:element name="notes" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:string" use="required"/>
+    <xs:attribute name="title" type="xs:string" use="required"/>
+    <xs:attribute name="priority" type="rf:PriorityType" use="required"/>
+    <xs:attribute name="epic-ref" type="xs:string"/>
+    <xs:attribute name="story-points" type="xs:integer"/>
+  </xs:complexType>
+
+  <!-- Priority -->
+  <xs:simpleType name="PriorityType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="critical"/>
+      <xs:enumeration value="high"/>
+      <xs:enumeration value="medium"/>
+      <xs:enumeration value="low"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Acceptance Criteria -->
+  <xs:complexType name="AcceptanceCriteriaType">
+    <xs:sequence>
+      <xs:element name="criterion" type="rf:CriterionType" minOccurs="1" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Individual Criterion -->
+  <xs:complexType name="CriterionType">
+    <xs:sequence>
+      <xs:element name="given" type="xs:string"/>
+      <xs:element name="when" type="xs:string"/>
+      <xs:element name="then" type="xs:string"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:string" use="required"/>
+    <xs:attribute name="source-ref" type="xs:string"/>
+  </xs:complexType>
+
+  <!-- Traceability -->
+  <xs:complexType name="TraceabilityType">
+    <xs:sequence>
+      <xs:element name="business-rule" type="rf:SourceRefType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="workflow" type="rf:SourceRefType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="ui-component" type="rf:SourceRefType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="database-op" type="rf:SourceRefType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Source Reference with confidence -->
+  <xs:complexType name="SourceRefType">
+    <xs:attribute name="id" type="xs:string" use="required"/>
+    <xs:attribute name="confidence" type="xs:string"/>
+  </xs:complexType>
+
+</xs:schema>

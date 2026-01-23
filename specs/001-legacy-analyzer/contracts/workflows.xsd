@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Reforge Workflows Schema
+  Defines structure for process flows and execution paths (workflows.xml)
+  Version: 1.0.0
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:rf="http://reforge.dev/schema/workflows"
+           targetNamespace="http://reforge.dev/schema/workflows"
+           elementFormDefault="qualified">
+
+  <!-- Shared Types -->
+  <xs:simpleType name="ConfidenceType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="high"/>
+      <xs:enumeration value="medium"/>
+      <xs:enumeration value="low"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:complexType name="SourceReferenceType">
+    <xs:sequence>
+      <xs:element name="snippet" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="file" type="xs:string" use="required"/>
+    <xs:attribute name="line-start" type="xs:integer" use="required"/>
+    <xs:attribute name="line-end" type="xs:integer" use="required"/>
+  </xs:complexType>
+
+  <!-- Root Element -->
+  <xs:element name="workflows">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="workflow" type="rf:WorkflowType" minOccurs="0" maxOccurs="unbounded"/>
+      </xs:sequence>
+      <xs:attribute name="project-id" type="xs:string" use="required"/>
+      <xs:attribute name="version" type="xs:string" use="required"/>
+      <xs:attribute name="generated" type="xs:dateTime" use="required"/>
+      <xs:attribute name="count" type="xs:integer" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Workflow -->
+  <xs:complexType name="WorkflowType">
+    <xs:sequence>
+      <xs:element name="description" type="xs:string" minOccurs="0"/>
+      <xs:element name="steps" type="rf:StepsType"/>
+      <xs:element name="source" type="rf:SourceReferenceType"/>
+      <xs:element name="related" type="rf:RelatedType" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:string" use="required"/>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="entry-point" type="xs:string" use="required"/>
+    <xs:attribute name="trigger-type" type="rf:TriggerTypeEnum" use="required"/>
+    <xs:attribute name="confidence" type="rf:ConfidenceType" use="required"/>
+  </xs:complexType>
+
+  <xs:simpleType name="TriggerTypeEnum">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="ui-action"/>
+      <xs:enumeration value="api-call"/>
+      <xs:enumeration value="scheduled"/>
+      <xs:enumeration value="message"/>
+      <xs:enumeration value="startup"/>
+      <xs:enumeration value="event"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Steps Collection -->
+  <xs:complexType name="StepsType">
+    <xs:sequence>
+      <xs:element name="step" type="rf:StepType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Step -->
+  <xs:complexType name="StepType">
+    <xs:sequence>
+      <xs:element name="description" type="xs:string"/>
+      <xs:element name="branches" type="rf:BranchesType" minOccurs="0"/>
+      <xs:element name="source" type="rf:SourceReferenceType" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="sequence" type="xs:integer" use="required"/>
+    <xs:attribute name="type" type="rf:StepTypeEnum" use="required"/>
+    <xs:attribute name="method" type="xs:string"/>
+    <xs:attribute name="class" type="xs:string"/>
+    <xs:attribute name="condition" type="xs:string"/>
+    <xs:attribute name="sql-ref" type="xs:string"/>
+    <xs:attribute name="rule-ref" type="xs:string"/>
+  </xs:complexType>
+
+  <xs:simpleType name="StepTypeEnum">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="method-call"/>
+      <xs:enumeration value="decision"/>
+      <xs:enumeration value="loop"/>
+      <xs:enumeration value="data-access"/>
+      <xs:enumeration value="external-call"/>
+      <xs:enumeration value="validation"/>
+      <xs:enumeration value="transformation"/>
+      <xs:enumeration value="notification"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Branches (for decision steps) -->
+  <xs:complexType name="BranchesType">
+    <xs:sequence>
+      <xs:element name="branch" type="rf:BranchType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Branch -->
+  <xs:complexType name="BranchType">
+    <xs:sequence>
+      <xs:element name="step" type="rf:StepType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="condition" type="xs:string" use="required"/>
+    <xs:attribute name="label" type="xs:string"/>
+  </xs:complexType>
+
+  <!-- Related References -->
+  <xs:complexType name="RelatedType">
+    <xs:sequence>
+      <xs:element name="ui-component" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="business-rule" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="database-interaction" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+</xs:schema>

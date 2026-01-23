@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Reforge UI Flows Schema
+  Defines structure for UI components and layouts (ui-flows.xml)
+  Version: 1.0.0
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:rf="http://reforge.dev/schema/ui-flows"
+           targetNamespace="http://reforge.dev/schema/ui-flows"
+           elementFormDefault="qualified">
+
+  <!-- Shared Types -->
+  <xs:simpleType name="ConfidenceType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="high"/>
+      <xs:enumeration value="medium"/>
+      <xs:enumeration value="low"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:complexType name="SourceReferenceType">
+    <xs:sequence>
+      <xs:element name="snippet" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="file" type="xs:string" use="required"/>
+    <xs:attribute name="line-start" type="xs:integer" use="required"/>
+    <xs:attribute name="line-end" type="xs:integer" use="required"/>
+  </xs:complexType>
+
+  <!-- Root Element -->
+  <xs:element name="ui-flows">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="screens" type="rf:ScreensType"/>
+        <xs:element name="navigation" type="rf:NavigationType" minOccurs="0"/>
+      </xs:sequence>
+      <xs:attribute name="project-id" type="xs:string" use="required"/>
+      <xs:attribute name="version" type="xs:string" use="required"/>
+      <xs:attribute name="generated" type="xs:dateTime" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Screens Collection -->
+  <xs:complexType name="ScreensType">
+    <xs:sequence>
+      <xs:element name="screen" type="rf:ScreenType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:integer" use="required"/>
+  </xs:complexType>
+
+  <!-- Screen -->
+  <xs:complexType name="ScreenType">
+    <xs:sequence>
+      <xs:element name="layout" type="rf:LayoutType" minOccurs="0"/>
+      <xs:element name="components" type="rf:ComponentsType"/>
+      <xs:element name="source" type="rf:SourceReferenceType"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:string" use="required"/>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="path" type="xs:string"/>
+  </xs:complexType>
+
+  <!-- Layout (ASCII representation) -->
+  <xs:complexType name="LayoutType">
+    <xs:sequence>
+      <xs:element name="ascii" type="xs:string"/>
+    </xs:sequence>
+    <xs:attribute name="rows" type="xs:integer"/>
+    <xs:attribute name="columns" type="xs:integer"/>
+  </xs:complexType>
+
+  <!-- Components Collection -->
+  <xs:complexType name="ComponentsType">
+    <xs:sequence>
+      <xs:element name="component" type="rf:UIComponentType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:integer" use="required"/>
+  </xs:complexType>
+
+  <!-- UI Component -->
+  <xs:complexType name="UIComponentType">
+    <xs:sequence>
+      <xs:element name="position" type="rf:PositionType" minOccurs="0"/>
+      <xs:element name="events" type="rf:EventsType" minOccurs="0"/>
+      <xs:element name="source" type="rf:SourceReferenceType"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:string" use="required"/>
+    <xs:attribute name="type" type="rf:ComponentTypeEnum" use="required"/>
+    <xs:attribute name="name" type="xs:string"/>
+    <xs:attribute name="label" type="xs:string"/>
+    <xs:attribute name="confidence" type="rf:ConfidenceType" use="required"/>
+  </xs:complexType>
+
+  <xs:simpleType name="ComponentTypeEnum">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="button"/>
+      <xs:enumeration value="input"/>
+      <xs:enumeration value="form"/>
+      <xs:enumeration value="table"/>
+      <xs:enumeration value="label"/>
+      <xs:enumeration value="link"/>
+      <xs:enumeration value="container"/>
+      <xs:enumeration value="dropdown"/>
+      <xs:enumeration value="checkbox"/>
+      <xs:enumeration value="radio"/>
+      <xs:enumeration value="textarea"/>
+      <xs:enumeration value="image"/>
+      <xs:enumeration value="menu"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Position -->
+  <xs:complexType name="PositionType">
+    <xs:attribute name="row" type="xs:integer"/>
+    <xs:attribute name="column" type="xs:integer"/>
+    <xs:attribute name="parent" type="xs:string"/>
+  </xs:complexType>
+
+  <!-- Events -->
+  <xs:complexType name="EventsType">
+    <xs:sequence>
+      <xs:element name="event" type="rf:EventHandlerType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Event Handler -->
+  <xs:complexType name="EventHandlerType">
+    <xs:attribute name="type" type="xs:string" use="required"/>
+    <xs:attribute name="handler" type="xs:string" use="required"/>
+    <xs:attribute name="workflow-ref" type="xs:string"/>
+  </xs:complexType>
+
+  <!-- Navigation -->
+  <xs:complexType name="NavigationType">
+    <xs:sequence>
+      <xs:element name="flow" type="rf:NavigationFlowType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Navigation Flow -->
+  <xs:complexType name="NavigationFlowType">
+    <xs:attribute name="from-screen" type="xs:string" use="required"/>
+    <xs:attribute name="to-screen" type="xs:string" use="required"/>
+    <xs:attribute name="trigger" type="xs:string"/>
+    <xs:attribute name="condition" type="xs:string"/>
+  </xs:complexType>
+
+</xs:schema>

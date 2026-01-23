@@ -1,0 +1,28 @@
+# Reforge Framework Ignores
+# Analysis outputs (generated per-project)
+reforge_output/
+
+# Memory state files (may contain project-specific data)
+.reforge/memory/checkpoints/
+.reforge/memory/clarifications/
+.reforge/memory/logs/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.bak
+
+# Environment files
+.env
+.env.local
+.env.*.local

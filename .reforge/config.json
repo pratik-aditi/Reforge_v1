@@ -1,0 +1,49 @@
+{
+  "$schema": "https://reforge.dev/schema/config.json",
+  "version": "1.0.0",
+  "project": {
+    "name": "",
+    "root": "./",
+    "description": ""
+  },
+  "analysis": {
+    "exclusions": [
+      "**/node_modules/**",
+      "**/vendor/**",
+      "**/.git/**",
+      "**/dist/**",
+      "**/build/**",
+      "**/target/**",
+      "**/*.min.js",
+      "**/*.min.css",
+      "**/generated/**",
+      "**/__pycache__/**",
+      "**/.venv/**",
+      "**/venv/**"
+    ],
+    "binaryExtensions": [
+      ".png", ".jpg", ".jpeg", ".gif", ".ico", ".svg",
+      ".pdf", ".doc", ".docx", ".xls", ".xlsx",
+      ".zip", ".tar", ".gz", ".rar",
+      ".exe", ".dll", ".so", ".dylib",
+      ".class", ".jar", ".war",
+      ".woff", ".woff2", ".ttf", ".eot",
+      ".mp3", ".mp4", ".wav", ".avi", ".mov"
+    ],
+    "maxFileSize": 1048576,
+    "chunkSize": 5000
+  },
+  "output": {
+    "directory": "reforge_output",
+    "formats": {
+      "analysis": "xml",
+      "userStories": ["md", "json", "csv"],
+      "diagrams": ["plantuml", "mermaid"]
+    }
+  },
+  "extraction": {
+    "confidenceThreshold": "medium",
+    "includeSnippets": true,
+    "maxSnippetLines": 10
+  }
+}

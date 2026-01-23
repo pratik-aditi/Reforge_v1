@@ -4,16 +4,55 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an application modernization framework project. The codebase is currently in initial setup phase.
+**Reforge** is an LLM-driven application modernization framework. It enables AI agents (Claude Code, GitHub Copilot, etc.) to analyze legacy codebases and extract knowledge into structured formats — without any compiled code or external parsers.
 
-## Development Setup
+The framework follows the [SpecKit](https://github.com/github/spec-kit) pattern: prompt templates guide the AI through structured workflows.
 
-*To be documented as the project develops.*
+## Constitution
 
-## Build Commands
+See `.reforge/memory/constitution.md` for governing principles. Key rules:
 
-*To be documented once build system is established.*
+1. **LLM-First**: All analysis done by the AI agent using native tools (Read, Glob, Grep, Write)
+2. **Prompt Templates**: Commands defined as markdown files in `.reforge/commands/`
+3. **Structured Output**: Results stored as XML/markdown with source traceability
+4. **Zero Dependencies**: Framework requires no runtime — just the AI agent
+5. **Agent-Agnostic**: Works with any capable AI coding assistant
 
-## Architecture
+## Commands
 
-*To be documented as components are added.*
+Reforge commands follow the pattern `/reforge.<action>`:
+
+- `/reforge.analyze` — Scan and inventory a legacy codebase
+- `/reforge.extract [type]` — Extract business rules, database interactions, UI flows, workflows
+- `/reforge.clarify` — Resolve ambiguities interactively
+- `/reforge.generate [artifact]` — Generate documentation from extractions
+- `/reforge.status` — Report analysis progress and coverage
+- `/reforge.reanalyze [path]` — Re-process specific files without full re-analysis
+
+## Directory Structure
+
+```
+.reforge/
+├── commands/       # Slash command prompt templates
+├── schemas/        # Output structure definitions
+├── templates/      # Generation templates
+├── memory/         # Constitution and analysis state
+└── config.json     # Configuration
+
+reforge_output/     # Generated analysis and documentation
+```
+
+## Development
+
+This project is built using the Specify workflow:
+- `/speckit.specify` — Define feature specifications
+- `/speckit.plan` — Create implementation plans
+- `/speckit.tasks` — Generate task breakdowns
+- `/speckit.implement` — Execute implementation
+
+## Technical Stack
+
+- **Language**: Markdown prompt templates (no compiled code)
+- **Dependencies**: None - LLM-native tools only (Read, Write, Glob, Grep)
+- **Storage**: XML files for extraction output, structured markdown for documentation
+- **Testing**: Manual validation via sample legacy codebases
