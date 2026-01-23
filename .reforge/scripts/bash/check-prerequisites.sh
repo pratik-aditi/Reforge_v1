@@ -2,7 +2,7 @@
 # check-prerequisites.sh - Validate prerequisites for Reforge commands
 # Called by /reforge.extract, /reforge.generate, /reforge.clarify, /reforge.status, /reforge.reanalyze.
 #
-# Usage: check-prerequisites.sh [--json] [--require-analysis] [--require-extraction <type>] [--include-checkpoint]
+# Usage: check-prerequisites.sh [--json] [--require-analysis] [--require-extraction <type>] [--require-audit] [--include-checkpoint]
 
 set -e
 
@@ -14,6 +14,7 @@ source "$SCRIPT_DIR/common.sh"
 JSON_OUTPUT=false
 REQUIRE_ANALYSIS=false
 REQUIRE_EXTRACTION=""
+REQUIRE_AUDIT=false
 INCLUDE_CHECKPOINT=false
 
 while [[ $# -gt 0 ]]; do
@@ -29,6 +30,10 @@ while [[ $# -gt 0 ]]; do
     --require-extraction)
       REQUIRE_EXTRACTION="$2"
       shift 2
+      ;;
+    --require-audit)
+      REQUIRE_AUDIT=true
+      shift
       ;;
     --include-checkpoint)
       INCLUDE_CHECKPOINT=true
@@ -76,6 +81,18 @@ if [ -n "$REQUIRE_EXTRACTION" ]; then
   if [ ! -f "$EXTRACTION_FILE" ]; then
     echo "Error: Extraction '$REQUIRE_EXTRACTION' not found. Run /reforge.extract $REQUIRE_EXTRACTION first." >&2
     echo "  Expected: $EXTRACTION_FILE" >&2
+    exit 1
+  fi
+fi
+
+# --- Check Audit (Correction Plan) ---
+
+if [ "$REQUIRE_AUDIT" = true ]; then
+  AUDIT_DIR="$PROJECT_OUTPUT_DIR/audit"
+  CORRECTION_PLAN="$AUDIT_DIR/correction-plan.xml"
+  if [ ! -f "$CORRECTION_PLAN" ]; then
+    echo "Error: Correction plan not found. Run /reforge.audit first." >&2
+    echo "  Expected: $CORRECTION_PLAN" >&2
     exit 1
   fi
 fi

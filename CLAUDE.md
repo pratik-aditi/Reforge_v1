@@ -29,6 +29,8 @@ Reforge commands follow the pattern `/reforge.<action>`:
 - `/reforge.generate [artifact]` — Generate documentation from extractions
 - `/reforge.status` — Report analysis progress and coverage
 - `/reforge.reanalyze [path]` — Re-process specific files without full re-analysis
+- `/reforge.audit [type]` — Audit extraction coverage and identify gaps
+- `/reforge.fix` — Execute corrections from the audit correction plan
 
 ## Directory Structure
 
@@ -46,6 +48,7 @@ reforge_output/<project-name>/
 ├── extractions/        # Extracted knowledge (business-rules, database, ui-flows, workflows)
 ├── derived/            # Derived artifacts (cross-mappings, features-requirements, registries/)
 ├── generated/          # Generated documentation (markdown, user-stories, data-dictionary)
+├── audit/              # Audit outputs (audit-report.xml, correction-plan.xml)
 └── diagrams/           # Diagram outputs (sources/, rendered/)
 ```
 
@@ -63,3 +66,10 @@ This project is built using the Specify workflow:
 - **Dependencies**: None - LLM-native tools only (Read, Write, Glob, Grep)
 - **Storage**: XML files for extraction output, structured markdown for documentation
 - **Testing**: Manual validation via sample legacy codebases
+
+## Active Technologies
+- Markdown prompt templates (no compiled code per Constitution Principle I) + None (LLM-native tools only: Read, Write, Glob, Grep) (002-audit-fix-commands)
+- XML files for audit report and correction plan; structured markdown for command templates (002-audit-fix-commands)
+
+## Recent Changes
+- 002-audit-fix-commands: Added Markdown prompt templates (no compiled code per Constitution Principle I) + None (LLM-native tools only: Read, Write, Glob, Grep)
