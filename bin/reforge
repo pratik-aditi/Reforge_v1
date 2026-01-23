@@ -460,7 +460,7 @@ do_update() {
     fi
   done
 
-  # Update constitution and README
+  # Update constitution and README (never overwrite project-context.md — it's user-owned)
   for file in "memory/constitution.md" "README.md"; do
     local src="$REFORGE_HOME/.reforge/$file"
     if [[ -f "$src" ]]; then
@@ -533,6 +533,12 @@ do_remove() {
       info "Aborted."
       exit 0
     fi
+  fi
+
+  # Warn about user-owned project context
+  if [[ -f "$target/.reforge/memory/project-context.md" ]]; then
+    warn "Note: .reforge/memory/project-context.md contains your project context data."
+    warn "It will be removed with the .reforge/ directory."
   fi
 
   # Remove .reforge directory

@@ -61,6 +61,15 @@ This returns JSON with resolved variables:
 
 Use `$PROJECT_OUTPUT_DIR` for all output paths in subsequent steps.
 
+### Step 0.5: Load Project Context
+
+If `.reforge/memory/project-context.md` exists, read it now. Use its contents as
+supplemental guidance throughout this command's execution:
+- **Technology Stack**: Informs language/framework detection and pattern recognition
+- **Domain Knowledge**: Provides business context for naming and categorization
+- **Analysis Guidelines**: Directs focus and exclusions beyond config.json
+- **Custom Rules**: Additional rules to follow alongside the constitution
+
 ### Step 1: Load Analysis
 
 Read `$PROJECT_OUTPUT_DIR/analysis.xml` to get:

@@ -93,6 +93,12 @@ Additional tooling (validators, transformers, visualizers) MAY be added as an **
 
 **Rationale:** Keeping tooling optional maintains the zero-dependency core while allowing power users to enhance their workflow.
 
+## Project-Specific Context
+
+The file `.reforge/memory/project-context.md` (created via `/reforge.init`) contains
+project-specific guidance. When present, treat its contents as supplemental rules
+that operate alongside this constitution. The constitution takes precedence on conflicts.
+
 ## Framework Architecture
 
 ### Directory Structure
@@ -100,6 +106,7 @@ Additional tooling (validators, transformers, visualizers) MAY be added as an **
 ```
 .reforge/
 ├── commands/           # Slash command prompt templates
+│   ├── init.md         # /reforge.init - Initialize project context
 │   ├── analyze.md      # /reforge.analyze - Analyze legacy codebase
 │   ├── extract.md      # /reforge.extract - Extract specific elements
 │   ├── generate.md     # /reforge.generate - Generate documentation
@@ -120,8 +127,9 @@ Additional tooling (validators, transformers, visualizers) MAY be added as an **
 │   ├── sysml-block.md  # SysML block diagrams
 │   └── ascii-layout.md # UI layout visualization
 ├── memory/             # Project-specific state
-│   ├── constitution.md # This file
-│   └── analysis/       # Analysis outputs stored here
+│   ├── constitution.md    # This file
+│   ├── project-context.md # Project-specific guidance (user-created via /reforge.init)
+│   └── analysis/          # Analysis outputs stored here
 └── config.json         # Framework configuration
 ```
 
@@ -143,6 +151,10 @@ reforge_output/
 ```
 
 ## Command Workflow
+
+### Setup Phase
+
+0. **`/reforge.init`** — Define project context (name, tech stack, domain knowledge, analysis rules)
 
 ### Analysis Phase
 

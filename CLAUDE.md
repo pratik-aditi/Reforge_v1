@@ -22,6 +22,7 @@ See `.reforge/memory/constitution.md` for governing principles. Key rules:
 
 Reforge commands follow the pattern `/reforge.<action>`:
 
+- `/reforge.init` — Initialize project context (name, tech stack, domain knowledge)
 - `/reforge.analyze` — Scan and inventory a legacy codebase
 - `/reforge.extract [type]` — Extract business rules, database interactions, UI flows, workflows
 - `/reforge.clarify` — Resolve ambiguities interactively
