@@ -9,10 +9,23 @@ from typing import Optional
 import typer
 from rich.console import Console
 
+from .scripts import (
+    check_prerequisites,
+    create_checkpoint,
+    delete_checkpoint,
+    init_project,
+    read_checkpoint,
+    update_agent_context,
+)
+from .scripts.common import ReforgeError
+
 __version__ = "1.0.0"
 
 app = typer.Typer(help="Reforge - LLM-driven legacy codebase analysis and documentation framework")
 console = Console()
+
+# Create a subcommand group for helper scripts
+scripts_app = typer.Typer(help="Helper scripts for Reforge commands")
 
 
 def get_reforge_home() -> Path:
@@ -71,7 +84,8 @@ def validate_target(target: Path, reforge_home: Path):
 
 
 def copy_framework(target: Path, reforge_home: Path, dry_run: bool):
-    dirs = ["commands", "schemas", "templates", "scripts/bash"]
+    # Note: scripts/bash no longer copied - Python scripts are in the package
+    dirs = ["commands", "schemas", "templates"]
     files = ["memory/constitution.md", "config.json", "README.md"]
     
     for dir_name in dirs:
@@ -160,36 +174,37 @@ arguments provided above.
 
 def merge_settings(target: Path, dry_run: bool):
     settings_file = target / ".claude" / "settings.local.json"
+    # Python scripts are invoked via `reforge` CLI, no bash permissions needed
     permissions = [
-        'Bash(bash .reforge/scripts/bash/init-project.sh:*)',
-        'Bash(bash .reforge/scripts/bash/check-prerequisites.sh:*)',
-        'Bash(bash .reforge/scripts/bash/manage-checkpoint.sh:*)',
-        'Bash(bash .reforge/scripts/bash/update-agent-context.sh:*)',
+        'Bash(reforge init-project:*)',
+        'Bash(reforge check-prerequisites:*)',
+        'Bash(reforge checkpoint:*)',
+        'Bash(reforge update-context:*)',
     ]
-    
+
     if dry_run:
         info("Would update: .claude/settings.local.json with reforge permissions")
         return
-    
+
     settings_file.parent.mkdir(parents=True, exist_ok=True)
-    
+
     if settings_file.exists():
         try:
             settings = json.loads(settings_file.read_text())
         except json.JSONDecodeError:
             settings = {}
-        
+
         if "permissions" not in settings:
             settings["permissions"] = {}
         if "allow" not in settings["permissions"]:
             settings["permissions"]["allow"] = []
-        
+
         for perm in permissions:
             if perm not in settings["permissions"]["allow"]:
                 settings["permissions"]["allow"].append(perm)
     else:
         settings = {"permissions": {"allow": permissions}}
-    
+
     settings_file.write_text(json.dumps(settings, indent=2) + '\n')
 
 
@@ -290,8 +305,8 @@ def do_update(target: Path, reforge_home: Path, dry_run: bool):
     
     info(f"Updating Reforge framework in: {target}")
     
-    # Update framework files
-    dirs = ["commands", "schemas", "templates", "scripts/bash"]
+    # Update framework files (scripts/bash no longer needed - Python scripts in package)
+    dirs = ["commands", "schemas", "templates"]
     for dir_name in dirs:
         src = reforge_home / ".reforge" / dir_name
         dst = target / ".reforge" / dir_name
@@ -387,10 +402,11 @@ def do_remove(target: Path, force: bool, dry_run: bool):
             settings = json.loads(settings_file.read_text())
             
             if "permissions" in settings and "allow" in settings["permissions"]:
-                # Remove reforge permissions
+                # Remove reforge permissions (both old bash and new Python CLI)
                 settings["permissions"]["allow"] = [
                     perm for perm in settings["permissions"]["allow"]
                     if ".reforge/scripts/bash/" not in perm
+                    and not perm.startswith("Bash(reforge ")
                 ]
             
             settings_file.write_text(json.dumps(settings, indent=2) + '\n')
@@ -449,21 +465,25 @@ def cli(
     update: bool = typer.Option(False, "--update", help="Refresh framework files (preserves config)"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation prompts"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be done"),
-    target_path: Optional[str] = typer.Argument(None, help="Target project directory (defaults to current directory)"),
+    target_path: Optional[str] = typer.Option(None, "--target", "-t", help="Target project directory (defaults to current directory)"),
 ):
+    # If a subcommand is being invoked, skip the main callback logic
+    if ctx.invoked_subcommand is not None:
+        return
+
     if version:
         console.print(f"reforge v{__version__}")
         raise typer.Exit()
-    
+
     if not claude and not remove:
-        console.print(app.info.help)
+        console.print(ctx.get_help())
         raise typer.Exit()
-    
+
     target = Path(target_path) if target_path else Path.cwd()
     target = target.resolve()
-    
+
     reforge_home = get_reforge_home()
-    
+
     if claude:
         validate_source(reforge_home)
         validate_target(target, reforge_home)
@@ -473,6 +493,132 @@ def cli(
             do_install(target, reforge_home, dry_run)
     elif remove:
         do_remove(target, force, dry_run)
+
+
+# --- Script Subcommands ---
+
+
+@app.command("init-project")
+def cmd_init_project(
+    target_path: Optional[str] = typer.Argument(None, help="Target directory"),
+    name: Optional[str] = typer.Option(None, "--name", "-n", help="Override project name"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+):
+    """Initialize project output structure."""
+    try:
+        target = Path(target_path) if target_path else None
+        result = init_project(target_path=target, project_name_override=name)
+
+        if json_output:
+            console.print(result.to_json())
+        else:
+            ok(f"Project initialized: {result.project_name}")
+            info(f"  Output directory: {result.project_output_dir}")
+            info(f"  Config: {result.config}")
+    except ReforgeError as e:
+        error(str(e))
+        raise typer.Exit(1)
+
+
+@app.command("check-prerequisites")
+def cmd_check_prerequisites(
+    require_analysis: bool = typer.Option(False, "--require-analysis", help="Require analysis.xml"),
+    require_extraction: Optional[str] = typer.Option(None, "--require-extraction", help="Require specific extraction"),
+    include_checkpoint: bool = typer.Option(False, "--include-checkpoint", help="Include checkpoint info"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+):
+    """Validate prerequisites for Reforge commands."""
+    try:
+        result = check_prerequisites(
+            require_analysis=require_analysis,
+            require_extraction=require_extraction,
+            include_checkpoint=include_checkpoint,
+        )
+
+        if json_output:
+            console.print(result.to_json())
+        else:
+            ok("Prerequisites check:")
+            info(f"  Project: {result.project_name}")
+            info(f"  Analysis: {result.analysis_status}")
+            info(f"  Extractions: {', '.join(result.available_extractions) or 'none'}")
+            if result.checkpoint:
+                info(f"  Checkpoint: {result.checkpoint}")
+    except ReforgeError as e:
+        error(str(e))
+        raise typer.Exit(1)
+
+
+@app.command("checkpoint")
+def cmd_checkpoint(
+    action: str = typer.Argument(..., help="Action: read, create, or delete"),
+    checkpoint_type: str = typer.Option("analysis", "--type", "-t", help="Checkpoint type"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+):
+    """Manage checkpoint state (read/create/delete)."""
+    try:
+        if action == "read":
+            result = read_checkpoint(checkpoint_type=checkpoint_type)
+            if json_output:
+                console.print(result.to_json())
+            else:
+                if result.exists:
+                    ok(f"Checkpoint: {checkpoint_type}")
+                    info(f"  Total files: {result.total_files}")
+                    info(f"  Processed: {result.processed_files} ({result.percentage}%)")
+                    info(f"  Current: {result.current_file}")
+                    info(f"  Started: {result.started_at}")
+                    info(f"  Elapsed: {result.elapsed_seconds}s")
+                else:
+                    warn(f"No checkpoint found for type: {checkpoint_type}")
+
+        elif action == "create":
+            result = create_checkpoint(checkpoint_type=checkpoint_type)
+            if json_output:
+                console.print(result.to_json())
+            else:
+                ok(f"Checkpoint path: {result.checkpoint_file}")
+
+        elif action == "delete":
+            result = delete_checkpoint(checkpoint_type=checkpoint_type)
+            if json_output:
+                console.print(result.to_json())
+            else:
+                if result.deleted:
+                    ok(f"Deleted checkpoint: {result.file}")
+                else:
+                    warn(f"No checkpoint to delete: {result.file}")
+
+        else:
+            error(f"Unknown action: {action}. Use read, create, or delete.")
+            raise typer.Exit(1)
+
+    except ReforgeError as e:
+        error(str(e))
+        raise typer.Exit(1)
+
+
+@app.command("update-context")
+def cmd_update_context(
+    agent_type: str = typer.Argument("claude", help="Agent type: claude, gemini, copilot, cursor, windsurf"),
+    json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
+):
+    """Update agent context file with analysis results."""
+    try:
+        result = update_agent_context(agent_type=agent_type)
+
+        if json_output:
+            console.print(result.to_json())
+        else:
+            if result.updated:
+                ok(f"Updated {result.context_file} with analysis results")
+                info(f"  Languages: {result.languages}")
+                info(f"  Frameworks: {result.frameworks or 'N/A'}")
+            else:
+                warn(f"Context file not found: {result.context_file} (skipped)")
+    except ReforgeError as e:
+        error(str(e))
+        raise typer.Exit(1)
 
 
 def main():
