@@ -234,51 +234,70 @@ merge_settings() {
     done
 
     if [[ "$needs_update" == "true" ]]; then
-      # Build the new permissions entries
-      local new_entries=""
+      # Write new entries to a temp insert file
+      local insert_file="${settings_file}.ins"
+      : > "$insert_file"
       for perm in "${permissions[@]}"; do
         if ! grep -qF "$perm" "$settings_file"; then
-          new_entries="${new_entries}    \"${perm}\",\n"
+          echo "$perm" >> "$insert_file"
         fi
       done
 
       if grep -q '"allow"' "$settings_file"; then
-        # Insert after "allow": [
-        sed 's/"allow": \[/"allow": [\n'"$(echo -e "$new_entries" | sed 's/\//\\\//g')"'/' "$settings_file" > "$tmp_file"
+        # Insert new entries after the "allow": [ line
+        awk -v insfile="$insert_file" '
+          /"allow".*\[/ && !done {
+            print
+            while ((getline line < insfile) > 0) {
+              printf "      \"%s\",\n", line
+            }
+            close(insfile)
+            done = 1
+            next
+          }
+          { print }
+        ' "$settings_file" > "$tmp_file"
         mv "$tmp_file" "$settings_file"
       else
-        # No allow key — add one. Insert before final }
-        local insert
-        insert="  \"allow\": [\n"
-        for i in "${!permissions[@]}"; do
-          insert="${insert}    \"${permissions[$i]}\""
-          if [[ $i -lt $((${#permissions[@]} - 1)) ]]; then
-            insert="${insert},"
-          fi
-          insert="${insert}\n"
-        done
-        insert="${insert}  ]"
-        # Use awk to insert before closing brace
-        awk -v ins="$insert" '
-          /^}/ { printf "%s\n", ins; print; next }
+        # No allow key — add permissions.allow before final closing brace
+        awk -v insfile="$insert_file" '
+          /^[[:space:]]*\}[[:space:]]*$/ && !done {
+            printf "  \"permissions\": {\n"
+            printf "    \"allow\": [\n"
+            i = 0; total = 0
+            while ((getline line < insfile) > 0) total++
+            close(insfile)
+            while ((getline line < insfile) > 0) {
+              i++
+              if (i < total) printf "      \"%s\",\n", line
+              else printf "      \"%s\"\n", line
+            }
+            close(insfile)
+            printf "    ]\n"
+            printf "  }\n"
+            done = 1
+          }
           { print }
         ' "$settings_file" > "$tmp_file"
         mv "$tmp_file" "$settings_file"
       fi
+      rm -f "$insert_file"
     fi
   else
     # Create fresh settings file
     {
       echo '{'
-      echo '  "allow": ['
+      echo '  "permissions": {'
+      echo '    "allow": ['
       for i in "${!permissions[@]}"; do
         if [[ $i -lt $((${#permissions[@]} - 1)) ]]; then
-          echo "    \"${permissions[$i]}\","
+          echo "      \"${permissions[$i]}\","
         else
-          echo "    \"${permissions[$i]}\""
+          echo "      \"${permissions[$i]}\""
         fi
       done
-      echo '  ]'
+      echo '    ]'
+      echo '  }'
       echo '}'
     } > "$settings_file"
   fi
