@@ -55,6 +55,12 @@ This returns:
 
 Use `$PROJECT_OUTPUT_DIR`, `$PROJECT_NAME`, `$CLARIFICATIONS_DIR` throughout subsequent steps.
 
+Assign subdirectory variables:
+```
+$ANALYSIS_DIR = $PROJECT_OUTPUT_DIR/analysis
+$EXTRACTIONS_DIR = $PROJECT_OUTPUT_DIR/extractions
+```
+
 ### Step 0.5: Load Project Context
 
 If `.reforge/memory/project-context.md` exists, read it now. Use its contents as
@@ -73,14 +79,14 @@ Look for analysis outputs and checkpoints:
    - If exists: Analysis is in progress or interrupted
 
 2. **Check for completed analysis:**
-   - Path: `$PROJECT_OUTPUT_DIR/analysis.xml`
+   - Path: `$ANALYSIS_DIR/analysis.xml` (also check legacy `$PROJECT_OUTPUT_DIR/analysis.xml`)
    - If exists: Analysis has completed at least once
 
 3. **Check for extraction outputs:**
-   - `$PROJECT_OUTPUT_DIR/business-rules.xml`
-   - `$PROJECT_OUTPUT_DIR/database.xml`
-   - `$PROJECT_OUTPUT_DIR/ui-flows.xml`
-   - `$PROJECT_OUTPUT_DIR/workflows.xml`
+   - `$EXTRACTIONS_DIR/business-rules.xml`
+   - `$EXTRACTIONS_DIR/database.xml`
+   - `$EXTRACTIONS_DIR/ui-flows.xml`
+   - `$EXTRACTIONS_DIR/workflows.xml`
 
 4. **Check for pending clarifications:**
    - Path: `$CLARIFICATIONS_DIR/*.xml`
@@ -349,7 +355,7 @@ Calculate:
 
 ## Reading Statistics from Analysis Output
 
-Analysis path: `$PROJECT_OUTPUT_DIR/analysis.xml`
+Analysis path: `$ANALYSIS_DIR/analysis.xml`
 
 Extract from `<summary>`:
 - `total-files` attribute

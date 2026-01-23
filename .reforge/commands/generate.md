@@ -12,8 +12,8 @@
 
 | Argument | Required | Description |
 |----------|----------|-------------|
-| `format` | Yes | Output format: `markdown`, `user-stories`, `data-dictionary`, `uml`, `sysml` |
-| `--output` | No | Custom output path (defaults to `$PROJECT_OUTPUT_DIR/generated/`) |
+| `format` | Yes | Output format: `markdown`, `user-stories`, `data-dictionary`, `uml`, `sysml`, `cross-mappings`, `features`, `registries` |
+| `--output` | No | Custom output path (defaults to `$GENERATED_DIR/`) |
 | `--scope` | No | Limit to specific extraction type: `business-rules`, `database`, `ui`, `workflows` |
 
 ## Overview
@@ -25,11 +25,14 @@ This command generates documentation and artifacts from the XML extractions:
 - **data-dictionary**: Database entity and column documentation
 - **uml**: UML class diagrams in PlantUML/Mermaid notation
 - **sysml**: SysML block diagrams for system architecture
+- **cross-mappings**: Traceability matrix mapping features → requirements → rules → workflows → UI → source
+- **features**: Feature catalog with functional/non-functional requirements derived from extractions
+- **registries**: Human-readable summary tables of extracted rules and requirements
 
 ## Prerequisites
 
 - At least one extraction must be completed
-- Relevant XML files must exist in `$PROJECT_OUTPUT_DIR/`
+- Relevant XML files must exist in `$EXTRACTIONS_DIR/`
 
 ---
 
@@ -52,6 +55,15 @@ This returns JSON with resolved variables:
 
 Use `$PROJECT_OUTPUT_DIR` for all output paths in subsequent steps.
 
+Assign subdirectory variables:
+```
+$EXTRACTIONS_DIR = $PROJECT_OUTPUT_DIR/extractions
+$GENERATED_DIR = $PROJECT_OUTPUT_DIR/generated
+$DIAGRAMS_DIR = $PROJECT_OUTPUT_DIR/diagrams
+$DERIVED_DIR = $PROJECT_OUTPUT_DIR/derived
+$ANALYSIS_DIR = $PROJECT_OUTPUT_DIR/analysis
+```
+
 ### Step 0.5: Load Project Context
 
 If `.reforge/memory/project-context.md` exists, read it now. Use its contents as
@@ -73,7 +85,7 @@ supplemental guidance throughout this command's execution:
 
 ## Output
 
-`$PROJECT_OUTPUT_DIR/generated/documentation.md`
+`$GENERATED_DIR/documentation.md`
 
 ## Template
 
@@ -309,20 +321,20 @@ graph LR
 
 ## Output Files
 
-- `$PROJECT_OUTPUT_DIR/generated/user-stories.md` (Markdown)
-- `$PROJECT_OUTPUT_DIR/generated/user-stories.json` (JSON)
-- `$PROJECT_OUTPUT_DIR/generated/user-stories.csv` (CSV)
-- `$PROJECT_OUTPUT_DIR/user-stories.xml` (Schema-compliant XML)
+- `$GENERATED_DIR/user-stories.md` (Markdown)
+- `$GENERATED_DIR/user-stories.json` (JSON)
+- `$GENERATED_DIR/user-stories.csv` (CSV)
+- `$GENERATED_DIR/user-stories.xml` (Schema-compliant XML)
 
 ## Generation Process
 
 ### Step 1: Load Extractions
 
 Read:
-- `business-rules.xml` → Source for acceptance criteria
-- `workflows.xml` → Source for user journeys
-- `ui-flows.xml` → Source for interaction stories
-- `database.xml` → Source for data-related stories
+- `$EXTRACTIONS_DIR/business-rules.xml` → Source for acceptance criteria
+- `$EXTRACTIONS_DIR/workflows.xml` → Source for user journeys
+- `$EXTRACTIONS_DIR/ui-flows.xml` → Source for interaction stories
+- `$EXTRACTIONS_DIR/database.xml` → Source for data-related stories
 
 ### Step 2: Generate Epics
 
@@ -496,10 +508,10 @@ US-001,"[title]",EPIC-001,high,5,"[role]","[action]","[benefit]",2,"BR-001","WF-
 User Stories Generation Complete!
 
 Output files:
-- $PROJECT_OUTPUT_DIR/generated/user-stories.md
-- $PROJECT_OUTPUT_DIR/generated/user-stories.json
-- $PROJECT_OUTPUT_DIR/generated/user-stories.csv
-- $PROJECT_OUTPUT_DIR/user-stories.xml
+- $GENERATED_DIR/user-stories.md
+- $GENERATED_DIR/user-stories.json
+- $GENERATED_DIR/user-stories.csv
+- $GENERATED_DIR/user-stories.xml
 
 Summary:
 - Epics: 8
@@ -527,7 +539,7 @@ Stories ready for import into project management tools.
 
 ## Output
 
-`$PROJECT_OUTPUT_DIR/generated/data-dictionary.md`
+`$GENERATED_DIR/data-dictionary.md`
 
 ## Template
 
@@ -612,8 +624,8 @@ erDiagram
 
 ## Output
 
-`$PROJECT_OUTPUT_DIR/generated/diagrams/class-diagram.puml`
-`$PROJECT_OUTPUT_DIR/generated/diagrams/class-diagram.mmd`
+`$DIAGRAMS_DIR/sources/class-diagram.puml`
+`$DIAGRAMS_DIR/sources/class-diagram.mmd`
 
 ## Template
 
@@ -667,7 +679,7 @@ classDiagram
 
 ## Output
 
-`$PROJECT_OUTPUT_DIR/generated/diagrams/block-diagram.puml`
+`$DIAGRAMS_DIR/sources/block-diagram.puml`
 
 ## Template
 
@@ -700,6 +712,240 @@ M1 --> M2 : [relationship]
 
 ---
 
+# Cross-Mappings Generation
+
+## Command
+
+```
+/reforge.generate cross-mappings
+```
+
+## Output
+
+`$DERIVED_DIR/cross-mappings.xml`
+
+## Generation Process
+
+### Step 1: Load All Sources
+
+Read:
+- `$ANALYSIS_DIR/analysis.xml` → Source file inventory
+- `$EXTRACTIONS_DIR/business-rules.xml` → Business rules
+- `$EXTRACTIONS_DIR/database.xml` → Database interactions
+- `$EXTRACTIONS_DIR/ui-flows.xml` → UI components
+- `$EXTRACTIONS_DIR/workflows.xml` → Workflow definitions
+
+### Step 2: Identify Features
+
+Group related extractions into logical features:
+- Workflows with shared entities → feature group
+- UI screens with related business rules → feature group
+- Database entities with CRUD workflows → feature group
+
+### Step 3: Build Traceability Matrix
+
+For each identified feature, trace connections:
+1. **Functional requirements** derived from business rules
+2. **Business rules** applied in the feature
+3. **Workflows** that implement the feature
+4. **UI components** that trigger or display the feature
+5. **Source files** that contain the implementation
+
+### Step 4: Generate Output
+
+Write to `$DERIVED_DIR/cross-mappings.xml` following the schema in `.reforge/schemas/cross-mappings.md`.
+
+### Step 5: Report Results
+
+```
+Cross-Mappings Generation Complete!
+
+Output: $DERIVED_DIR/cross-mappings.xml
+
+Summary:
+- Features traced: [N]
+- Requirements mapped: [N]
+- Rules linked: [N]
+- Workflows connected: [N]
+- Source files referenced: [N]
+```
+
+---
+
+# Features & Requirements Generation
+
+## Command
+
+```
+/reforge.generate features
+```
+
+## Output
+
+`$DERIVED_DIR/features-requirements.xml`
+
+## Generation Process
+
+### Step 1: Load All Sources
+
+Read:
+- `$ANALYSIS_DIR/analysis.xml` → Project structure
+- `$EXTRACTIONS_DIR/business-rules.xml` → Business rules
+- `$EXTRACTIONS_DIR/database.xml` → Data model
+- `$EXTRACTIONS_DIR/ui-flows.xml` → UI components
+- `$EXTRACTIONS_DIR/workflows.xml` → Workflow definitions
+
+### Step 2: Derive Features
+
+Identify features from extraction patterns:
+- Major workflows → features
+- Groups of related business rules → features
+- UI screen clusters → features
+- Domain entity operations → features
+
+For each feature, assign:
+- ID (FT-001, FT-002, ...)
+- Name (descriptive title)
+- Priority (critical, high, medium, low)
+- Description
+- Source components and related rules/workflows
+
+### Step 3: Derive Functional Requirements
+
+For each feature, derive functional requirements:
+- Business rules → specific acceptance criteria
+- Workflow steps → process requirements
+- UI interactions → user-facing requirements
+
+For each requirement:
+- ID (FR-001, FR-002, ...)
+- Feature reference
+- Priority
+- Description
+- Acceptance criteria
+- Source evidence (extraction references)
+
+### Step 4: Derive Non-Functional Requirements
+
+Analyze extractions for non-functional patterns:
+- Performance constraints (response times, throughput)
+- Security requirements (auth, encryption)
+- Scalability needs (data volumes, concurrent users)
+- Reliability requirements (error handling, recovery)
+
+For each requirement:
+- ID (NFR-001, NFR-002, ...)
+- Category (performance, security, scalability, reliability)
+- Priority
+- Description, metric, and threshold
+- Source evidence
+
+### Step 5: Generate Output
+
+Write to `$DERIVED_DIR/features-requirements.xml` following the schema in `.reforge/schemas/features-requirements.md`.
+
+### Step 6: Report Results
+
+```
+Features & Requirements Generation Complete!
+
+Output: $DERIVED_DIR/features-requirements.xml
+
+Summary:
+- Features: [N]
+- Functional Requirements: [N]
+- Non-Functional Requirements: [N]
+- Priority breakdown:
+  - Critical: [N]
+  - High: [N]
+  - Medium: [N]
+  - Low: [N]
+```
+
+---
+
+# Registries Generation
+
+## Command
+
+```
+/reforge.generate registries
+```
+
+## Output
+
+- `$DERIVED_DIR/registries/business-rules-registry.md`
+- `$DERIVED_DIR/registries/functional-requirements-registry.md`
+- `$DERIVED_DIR/registries/non-functional-requirements-registry.md`
+
+## Generation Process
+
+### Step 1: Load Sources
+
+Read:
+- `$EXTRACTIONS_DIR/business-rules.xml` → For business rules registry
+- `$DERIVED_DIR/features-requirements.xml` → For requirements registries (must run `/reforge.generate features` first)
+
+### Step 2: Generate Business Rules Registry
+
+Create a human-readable summary table:
+
+```markdown
+# Business Rules Registry
+
+> Generated: [timestamp]
+
+| ID | Category | Description | Confidence | Source |
+|----|----------|-------------|------------|--------|
+| BR-001 | pricing | Apply 10% discount for orders over $100 | high | src/service/PricingService.java:45 |
+| BR-002 | validation | Order must have at least one item | high | src/model/Order.java:78 |
+...
+```
+
+### Step 3: Generate Functional Requirements Registry
+
+```markdown
+# Functional Requirements Registry
+
+> Generated: [timestamp]
+
+| ID | Feature | Priority | Description | Acceptance Criteria | Source |
+|----|---------|----------|-------------|---------------------|--------|
+| FR-001 | FT-001 | high | [description] | [criteria count] | BR-001, WF-001 |
+...
+```
+
+### Step 4: Generate Non-Functional Requirements Registry
+
+```markdown
+# Non-Functional Requirements Registry
+
+> Generated: [timestamp]
+
+| ID | Category | Priority | Description | Metric | Threshold | Source |
+|----|----------|----------|-------------|--------|-----------|--------|
+| NFR-001 | performance | high | [description] | Response time | <200ms | WF-001 |
+...
+```
+
+### Step 5: Report Results
+
+```
+Registries Generation Complete!
+
+Output files:
+- $DERIVED_DIR/registries/business-rules-registry.md
+- $DERIVED_DIR/registries/functional-requirements-registry.md
+- $DERIVED_DIR/registries/non-functional-requirements-registry.md
+
+Summary:
+- Business rules: [N] entries
+- Functional requirements: [N] entries
+- Non-functional requirements: [N] entries
+```
+
+---
+
 ## Selective Regeneration
 
 When extractions are updated:
@@ -714,4 +960,6 @@ When extractions are updated:
 ## Output Schema Reference
 
 - User Stories: `.reforge/schemas/user-stories.md`
+- Cross-Mappings: `.reforge/schemas/cross-mappings.md`
+- Features & Requirements: `.reforge/schemas/features-requirements.md`
 - Templates: `.reforge/templates/`

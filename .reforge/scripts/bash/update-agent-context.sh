@@ -35,7 +35,7 @@ done
 
 REPO_ROOT="$(get_repo_root)"
 PROJECT_OUTPUT_DIR="$(get_project_output_dir "$REPO_ROOT")"
-ANALYSIS_FILE="$PROJECT_OUTPUT_DIR/analysis.xml"
+ANALYSIS_FILE="$(resolve_analysis_file "$PROJECT_OUTPUT_DIR")"
 
 if [ ! -f "$ANALYSIS_FILE" ]; then
   echo "Error: analysis.xml not found at $ANALYSIS_FILE" >&2

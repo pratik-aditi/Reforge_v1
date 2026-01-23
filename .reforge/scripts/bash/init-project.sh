@@ -73,7 +73,20 @@ PROJECT_OUTPUT_DIR="$REPO_ROOT/$OUTPUT_DIR/$PROJECT_NAME"
 
 # --- Create Directory Structure ---
 
-ensure_dir "$PROJECT_OUTPUT_DIR/generated/diagrams"
+ensure_dir "$PROJECT_OUTPUT_DIR/analysis"
+ensure_dir "$PROJECT_OUTPUT_DIR/extractions"
+ensure_dir "$PROJECT_OUTPUT_DIR/derived/registries"
+ensure_dir "$PROJECT_OUTPUT_DIR/generated"
+ensure_dir "$PROJECT_OUTPUT_DIR/diagrams/sources"
+ensure_dir "$PROJECT_OUTPUT_DIR/diagrams/rendered"
+
+# --- Migrate Legacy Structure ---
+
+# If analysis.xml exists at the old flat path, run migration
+if [ -f "$PROJECT_OUTPUT_DIR/analysis.xml" ]; then
+  bash "$SCRIPT_DIR/migrate-output.sh" --output-dir "$PROJECT_OUTPUT_DIR"
+fi
+
 ensure_dir "$REPO_ROOT/.reforge/memory/history"
 ensure_dir "$REPO_ROOT/.reforge/memory/backups"
 ensure_dir "$REPO_ROOT/.reforge/memory/checkpoints"

@@ -57,7 +57,7 @@ CLARIFICATIONS_DIR="$REPO_ROOT/.reforge/memory/clarifications"
 # --- Check Analysis Status ---
 
 ANALYSIS_STATUS="not-found"
-ANALYSIS_FILE="$PROJECT_OUTPUT_DIR/analysis.xml"
+ANALYSIS_FILE="$(resolve_analysis_file "$PROJECT_OUTPUT_DIR")"
 
 if [ -f "$ANALYSIS_FILE" ]; then
   ANALYSIS_STATUS="completed"
@@ -72,7 +72,7 @@ fi
 # --- Check Extraction ---
 
 if [ -n "$REQUIRE_EXTRACTION" ]; then
-  EXTRACTION_FILE="$PROJECT_OUTPUT_DIR/${REQUIRE_EXTRACTION}.xml"
+  EXTRACTION_FILE="$(resolve_extraction_file "$PROJECT_OUTPUT_DIR" "$REQUIRE_EXTRACTION")"
   if [ ! -f "$EXTRACTION_FILE" ]; then
     echo "Error: Extraction '$REQUIRE_EXTRACTION' not found. Run /reforge.extract $REQUIRE_EXTRACTION first." >&2
     echo "  Expected: $EXTRACTION_FILE" >&2
@@ -84,7 +84,8 @@ fi
 
 AVAILABLE_EXTRACTIONS=()
 for ext_type in business-rules database ui-flows workflows; do
-  if [ -f "$PROJECT_OUTPUT_DIR/${ext_type}.xml" ]; then
+  local_ext_file="$(resolve_extraction_file "$PROJECT_OUTPUT_DIR" "$ext_type")"
+  if [ -f "$local_ext_file" ]; then
     AVAILABLE_EXTRACTIONS+=("$ext_type")
   fi
 done

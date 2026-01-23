@@ -137,6 +137,66 @@ get_project_output_dir() {
   echo "$repo_root/$output_dir/$project_name"
 }
 
+# --- Subdirectory Helpers ---
+
+get_analysis_dir() {
+  local project_output_dir="$1"
+  echo "$project_output_dir/analysis"
+}
+
+get_extractions_dir() {
+  local project_output_dir="$1"
+  echo "$project_output_dir/extractions"
+}
+
+get_derived_dir() {
+  local project_output_dir="$1"
+  echo "$project_output_dir/derived"
+}
+
+get_generated_dir() {
+  local project_output_dir="$1"
+  echo "$project_output_dir/generated"
+}
+
+get_diagrams_dir() {
+  local project_output_dir="$1"
+  echo "$project_output_dir/diagrams"
+}
+
+# --- Backward-Compatible Resolvers ---
+
+resolve_analysis_file() {
+  local project_output_dir="$1"
+  local new_path="$project_output_dir/analysis/analysis.xml"
+  local old_path="$project_output_dir/analysis.xml"
+
+  if [ -f "$new_path" ]; then
+    echo "$new_path"
+  elif [ -f "$old_path" ]; then
+    echo "$old_path"
+  else
+    # Return new path as default (file doesn't exist yet)
+    echo "$new_path"
+  fi
+}
+
+resolve_extraction_file() {
+  local project_output_dir="$1"
+  local extraction_type="$2"
+  local new_path="$project_output_dir/extractions/${extraction_type}.xml"
+  local old_path="$project_output_dir/${extraction_type}.xml"
+
+  if [ -f "$new_path" ]; then
+    echo "$new_path"
+  elif [ -f "$old_path" ]; then
+    echo "$old_path"
+  else
+    # Return new path as default (file doesn't exist yet)
+    echo "$new_path"
+  fi
+}
+
 # --- Validation Helpers ---
 
 check_file() {

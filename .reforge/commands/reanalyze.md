@@ -27,7 +27,7 @@ This command enables incremental re-analysis:
 
 ## Prerequisites
 
-- Initial analysis must be completed (`analysis.xml` exists)
+- Initial analysis must be completed (`$ANALYSIS_DIR/analysis.xml` exists)
 - Target files must be within the analyzed project root
 
 ---
@@ -47,7 +47,13 @@ This returns JSON with resolved variables:
 {"PROJECT_NAME":"...","REPO_ROOT":"...","PROJECT_OUTPUT_DIR":"...","CONFIG":"...","ANALYSIS_STATUS":"completed","AVAILABLE_EXTRACTIONS":[...],"CHECKPOINT":null,"CLARIFICATIONS_DIR":"..."}
 ```
 
-Use `$PROJECT_OUTPUT_DIR` for all output XML paths in subsequent steps.
+Use `$PROJECT_OUTPUT_DIR` for all output paths in subsequent steps.
+
+Assign subdirectory variables:
+```
+$ANALYSIS_DIR = $PROJECT_OUTPUT_DIR/analysis
+$EXTRACTIONS_DIR = $PROJECT_OUTPUT_DIR/extractions
+```
 
 ### Step 0.5: Load Project Context
 
@@ -65,7 +71,7 @@ supplemental guidance throughout this command's execution:
    - If directory: Validate directory exists
 
 2. **Check within project scope:**
-   - Path must be within project root from `analysis.xml`
+   - Path must be within project root from `$ANALYSIS_DIR/analysis.xml`
    - Path must not match exclusion patterns
 
 3. **Resolve file list:**
@@ -77,7 +83,7 @@ supplemental guidance throughout this command's execution:
 For each target file:
 
 1. **Read current file hash**
-2. **Compare with stored hash** from `analysis.xml`
+2. **Compare with stored hash** from `$ANALYSIS_DIR/analysis.xml`
 3. **Determine action:**
    - Hash changed: Mark for re-analysis
    - Hash same + `--force`: Mark for re-analysis
@@ -109,9 +115,9 @@ Before modifying outputs:
 
 ```
 Backing up current extractions...
-- analysis.xml entries: 2 files
-- business-rules.xml entries: 5 rules
-- database.xml entries: 3 interactions
+- $ANALYSIS_DIR/analysis.xml entries: 2 files
+- $EXTRACTIONS_DIR/business-rules.xml entries: 5 rules
+- $EXTRACTIONS_DIR/database.xml entries: 3 interactions
 ```
 
 ### Step 4: Re-analyze Files
@@ -124,7 +130,7 @@ For each changed file:
 2. **Re-detect language and components**
 3. **Update hash**
 4. **Update timestamp**
-5. **Replace entry in `analysis.xml`**
+5. **Replace entry in `$ANALYSIS_DIR/analysis.xml`**
 
 #### Update Extractions
 
@@ -136,22 +142,22 @@ Otherwise, update all extraction types:
 2. Remove old rules (keep IDs for reference tracking)
 3. Re-extract rules from file
 4. Add new rules with new IDs or updated existing IDs
-5. Update `business-rules.xml`
+5. Update `$EXTRACTIONS_DIR/business-rules.xml`
 
 **Database:**
 1. Find existing entities/interactions from this file
 2. Re-extract with current content
-3. Update `database.xml`
+3. Update `$EXTRACTIONS_DIR/database.xml`
 
 **UI:**
 1. Find existing screens/components from this file
 2. Re-extract with current content
-3. Update `ui-flows.xml`
+3. Update `$EXTRACTIONS_DIR/ui-flows.xml`
 
 **Workflows:**
 1. Find workflows that include this file in their path
 2. Re-trace affected workflows
-3. Update `workflows.xml`
+3. Update `$EXTRACTIONS_DIR/workflows.xml`
 
 ### Step 5: Update Cross-References
 
@@ -195,8 +201,8 @@ If any generated documentation exists, mark as stale:
 
 ```
 Generated outputs may be stale:
-- generated/documentation.md (affected by BR-045, BR-089)
-- generated/user-stories.md (affected by WF-001)
+- $GENERATED_DIR/documentation.md (affected by BR-045, BR-089)
+- $GENERATED_DIR/user-stories.md (affected by WF-001)
 
 Run /reforge.generate <format> to regenerate.
 ```
@@ -211,14 +217,14 @@ Files processed: 2
 - src/model/Order.java
 
 Updates:
-- analysis.xml: 2 file entries updated
-- business-rules.xml:
+- $ANALYSIS_DIR/analysis.xml: 2 file entries updated
+- $EXTRACTIONS_DIR/business-rules.xml:
   - Removed: 1 (obsolete rule)
   - Updated: 3 (logic changes)
   - Added: 1 (new rule detected)
-- database.xml:
+- $EXTRACTIONS_DIR/database.xml:
   - Updated: 2 interactions
-- workflows.xml:
+- $EXTRACTIONS_DIR/workflows.xml:
   - Updated: 1 workflow (WF-001)
 
 Cross-references:
@@ -244,7 +250,7 @@ Next steps:
 Hash is calculated from file content:
 - Algorithm: SHA-256 (or MD5 for speed)
 - Excludes: Whitespace-only changes (configurable)
-- Stored in: `analysis.xml` file entry `hash` attribute
+- Stored in: `$ANALYSIS_DIR/analysis.xml` file entry `hash` attribute
 
 ### Change Types
 
@@ -393,7 +399,7 @@ Changes detected in entity definition:
   - Added column: discount_code (varchar)
   - Modified column: total (decimal(10,2) → decimal(12,2))
 
-Updated database.xml with new schema.
+Updated $EXTRACTIONS_DIR/database.xml with new schema.
 
 Note: Related SQL interactions may need review.
 Run /reforge.extract database --files "src/**/*Repository.java"

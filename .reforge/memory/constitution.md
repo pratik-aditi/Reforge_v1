@@ -1,19 +1,14 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.0.0 → 1.1.0 (Alignment with plan.md)
+Version change: 1.1.0 → 1.2.0 (Reorganize output directory structure)
 Modified principles: None
 Modified sections:
-  - Framework Architecture: Updated templates list (added uml-class.md, sysml-block.md, ascii-layout.md, user-stories.md schema; removed sitemap.md)
-  - Framework Architecture: Added reanalyze.md command
-  - Output Directory: Updated generated/ contents (added user-stories.json, diagrams/)
+  - Framework Architecture: Added cross-mappings.md and features-requirements.md schemas
+  - Output Directory: Reorganized into analysis/, extractions/, derived/, generated/, diagrams/ subdirectories
 Removed sections: None
 Templates requiring updates:
-  - .specify/templates/plan-template.md ✅ (compatible - Constitution Check section works)
-  - .specify/templates/spec-template.md ✅ (compatible - no changes needed)
-  - .specify/templates/tasks-template.md ✅ (compatible - phases align with LLM workflow)
-  - .specify/templates/agent-file-template.md ⚠️ (pending - should be updated when first feature planned)
-  - CLAUDE.md ✅ (updated with Reforge overview)
+  - CLAUDE.md ✅ (updated with new directory structure)
 Follow-up TODOs: None
 -->
 
@@ -119,7 +114,9 @@ that operate alongside this constitution. The constitution takes precedence on c
 │   ├── database.md
 │   ├── ui-flows.md
 │   ├── workflows.md
-│   └── user-stories.md
+│   ├── user-stories.md
+│   ├── cross-mappings.md
+│   └── features-requirements.md
 ├── templates/          # Output templates for generation
 │   ├── user-story.md
 │   ├── data-dictionary.md
@@ -138,16 +135,33 @@ that operate alongside this constitution. The constitution takes precedence on c
 ```
 reforge_output/
 ├── <project-name>/
-│   ├── analysis.xml        # Main analysis document
-│   ├── business-rules.xml  # Extracted business rules
-│   ├── database.xml        # Database interactions
-│   ├── ui-flows.xml        # UI component flows
-│   ├── workflows.xml       # Business workflows
-│   └── generated/          # Generated documentation
-│       ├── user-stories.md
-│       ├── user-stories.json
-│       ├── data-dictionary.md
-│       └── diagrams/       # UML/SysML diagram outputs
+│   ├── analysis/               # Analysis inventory
+│   │   └── analysis.xml
+│   ├── extractions/            # Extracted knowledge
+│   │   ├── business-rules.xml
+│   │   ├── database.xml
+│   │   ├── ui-flows.xml
+│   │   └── workflows.xml
+│   ├── derived/                # Derived artifacts
+│   │   ├── cross-mappings.xml
+│   │   ├── features-requirements.xml
+│   │   └── registries/
+│   │       ├── business-rules-registry.md
+│   │       ├── functional-requirements-registry.md
+│   │       └── non-functional-requirements-registry.md
+│   ├── generated/              # Generated documentation
+│   │   ├── documentation.md
+│   │   ├── user-stories.md
+│   │   ├── user-stories.json
+│   │   ├── user-stories.csv
+│   │   ├── user-stories.xml
+│   │   └── data-dictionary.md
+│   └── diagrams/               # Diagram outputs
+│       ├── sources/
+│       │   ├── *.puml
+│       │   └── *.mmd
+│       └── rendered/
+│           └── *.png
 ```
 
 ## Command Workflow
@@ -196,4 +210,4 @@ reforge_output/
 - `CLAUDE.md` (or equivalent agent file) SHOULD reference this constitution
 - Runtime guidance MUST NOT contradict constitutional principles
 
-**Version**: 1.1.0 | **Ratified**: 2025-01-12 | **Last Amended**: 2025-01-13
+**Version**: 1.2.0 | **Ratified**: 2025-01-12 | **Last Amended**: 2025-01-23

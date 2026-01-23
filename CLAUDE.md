@@ -37,10 +37,16 @@ Reforge commands follow the pattern `/reforge.<action>`:
 ├── commands/       # Slash command prompt templates
 ├── schemas/        # Output structure definitions
 ├── templates/      # Generation templates
+├── scripts/        # Bash helper scripts
 ├── memory/         # Constitution and analysis state
 └── config.json     # Configuration
 
-reforge_output/     # Generated analysis and documentation
+reforge_output/<project-name>/
+├── analysis/           # Codebase inventory (analysis.xml)
+├── extractions/        # Extracted knowledge (business-rules, database, ui-flows, workflows)
+├── derived/            # Derived artifacts (cross-mappings, features-requirements, registries/)
+├── generated/          # Generated documentation (markdown, user-stories, data-dictionary)
+└── diagrams/           # Diagram outputs (sources/, rendered/)
 ```
 
 ## Development

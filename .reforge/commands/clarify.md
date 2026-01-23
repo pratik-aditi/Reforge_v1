@@ -47,7 +47,12 @@ This returns JSON with resolved variables:
 {"PROJECT_NAME":"...","REPO_ROOT":"...","PROJECT_OUTPUT_DIR":"...","CONFIG":"...","ANALYSIS_STATUS":"completed","AVAILABLE_EXTRACTIONS":[...],"CHECKPOINT":null,"CLARIFICATIONS_DIR":"..."}
 ```
 
-Use `$CLARIFICATIONS_DIR` for clarification file paths and `$PROJECT_OUTPUT_DIR` for extraction XML paths.
+Use `$CLARIFICATIONS_DIR` for clarification file paths.
+
+Assign subdirectory variables:
+```
+$EXTRACTIONS_DIR = $PROJECT_OUTPUT_DIR/extractions
+```
 
 ### Step 0.5: Load Project Context
 
