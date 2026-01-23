@@ -32,45 +32,56 @@ Before running this command, ensure:
 
 1. The `.reforge/` directory structure exists
 2. Configuration is set in `.reforge/config.json`
-3. Output directory `reforge_output/` is writable
+3. Output directory is writable (created automatically by `init-project.sh`)
 
 ---
 
 ## Workflow
 
+### Step 0: Initialize Project
+
+Run the initialization script to resolve paths and set up directories:
+
+```bash
+bash .reforge/scripts/bash/init-project.sh --json [--name <name>] [target-path]
+```
+
+This returns JSON with resolved variables:
+```json
+{"PROJECT_NAME":"...","OUTPUT_DIR":"...","PROJECT_OUTPUT_DIR":"...","CONFIG":"...","REPO_ROOT":"..."}
+```
+
+Use these variables (`$PROJECT_NAME`, `$PROJECT_OUTPUT_DIR`, `$CONFIG`, `$REPO_ROOT`) throughout subsequent steps.
+
+The script handles:
+- Deriving project name from config or directory basename
+- Setting `project.name` in config.json if empty
+- Creating output directory structure (`$PROJECT_OUTPUT_DIR/generated/diagrams/`)
+- Creating memory subdirectories (`history/`, `backups/`, `checkpoints/`, `clarifications/`, `logs/`)
+
 ### Step 1: Load Configuration
 
-Read `.reforge/config.json` to obtain:
+Read `$CONFIG` to obtain analysis-specific settings:
 
 ```
-- Project name and root path
 - Exclusion patterns (files/directories to skip)
 - Binary file extensions (inventory only, no content analysis)
 - Maximum file size for analysis
 - Chunk size for large files
 ```
 
-**Configuration Structure Reference:**
+**Analysis Configuration Reference:**
 
 ```json
 {
-  "project": {
-    "name": "<project-name>",
-    "root": "./"
-  },
   "analysis": {
     "exclusions": ["**/node_modules/**", "**/vendor/**", ...],
     "binaryExtensions": [".png", ".jpg", ...],
     "maxFileSize": 1048576,
     "chunkSize": 5000
-  },
-  "output": {
-    "directory": "reforge_output"
   }
 }
 ```
-
-If `project.name` is empty, derive it from the directory name.
 
 ### Step 2: Check for Existing Checkpoint
 
@@ -89,15 +100,9 @@ Look for checkpoint file: `.reforge/memory/checkpoints/analysis-checkpoint.xml`
 **If no checkpoint exists:**
 - Proceed with fresh analysis
 
-### Step 3: Initialize Output Structure
+### Step 3: Initialize Analysis State
 
-Create output directory if not exists:
-
-```
-reforge_output/<project-name>/
-├── analysis.xml       # Main output (created in Step 6)
-└── generated/         # For documentation (created by /reforge.generate)
-```
+Output directories were created by Step 0 (`init-project.sh`).
 
 Initialize analysis state:
 
@@ -192,7 +197,7 @@ Process each file in the inventory:
 
 ### Step 6: Generate Output
 
-Write analysis results to `reforge_output/<project-name>/analysis.xml`:
+Write analysis results to `$PROJECT_OUTPUT_DIR/analysis.xml`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -266,7 +271,7 @@ Write analysis results to `reforge_output/<project-name>/analysis.xml`:
    ```
    Analysis complete!
 
-   Output: reforge_output/[project-name]/analysis.xml
+   Output: $PROJECT_OUTPUT_DIR/analysis.xml
 
    Summary:
    - Total files: [X]
@@ -282,6 +287,21 @@ Write analysis results to `reforge_output/<project-name>/analysis.xml`:
    - Run /reforge.extract database to extract data model
    - Run /reforge.status to view detailed progress
    ```
+
+### Step 8: Update Agent Context
+
+Run the agent context update script to record discovered technologies:
+
+```bash
+bash .reforge/scripts/bash/update-agent-context.sh claude --json
+```
+
+This parses `$PROJECT_OUTPUT_DIR/analysis.xml` and updates CLAUDE.md with:
+- Detected languages and their file counts
+- Detected frameworks
+- Total files and lines analyzed
+
+For other agents, replace `claude` with: `gemini`, `copilot`, `cursor`, or `windsurf`.
 
 ---
 
@@ -473,7 +493,7 @@ Starting analysis...
 
 Analysis complete!
 
-Output: reforge_output/legacy-ecommerce/analysis.xml
+Output: $PROJECT_OUTPUT_DIR/analysis.xml
 
 Summary:
 - Total files: 1,247

@@ -28,18 +28,33 @@ This command allows interactive resolution of ambiguous code patterns identified
 ## Prerequisites
 
 - At least one extraction must be completed
-- Pending clarifications exist in `.reforge/memory/clarifications/`
+- Pending clarifications exist in `$CLARIFICATIONS_DIR/`
 
 ---
 
 ## Workflow
 
+### Step 0: Check Prerequisites
+
+Run the prerequisites script to validate state and resolve paths:
+
+```bash
+bash .reforge/scripts/bash/check-prerequisites.sh --json --require-analysis
+```
+
+This returns JSON with resolved variables:
+```json
+{"PROJECT_NAME":"...","REPO_ROOT":"...","PROJECT_OUTPUT_DIR":"...","CONFIG":"...","ANALYSIS_STATUS":"completed","AVAILABLE_EXTRACTIONS":[...],"CHECKPOINT":null,"CLARIFICATIONS_DIR":"..."}
+```
+
+Use `$CLARIFICATIONS_DIR` for clarification file paths and `$PROJECT_OUTPUT_DIR` for extraction XML paths.
+
 ### Step 1: Load Pending Clarifications
 
-Read all `.xml` files from `.reforge/memory/clarifications/`:
+Read all `.xml` files from `$CLARIFICATIONS_DIR/`:
 
 ```
-.reforge/memory/clarifications/
+$CLARIFICATIONS_DIR/
 ├── CL-001-business-rule.xml
 ├── CL-002-database.xml
 ├── CL-003-ui-component.xml
@@ -290,7 +305,7 @@ UI events with unclear triggers.
 
 ## Clarification File Format
 
-Path: `.reforge/memory/clarifications/<id>.xml`
+Path: `$CLARIFICATIONS_DIR/<id>.xml`
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -334,7 +349,7 @@ Path: `.reforge/memory/clarifications/<id>.xml`
 When extraction encounters ambiguity:
 
 1. **Detect ambiguity type**
-2. **Create clarification file** in `.reforge/memory/clarifications/`
+2. **Create clarification file** in `$CLARIFICATIONS_DIR/`
 3. **Set confidence to "low"** in extraction output
 4. **Continue processing** other files
 5. **Report pending clarifications** at end of extraction

@@ -13,7 +13,7 @@
 | Argument | Required | Description |
 |----------|----------|-------------|
 | `format` | Yes | Output format: `markdown`, `user-stories`, `data-dictionary`, `uml`, `sysml` |
-| `--output` | No | Custom output path (defaults to `reforge_output/<project>/generated/`) |
+| `--output` | No | Custom output path (defaults to `$PROJECT_OUTPUT_DIR/generated/`) |
 | `--scope` | No | Limit to specific extraction type: `business-rules`, `database`, `ui`, `workflows` |
 
 ## Overview
@@ -29,7 +29,28 @@ This command generates documentation and artifacts from the XML extractions:
 ## Prerequisites
 
 - At least one extraction must be completed
-- Relevant XML files must exist in `reforge_output/<project>/`
+- Relevant XML files must exist in `$PROJECT_OUTPUT_DIR/`
+
+---
+
+## Step 0: Check Prerequisites
+
+Run the prerequisites script to validate state and resolve paths:
+
+```bash
+# For markdown, user-stories, sysml:
+bash .reforge/scripts/bash/check-prerequisites.sh --json --require-analysis
+
+# For data-dictionary and uml (which require database extraction):
+bash .reforge/scripts/bash/check-prerequisites.sh --json --require-analysis --require-extraction database
+```
+
+This returns JSON with resolved variables:
+```json
+{"PROJECT_NAME":"...","REPO_ROOT":"...","PROJECT_OUTPUT_DIR":"...","CONFIG":"...","ANALYSIS_STATUS":"completed","AVAILABLE_EXTRACTIONS":[...],"CHECKPOINT":null,"CLARIFICATIONS_DIR":"..."}
+```
+
+Use `$PROJECT_OUTPUT_DIR` for all output paths in subsequent steps.
 
 ---
 
@@ -43,7 +64,7 @@ This command generates documentation and artifacts from the XML extractions:
 
 ## Output
 
-`reforge_output/<project>/generated/documentation.md`
+`$PROJECT_OUTPUT_DIR/generated/documentation.md`
 
 ## Template
 
@@ -279,10 +300,10 @@ graph LR
 
 ## Output Files
 
-- `reforge_output/<project>/generated/user-stories.md` (Markdown)
-- `reforge_output/<project>/generated/user-stories.json` (JSON)
-- `reforge_output/<project>/generated/user-stories.csv` (CSV)
-- `reforge_output/<project>/user-stories.xml` (Schema-compliant XML)
+- `$PROJECT_OUTPUT_DIR/generated/user-stories.md` (Markdown)
+- `$PROJECT_OUTPUT_DIR/generated/user-stories.json` (JSON)
+- `$PROJECT_OUTPUT_DIR/generated/user-stories.csv` (CSV)
+- `$PROJECT_OUTPUT_DIR/user-stories.xml` (Schema-compliant XML)
 
 ## Generation Process
 
@@ -466,10 +487,10 @@ US-001,"[title]",EPIC-001,high,5,"[role]","[action]","[benefit]",2,"BR-001","WF-
 User Stories Generation Complete!
 
 Output files:
-- reforge_output/[project]/generated/user-stories.md
-- reforge_output/[project]/generated/user-stories.json
-- reforge_output/[project]/generated/user-stories.csv
-- reforge_output/[project]/user-stories.xml
+- $PROJECT_OUTPUT_DIR/generated/user-stories.md
+- $PROJECT_OUTPUT_DIR/generated/user-stories.json
+- $PROJECT_OUTPUT_DIR/generated/user-stories.csv
+- $PROJECT_OUTPUT_DIR/user-stories.xml
 
 Summary:
 - Epics: 8
@@ -497,7 +518,7 @@ Stories ready for import into project management tools.
 
 ## Output
 
-`reforge_output/<project>/generated/data-dictionary.md`
+`$PROJECT_OUTPUT_DIR/generated/data-dictionary.md`
 
 ## Template
 
@@ -582,8 +603,8 @@ erDiagram
 
 ## Output
 
-`reforge_output/<project>/generated/diagrams/class-diagram.puml`
-`reforge_output/<project>/generated/diagrams/class-diagram.mmd`
+`$PROJECT_OUTPUT_DIR/generated/diagrams/class-diagram.puml`
+`$PROJECT_OUTPUT_DIR/generated/diagrams/class-diagram.mmd`
 
 ## Template
 
@@ -637,7 +658,7 @@ classDiagram
 
 ## Output
 
-`reforge_output/<project>/generated/diagrams/block-diagram.puml`
+`$PROJECT_OUTPUT_DIR/generated/diagrams/block-diagram.puml`
 
 ## Template
 

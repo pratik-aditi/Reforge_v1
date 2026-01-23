@@ -28,7 +28,7 @@ This command extracts specific types of information from the analyzed codebase:
 ## Prerequisites
 
 - Analysis must be completed (`/reforge.analyze`)
-- `reforge_output/<project>/analysis.xml` must exist
+- `$PROJECT_OUTPUT_DIR/analysis.xml` must exist
 
 ---
 
@@ -46,9 +46,24 @@ This command extracts specific types of information from the analyzed codebase:
 
 ## Workflow
 
+### Step 0: Check Prerequisites
+
+Run the prerequisites script to validate state and resolve paths:
+
+```bash
+bash .reforge/scripts/bash/check-prerequisites.sh --json --require-analysis
+```
+
+This returns JSON with resolved variables:
+```json
+{"PROJECT_NAME":"...","REPO_ROOT":"...","PROJECT_OUTPUT_DIR":"...","CONFIG":"...","ANALYSIS_STATUS":"completed","AVAILABLE_EXTRACTIONS":[...],"CHECKPOINT":null,"CLARIFICATIONS_DIR":"..."}
+```
+
+Use `$PROJECT_OUTPUT_DIR` for all output paths in subsequent steps.
+
 ### Step 1: Load Analysis
 
-Read `reforge_output/<project>/analysis.xml` to get:
+Read `$PROJECT_OUTPUT_DIR/analysis.xml` to get:
 - List of source files to process
 - Language information for each file
 - Component locations (classes, methods)
@@ -162,7 +177,7 @@ For each identified pattern:
 
 ### Step 5: Generate Output
 
-Write to `reforge_output/<project>/business-rules.xml`:
+Write to `$PROJECT_OUTPUT_DIR/business-rules.xml`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -210,7 +225,7 @@ Write to `reforge_output/<project>/business-rules.xml`:
 ```
 Business Rules Extraction Complete!
 
-Output: reforge_output/[project]/business-rules.xml
+Output: $PROJECT_OUTPUT_DIR/business-rules.xml
 
 Summary:
 - Total rules: 156
@@ -248,7 +263,7 @@ Run /reforge.clarify to resolve ambiguous extractions.
 
 ### Step 1: Load Analysis
 
-Read `reforge_output/<project>/analysis.xml` to identify:
+Read `$PROJECT_OUTPUT_DIR/analysis.xml` to identify:
 - SQL files (.sql)
 - Configuration files (persistence.xml, hibernate.cfg.xml)
 - ORM entity files
@@ -384,7 +399,7 @@ For each SQL statement:
 
 ### Step 6: Generate Output
 
-Write to `reforge_output/<project>/database.xml`:
+Write to `$PROJECT_OUTPUT_DIR/database.xml`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -442,7 +457,7 @@ Write to `reforge_output/<project>/database.xml`:
 ```
 Database Extraction Complete!
 
-Output: reforge_output/[project]/database.xml
+Output: $PROJECT_OUTPUT_DIR/database.xml
 
 Data Model Summary:
 - Entities: 15 (12 tables, 3 views)
@@ -569,7 +584,7 @@ Identify screen-to-screen flows:
 
 ### Step 7: Generate Output
 
-Write to `reforge_output/<project>/ui-flows.xml`:
+Write to `$PROJECT_OUTPUT_DIR/ui-flows.xml`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -688,7 +703,7 @@ For each workflow step:
 
 ### Step 4: Generate Output
 
-Write to `reforge_output/<project>/workflows.xml`:
+Write to `$PROJECT_OUTPUT_DIR/workflows.xml`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>

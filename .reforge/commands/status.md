@@ -29,6 +29,32 @@ This command provides visibility into the analysis state, showing:
 
 ## Workflow
 
+### Step 0: Check Prerequisites and Checkpoint
+
+Run the prerequisites script to resolve paths and check checkpoint state:
+
+```bash
+bash .reforge/scripts/bash/check-prerequisites.sh --json --include-checkpoint
+```
+
+This returns JSON with resolved variables:
+```json
+{"PROJECT_NAME":"...","REPO_ROOT":"...","PROJECT_OUTPUT_DIR":"...","CONFIG":"...","ANALYSIS_STATUS":"completed|not-found","AVAILABLE_EXTRACTIONS":[...],"CHECKPOINT":"/path|null","CLARIFICATIONS_DIR":"..."}
+```
+
+If a checkpoint exists, also run the checkpoint reader:
+
+```bash
+bash .reforge/scripts/bash/manage-checkpoint.sh read --json
+```
+
+This returns:
+```json
+{"EXISTS":true,"TYPE":"analysis","TOTAL_FILES":1247,"PROCESSED_FILES":500,"CURRENT_FILE":"...","STARTED_AT":"...","ELAPSED_SECONDS":3600,"PERCENTAGE":40}
+```
+
+Use `$PROJECT_OUTPUT_DIR`, `$PROJECT_NAME`, `$CLARIFICATIONS_DIR` throughout subsequent steps.
+
 ### Step 1: Check Analysis State
 
 Look for analysis outputs and checkpoints:
@@ -38,17 +64,17 @@ Look for analysis outputs and checkpoints:
    - If exists: Analysis is in progress or interrupted
 
 2. **Check for completed analysis:**
-   - Path: `reforge_output/<project-name>/analysis.xml`
+   - Path: `$PROJECT_OUTPUT_DIR/analysis.xml`
    - If exists: Analysis has completed at least once
 
 3. **Check for extraction outputs:**
-   - `reforge_output/<project-name>/business-rules.xml`
-   - `reforge_output/<project-name>/database.xml`
-   - `reforge_output/<project-name>/ui-flows.xml`
-   - `reforge_output/<project-name>/workflows.xml`
+   - `$PROJECT_OUTPUT_DIR/business-rules.xml`
+   - `$PROJECT_OUTPUT_DIR/database.xml`
+   - `$PROJECT_OUTPUT_DIR/ui-flows.xml`
+   - `$PROJECT_OUTPUT_DIR/workflows.xml`
 
 4. **Check for pending clarifications:**
-   - Path: `.reforge/memory/clarifications/*.xml`
+   - Path: `$CLARIFICATIONS_DIR/*.xml`
    - Count pending items
 
 ### Step 2: Gather Statistics
@@ -314,7 +340,7 @@ Calculate:
 
 ## Reading Statistics from Analysis Output
 
-Analysis path: `reforge_output/<project-name>/analysis.xml`
+Analysis path: `$PROJECT_OUTPUT_DIR/analysis.xml`
 
 Extract from `<summary>`:
 - `total-files` attribute

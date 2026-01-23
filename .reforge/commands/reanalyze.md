@@ -34,6 +34,21 @@ This command enables incremental re-analysis:
 
 ## Workflow
 
+### Step 0: Check Prerequisites
+
+Run the prerequisites script to validate state and resolve paths:
+
+```bash
+bash .reforge/scripts/bash/check-prerequisites.sh --json --require-analysis
+```
+
+This returns JSON with resolved variables:
+```json
+{"PROJECT_NAME":"...","REPO_ROOT":"...","PROJECT_OUTPUT_DIR":"...","CONFIG":"...","ANALYSIS_STATUS":"completed","AVAILABLE_EXTRACTIONS":[...],"CHECKPOINT":null,"CLARIFICATIONS_DIR":"..."}
+```
+
+Use `$PROJECT_OUTPUT_DIR` for all output XML paths in subsequent steps.
+
 ### Step 1: Validate Targets
 
 1. **Check path exists:**
