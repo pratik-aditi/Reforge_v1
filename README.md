@@ -14,73 +14,101 @@ The framework installs into your target project as a set of slash commands. When
 
 ### Prerequisites
 
-- A Unix-like shell (macOS, Linux, WSL)
+- Python 3.11 or higher
+- [uv](https://docs.astral.sh/uv/) (recommended) or pip
 - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (or another AI coding agent that supports slash commands)
 
-### Setup
+### Quick Start
 
-1. Clone this repository:
+Install Reforge CLI using `uv`:
 
 ```bash
-git clone https://github.com/your-org/reforge.git ~/tools/reforge
+uv tool install reforge-cli
 ```
 
-2. Install into your target project:
+Or install from git:
 
 ```bash
-~/tools/reforge/bin/reforge --claude /path/to/legacy-project
+uv tool install git+https://github.com/your-org/reforge.git
+```
+
+Or using pip:
+
+```bash
+pip install reforge-cli
+```
+
+Then install into your target project:
+
+```bash
+reforge --claude /path/to/legacy-project
 ```
 
 This copies the framework files, generates Claude Code slash command wrappers, configures permissions, and sets up `.gitignore` entries.
 
-3. Open your project in Claude Code and run:
+Open your project in Claude Code and run:
 
 ```
 /reforge.analyze
 ```
 
-### Installer Options
+### CLI Commands
 
 ```
-Usage: reforge <--claude|--remove> [OPTIONS] [target-path]
-
-Commands:
-  --claude              Install/set up Reforge for Claude Code
-  --remove              Remove Reforge from target project
+Usage: reforge [OPTIONS] [TARGET_PATH]
 
 Options:
-  --update              Refresh framework files (preserves config)
-  --force               Skip confirmation prompts
-  --dry-run             Show what would be done
-  --version             Show framework version
-  --help                Show help
+  --claude     Install/set up Reforge for Claude Code
+  --remove     Remove Reforge from target project
+  --version    Show framework version
+  --update     Refresh framework files (preserves config)
+  --force      Skip confirmation prompts
+  --dry-run    Show what would be done
+  --help       Show this message and exit
+
+Arguments:
+  TARGET_PATH  Target project directory (defaults to current directory)
 ```
 
 | Example | What it does |
 |---------|--------------|
 | `reforge --claude .` | Install into current directory |
 | `reforge --claude /opt/legacy-app` | Install into a specific project |
-| `reforge --claude --update .` | Update framework after pulling new version |
+| `reforge --claude --update .` | Update framework files |
 | `reforge --claude --dry-run .` | Preview what would be installed |
 | `reforge --remove .` | Uninstall from current directory |
 
 ### Updating
 
-After pulling new versions of this repo, update installed projects:
+To update the Reforge CLI tool itself:
 
 ```bash
-~/tools/reforge/bin/reforge --claude --update /path/to/project
+uv tool upgrade reforge-cli
+```
+
+To refresh framework files in an already-installed project:
+
+```bash
+reforge --claude --update /path/to/project
 ```
 
 This refreshes commands, schemas, and templates while preserving your project-specific configuration (project name, custom exclusions, output directory).
 
 ### Uninstalling
 
+Remove from a project:
+
 ```bash
-~/tools/reforge/bin/reforge --remove /path/to/project
+reforge --remove /path/to/project
 ```
 
 Removes all framework files and configuration. Your analysis output (`reforge_output/`) is preserved unless you explicitly confirm its removal.
+
+Uninstall the CLI tool:
+
+```bash
+uv tool uninstall reforge-cli
+```
 
 ## Commands
 
@@ -203,18 +231,19 @@ After installation, edit `.reforge/config.json` in your target project:
 ## Typical Workflow
 
 ```
-1. Install:     reforge --claude /path/to/project
-2. Configure:   Edit .reforge/config.json (project name, exclusions)
-3. Analyze:     /reforge.analyze
-4. Extract:     /reforge.extract business-rules
+1. Install:     uv tool install reforge-cli
+2. Setup:       reforge --claude /path/to/project
+3. Configure:   Edit .reforge/config.json (project name, exclusions)
+4. Analyze:     /reforge.analyze
+5. Extract:     /reforge.extract business-rules
                 /reforge.extract database
                 /reforge.extract ui
                 /reforge.extract workflows
-5. Clarify:     /reforge.clarify (resolve ambiguities)
-6. Generate:    /reforge.generate user-stories
+6. Clarify:     /reforge.clarify (resolve ambiguities)
+7. Generate:    /reforge.generate user-stories
                 /reforge.generate data-dictionary
                 /reforge.generate uml
-7. Review:      Check reforge_output/ for results
+8. Review:      Check reforge_output/ for results
 ```
 
 ## What Gets Installed

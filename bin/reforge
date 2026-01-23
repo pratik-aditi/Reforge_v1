@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# DEPRECATED: This bash script is maintained for backward compatibility only.
+# Please use the Python package instead:
+#   uv tool install reforge-cli
+#   reforge claude /path/to/project
+# See README.md for more information.
+
 # ─── Self-Location ───────────────────────────────────────────────────────────
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REFORGE_HOME="$(cd "$SCRIPT_DIR/.." && pwd)"

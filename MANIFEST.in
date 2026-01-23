@@ -1,0 +1,6 @@
+include README.md
+include LICENSE
+recursive-include .reforge *
+recursive-exclude .reforge/memory/checkpoints *
+recursive-exclude .reforge/memory/clarifications *
+recursive-exclude .reforge/memory/logs *

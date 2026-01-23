@@ -1,0 +1,23 @@
+[project]
+name = "reforge-cli"
+version = "1.0.0"
+description = "LLM-driven legacy codebase analysis and documentation framework"
+requires-python = ">=3.11"
+readme = "README.md"
+dependencies = [
+    "typer",
+    "rich",
+]
+
+[project.scripts]
+reforge = "reforge_cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/reforge_cli"]
+
+[tool.hatch.build.targets.wheel.shared-data]
+".reforge" = "share/reforge-cli/.reforge"
