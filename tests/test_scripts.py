@@ -1,10 +1,9 @@
-"""Tests for reforge_cli.scripts - verifying Python matches bash behavior."""
+"""Tests for reforge_cli.scripts - cross-platform Python utilities."""
 
 from __future__ import annotations
 
 import json
 import os
-import subprocess
 from pathlib import Path
 
 import pytest
@@ -407,106 +406,58 @@ Keep this.
         assert "TOTAL_FILES" in data
 
 
-class TestBashParity:
-    """Tests that verify Python output structure matches bash script output.
+class TestConfigParsing:
+    """Tests for correct config.json parsing behavior."""
 
-    These tests run both bash and Python versions and compare output structure.
-    Skip if bash scripts not available (e.g., Windows without bash).
+    def test_get_config_value_reads_nested_json_correctly(self, temp_repo: Path):
+        """get_config_value correctly parses nested JSON values.
 
-    Note: The bash scripts have a known bug in get_config_value where the awk
-    parsing doesn't correctly extract nested JSON values. The Python version
-    correctly reads config values. We verify structural parity, not value parity.
-    """
+        This verifies that Python's json module correctly extracts nested values,
+        which is especially important for complex config structures.
+        """
+        config = temp_repo / ".reforge" / "config.json"
 
-    @pytest.fixture
-    def bash_scripts_dir(self) -> Path | None:
-        """Get bash scripts directory if available."""
-        # Try to find bash scripts relative to test file
-        test_dir = Path(__file__).parent
-        repo_root = test_dir.parent
-        bash_dir = repo_root / ".reforge" / "scripts" / "bash"
-        if bash_dir.exists():
-            return bash_dir
-        return None
+        # Verify nested values are read correctly
+        assert get_config_value("project.name", config) == "test-project"
+        assert get_config_value("output.directory", config) == "reforge_output"
+        assert get_config_value("extraction.confidenceThreshold", config) == "0.7"
+        assert get_config_value("extraction.includeSnippets", config) == "True"
 
-    def _run_bash_script(
-        self, script_path: Path, args: list[str], cwd: Path
-    ) -> tuple[int, str, str]:
-        """Run a bash script and return (returncode, stdout, stderr)."""
-        try:
-            result = subprocess.run(
-                ["bash", str(script_path)] + args,
-                cwd=cwd,
-                capture_output=True,
-                text=True,
-                timeout=10,
-            )
-            return result.returncode, result.stdout, result.stderr
-        except (FileNotFoundError, subprocess.TimeoutExpired):
-            pytest.skip("bash not available or script timed out")
-            return (1, "", "")  # unreachable, but satisfies type checker
+    def test_get_config_value_handles_deeply_nested_config(self, tmp_path: Path):
+        """get_config_value handles deeply nested JSON structures."""
+        reforge_dir = tmp_path / ".reforge"
+        reforge_dir.mkdir()
 
-    @pytest.mark.skipif(
-        os.name == "nt", reason="Bash scripts not available on Windows"
-    )
-    def test_init_project_json_structure_matches_bash(
-        self, bash_scripts_dir: Path | None, temp_repo: Path
-    ):
-        """init_project JSON output has same keys as bash script."""
-        if bash_scripts_dir is None:
-            pytest.skip("bash scripts not found")
+        config = {
+            "level1": {
+                "level2": {
+                    "level3": {
+                        "value": "deeply-nested"
+                    }
+                }
+            }
+        }
+        config_file = reforge_dir / "config.json"
+        config_file.write_text(json.dumps(config))
 
-        os.chdir(temp_repo)
+        result = get_config_value("level1.level2.level3.value", config_file)
+        assert result == "deeply-nested"
 
-        # Run Python version
-        py_result = init_project()
-        py_json = json.loads(py_result.to_json())
+    def test_get_config_value_handles_arrays_in_config(self, temp_repo: Path):
+        """get_config_value handles array values by converting to string."""
+        config = temp_repo / ".reforge" / "config.json"
 
-        # Run bash version
-        script = bash_scripts_dir / "init-project.sh"
-        if not script.exists():
-            pytest.skip("init-project.sh not found")
+        # analysis.exclusions is an array
+        result = get_config_value("analysis.exclusions", config)
+        assert result == "[]"
 
-        rc, stdout, _ = self._run_bash_script(script, ["--json"], temp_repo)
-        if rc != 0:
-            pytest.skip("bash script failed")
+    def test_get_config_value_handles_invalid_json(self, tmp_path: Path):
+        """get_config_value returns None for invalid JSON."""
+        reforge_dir = tmp_path / ".reforge"
+        reforge_dir.mkdir()
 
-        bash_json = json.loads(stdout.strip())
+        config_file = reforge_dir / "config.json"
+        config_file.write_text("{ invalid json }")
 
-        # Compare output structure (same keys)
-        assert set(py_json.keys()) == set(bash_json.keys())
-        # OUTPUT_DIR should match (simple value)
-        assert py_json["OUTPUT_DIR"] == bash_json["OUTPUT_DIR"]
-
-    @pytest.mark.skipif(
-        os.name == "nt", reason="Bash scripts not available on Windows"
-    )
-    def test_check_prerequisites_json_structure_matches_bash(
-        self, bash_scripts_dir: Path | None, temp_repo: Path
-    ):
-        """check_prerequisites JSON output has same keys as bash script."""
-        if bash_scripts_dir is None:
-            pytest.skip("bash scripts not found")
-
-        os.chdir(temp_repo)
-
-        # Run Python version
-        py_result = check_prerequisites()
-        py_json = json.loads(py_result.to_json())
-
-        # Run bash version
-        script = bash_scripts_dir / "check-prerequisites.sh"
-        if not script.exists():
-            pytest.skip("check-prerequisites.sh not found")
-
-        rc, stdout, _ = self._run_bash_script(script, ["--json"], temp_repo)
-        if rc != 0:
-            pytest.skip("bash script failed")
-
-        bash_json = json.loads(stdout.strip())
-
-        # Compare output structure (same keys)
-        assert set(py_json.keys()) == set(bash_json.keys())
-        # These values should match
-        assert py_json["ANALYSIS_STATUS"] == bash_json["ANALYSIS_STATUS"]
-        assert py_json["AVAILABLE_EXTRACTIONS"] == bash_json["AVAILABLE_EXTRACTIONS"]
+        result = get_config_value("any.key", config_file)
+        assert result is None
