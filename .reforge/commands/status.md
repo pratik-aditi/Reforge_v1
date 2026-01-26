@@ -289,6 +289,7 @@ Next steps:
 **If extractions completed, no clarifications:**
 ```
 Next steps:
+→ Run /reforge.audit to verify extraction coverage completeness
 → Run /reforge.generate markdown to create documentation
 → Run /reforge.generate user-stories to create modernization backlog
 → Run /reforge.generate uml to create diagrams
@@ -299,6 +300,7 @@ Next steps:
 Analysis complete! All extractions and documentation generated.
 
 Available commands:
+→ /reforge.audit - Verify extraction coverage completeness
 → /reforge.reanalyze [path] - Re-analyze specific files
 → /reforge.generate [format] - Regenerate documentation
 → /reforge.clarify - Review and update clarifications

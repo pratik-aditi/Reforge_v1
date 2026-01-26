@@ -1,14 +1,16 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.1.0 → 1.2.0 (Reorganize output directory structure)
+Version change: 1.2.0 → 1.3.0 (Add Verification Phase: audit and fix commands)
 Modified principles: None
 Modified sections:
-  - Framework Architecture: Added cross-mappings.md and features-requirements.md schemas
-  - Output Directory: Reorganized into analysis/, extractions/, derived/, generated/, diagrams/ subdirectories
+  - Framework Architecture: Added audit.md, fix.md commands; audit-report.md, correction-plan.md schemas
+  - Output Directory: Added audit/ subdirectory with audit-report.xml and correction-plan.xml
+  - Command Workflow: Added Verification Phase with audit and fix commands
 Removed sections: None
 Templates requiring updates:
-  - CLAUDE.md ✅ (updated with new directory structure)
+  - CLAUDE.md ✅ (updated with new commands)
+  - status.md ✅ (updated next-steps recommendations)
 Follow-up TODOs: None
 -->
 
@@ -107,7 +109,9 @@ that operate alongside this constitution. The constitution takes precedence on c
 │   ├── generate.md     # /reforge.generate - Generate documentation
 │   ├── clarify.md      # /reforge.clarify - Clarification workflow
 │   ├── status.md       # /reforge.status - Show analysis status
-│   └── reanalyze.md    # /reforge.reanalyze - Incremental re-analysis
+│   ├── reanalyze.md    # /reforge.reanalyze - Incremental re-analysis
+│   ├── audit.md        # /reforge.audit - Audit extraction coverage
+│   └── fix.md          # /reforge.fix - Execute audit corrections
 ├── schemas/            # Output structure definitions
 │   ├── analysis.md     # Analysis output schema
 │   ├── business-rules.md
@@ -116,7 +120,9 @@ that operate alongside this constitution. The constitution takes precedence on c
 │   ├── workflows.md
 │   ├── user-stories.md
 │   ├── cross-mappings.md
-│   └── features-requirements.md
+│   ├── features-requirements.md
+│   ├── audit-report.md    # Audit coverage report schema
+│   └── correction-plan.md # Correction plan schema
 ├── templates/          # Output templates for generation
 │   ├── user-story.md
 │   ├── data-dictionary.md
@@ -156,6 +162,9 @@ reforge_output/
 │   │   ├── user-stories.csv
 │   │   ├── user-stories.xml
 │   │   └── data-dictionary.md
+│   ├── audit/                  # Audit and correction outputs
+│   │   ├── audit-report.xml
+│   │   └── correction-plan.xml
 │   └── diagrams/               # Diagram outputs
 │       ├── sources/
 │       │   ├── *.puml
@@ -180,6 +189,11 @@ reforge_output/
 
 4. **`/reforge.generate [artifact]`** — Generate documentation from extracted knowledge
 5. **`/reforge.status`** — Report on analysis completeness and coverage
+
+### Verification Phase
+
+6. **`/reforge.audit [type]`** — Audit extraction coverage, identify gaps and stale references
+7. **`/reforge.fix`** — Execute corrections from the audit correction plan
 
 ### Workflow Rules
 
@@ -210,4 +224,4 @@ reforge_output/
 - `CLAUDE.md` (or equivalent agent file) SHOULD reference this constitution
 - Runtime guidance MUST NOT contradict constitutional principles
 
-**Version**: 1.2.0 | **Ratified**: 2025-01-12 | **Last Amended**: 2025-01-23
+**Version**: 1.3.0 | **Ratified**: 2025-01-12 | **Last Amended**: 2026-01-23
