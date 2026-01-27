@@ -2,7 +2,6 @@
 
 import json
 import shutil
-import sys
 from pathlib import Path
 from typing import Optional
 
@@ -23,6 +22,7 @@ __version__ = "1.0.0"
 
 app = typer.Typer(help="Reforge - LLM-driven legacy codebase analysis and documentation framework")
 console = Console()
+console_err = Console(stderr=True)
 
 # Create a subcommand group for helper scripts
 scripts_app = typer.Typer(help="Helper scripts for Reforge commands")
@@ -40,7 +40,7 @@ def get_reforge_home() -> Path:
     if (package_dir / ".reforge").exists():
         return package_dir
     
-    console.print("[red]Error: Framework files not found[/red]", file=sys.stderr)
+    console_err.print("[red]Error: Framework files not found[/red]")
     raise typer.Exit(1)
 
 
@@ -57,7 +57,7 @@ def warn(message: str):
 
 
 def error(message: str):
-    console.print(f"[red][reforge][/red] {message}", file=sys.stderr)
+    console_err.print(f"[red][reforge][/red] {message}")
 
 
 def validate_source(reforge_home: Path):
@@ -465,7 +465,7 @@ def cli(
     update: bool = typer.Option(False, "--update", help="Refresh framework files (preserves config)"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation prompts"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be done"),
-    target_path: Optional[str] = typer.Option(None, "--target", "-t", help="Target project directory (defaults to current directory)"),
+    target_path: Optional[str] = typer.Argument(None, help="Target project directory (defaults to current directory)"),
 ):
     # If a subcommand is being invoked, skip the main callback logic
     if ctx.invoked_subcommand is not None:
