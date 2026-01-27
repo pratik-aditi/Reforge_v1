@@ -20,6 +20,7 @@ from .common import (
     get_project_name,
     get_repo_root,
 )
+from .migrate_output import migrate_output
 
 
 @dataclass
@@ -90,8 +91,21 @@ def init_project(
     output_dir = get_output_dir(repo_root)
     project_output_dir = repo_root / output_dir / project_name
 
-    # Create directory structure
-    ensure_dir(project_output_dir / "generated" / "diagrams")
+    # Migrate legacy flat structure if it exists
+    # This moves files like analysis.xml -> analysis/analysis.xml
+    if project_output_dir.exists():
+        migrate_output(output_dir_override=project_output_dir)
+
+    # Create directory structure (new categorized layout)
+    ensure_dir(project_output_dir / "analysis")
+    ensure_dir(project_output_dir / "extractions")
+    ensure_dir(project_output_dir / "derived" / "registries")
+    ensure_dir(project_output_dir / "generated")
+    ensure_dir(project_output_dir / "audit")
+    ensure_dir(project_output_dir / "diagrams" / "sources")
+    ensure_dir(project_output_dir / "diagrams" / "rendered")
+
+    # Create memory directories
     ensure_dir(repo_root / ".reforge" / "memory" / "history")
     ensure_dir(repo_root / ".reforge" / "memory" / "backups")
     ensure_dir(repo_root / ".reforge" / "memory" / "checkpoints")

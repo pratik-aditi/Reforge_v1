@@ -14,9 +14,12 @@ from pathlib import Path
 
 from .common import (
     ReforgeError,
+    get_audit_dir,
     get_project_name,
     get_project_output_dir,
     get_repo_root,
+    resolve_analysis_file,
+    resolve_extraction_file,
 )
 
 
@@ -54,16 +57,18 @@ class PrerequisitesResult:
 def check_prerequisites(
     require_analysis: bool = False,
     require_extraction: str | None = None,
+    require_audit: bool = False,
     include_checkpoint: bool = False,
 ) -> PrerequisitesResult:
     """Validate prerequisites for Reforge commands.
 
-    Checks for required analysis and extraction files.
+    Checks for required analysis, extraction, and audit files.
     Matches behavior of bash check-prerequisites.sh script.
 
     Args:
         require_analysis: If True, raises error if analysis.xml doesn't exist.
         require_extraction: If set, raises error if specified extraction doesn't exist.
+        require_audit: If True, raises error if correction-plan.xml doesn't exist.
         include_checkpoint: If True, includes checkpoint path in result if it exists.
 
     Returns:
@@ -83,8 +88,8 @@ def check_prerequisites(
     project_output_dir = get_project_output_dir(repo_root)
     clarifications_dir = repo_root / ".reforge" / "memory" / "clarifications"
 
-    # Check analysis status
-    analysis_file = project_output_dir / "analysis.xml"
+    # Check analysis status using backward-compatible resolver
+    analysis_file = resolve_analysis_file(project_output_dir)
     analysis_status = "completed" if analysis_file.is_file() else "not-found"
 
     if require_analysis and analysis_status == "not-found":
@@ -92,9 +97,9 @@ def check_prerequisites(
             f"Analysis not found. Run /reforge.analyze first.\n  Expected: {analysis_file}"
         )
 
-    # Check required extraction
+    # Check required extraction using backward-compatible resolver
     if require_extraction:
-        extraction_file = project_output_dir / f"{require_extraction}.xml"
+        extraction_file = resolve_extraction_file(project_output_dir, require_extraction)
         if not extraction_file.is_file():
             raise ReforgeError(
                 f"Extraction '{require_extraction}' not found. "
@@ -102,12 +107,22 @@ def check_prerequisites(
                 f"  Expected: {extraction_file}"
             )
 
-    # List available extractions
+    # Check required audit (correction plan)
+    if require_audit:
+        audit_dir = get_audit_dir(project_output_dir)
+        correction_plan = audit_dir / "correction-plan.xml"
+        if not correction_plan.is_file():
+            raise ReforgeError(
+                f"Correction plan not found. Run /reforge.audit first.\n"
+                f"  Expected: {correction_plan}"
+            )
+
+    # List available extractions using backward-compatible resolver
     extraction_types = ["business-rules", "database", "ui-flows", "workflows"]
     available_extractions = [
         ext_type
         for ext_type in extraction_types
-        if (project_output_dir / f"{ext_type}.xml").is_file()
+        if resolve_extraction_file(project_output_dir, ext_type).is_file()
     ]
 
     # Check for checkpoint

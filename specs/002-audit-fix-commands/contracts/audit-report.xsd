@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Audit Report XML Schema
+  Feature: 002-audit-fix-commands
+  Defines the structure for audit-report.xml produced by /reforge.audit
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <!-- Root element -->
+  <xs:element name="audit-report">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="coverage-by-type" type="CoverageByTypeList"/>
+        <xs:element name="uncovered-files" type="UncoveredFileList"/>
+        <xs:element name="stale-references" type="StaleReferenceList"/>
+        <xs:element name="summary" type="xs:string"/>
+      </xs:sequence>
+      <xs:attribute name="project-id" type="xs:string" use="required"/>
+      <xs:attribute name="version" type="xs:string" use="required"/>
+      <xs:attribute name="generated" type="xs:dateTime" use="required"/>
+      <xs:attribute name="scope" type="xs:string" use="required"/>
+      <xs:attribute name="total-files" type="xs:integer" use="required"/>
+      <xs:attribute name="covered-files" type="xs:integer" use="required"/>
+      <xs:attribute name="uncovered-files-count" type="xs:integer" use="required"/>
+      <xs:attribute name="coverage-percentage" type="xs:decimal" use="required"/>
+      <xs:attribute name="stale-references-count" type="xs:integer" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Coverage by extraction type -->
+  <xs:complexType name="CoverageByTypeList">
+    <xs:sequence>
+      <xs:element name="type-coverage" maxOccurs="unbounded">
+        <xs:complexType>
+          <xs:attribute name="type" type="xs:string" use="required"/>
+          <xs:attribute name="files-referenced" type="xs:integer" use="required"/>
+          <xs:attribute name="total-items" type="xs:integer" use="required"/>
+          <xs:attribute name="stale-items" type="xs:integer" use="required"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Uncovered files list -->
+  <xs:complexType name="UncoveredFileList">
+    <xs:sequence>
+      <xs:element name="file" maxOccurs="unbounded">
+        <xs:complexType>
+          <xs:attribute name="path" type="xs:string" use="required"/>
+          <xs:attribute name="language" type="xs:string" use="required"/>
+          <xs:attribute name="lines" type="xs:integer" use="required"/>
+          <xs:attribute name="components" type="xs:string" use="optional"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Stale references list -->
+  <xs:complexType name="StaleReferenceList">
+    <xs:sequence>
+      <xs:element name="stale-ref" maxOccurs="unbounded" minOccurs="0">
+        <xs:complexType>
+          <xs:attribute name="extraction-type" type="xs:string" use="required"/>
+          <xs:attribute name="item-id" type="xs:string" use="required"/>
+          <xs:attribute name="referenced-file" type="xs:string" use="required"/>
+          <xs:attribute name="issue" use="required">
+            <xs:simpleType>
+              <xs:restriction base="xs:string">
+                <xs:enumeration value="missing"/>
+                <xs:enumeration value="modified"/>
+              </xs:restriction>
+            </xs:simpleType>
+          </xs:attribute>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+</xs:schema>

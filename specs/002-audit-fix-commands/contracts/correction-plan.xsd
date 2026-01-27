@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Correction Plan XML Schema
+  Feature: 002-audit-fix-commands
+  Defines the structure for correction-plan.xml produced by /reforge.audit
+  and consumed/updated by /reforge.fix
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+
+  <!-- Root element -->
+  <xs:element name="correction-plan">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="correction" type="CorrectionItem" maxOccurs="unbounded" minOccurs="0"/>
+      </xs:sequence>
+      <xs:attribute name="project-id" type="xs:string" use="required"/>
+      <xs:attribute name="version" type="xs:string" use="required"/>
+      <xs:attribute name="generated" type="xs:dateTime" use="required"/>
+      <xs:attribute name="source-audit" type="xs:string" use="required"/>
+      <xs:attribute name="total-items" type="xs:integer" use="required"/>
+      <xs:attribute name="completed-items" type="xs:integer" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Individual correction item -->
+  <xs:complexType name="CorrectionItem">
+    <xs:sequence>
+      <xs:element name="description" type="xs:string"/>
+      <xs:element name="affected-files">
+        <xs:complexType>
+          <xs:sequence>
+            <xs:element name="file" type="xs:string" maxOccurs="unbounded"/>
+          </xs:sequence>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:string" use="required"/>
+    <xs:attribute name="priority" type="xs:integer" use="required"/>
+    <xs:attribute name="type" use="required">
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="gap"/>
+          <xs:enumeration value="stale"/>
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:attribute>
+    <xs:attribute name="category" use="required">
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="analysis"/>
+          <xs:enumeration value="extraction"/>
+          <xs:enumeration value="generation"/>
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:attribute>
+    <xs:attribute name="extraction-type" type="xs:string" use="optional"/>
+    <xs:attribute name="status" use="required">
+      <xs:simpleType>
+        <xs:restriction base="xs:string">
+          <xs:enumeration value="pending"/>
+          <xs:enumeration value="in-progress"/>
+          <xs:enumeration value="completed"/>
+          <xs:enumeration value="failed"/>
+          <xs:enumeration value="skipped"/>
+        </xs:restriction>
+      </xs:simpleType>
+    </xs:attribute>
+    <xs:attribute name="action" type="xs:string" use="required"/>
+    <xs:attribute name="completed-at" type="xs:dateTime" use="optional"/>
+  </xs:complexType>
+
+</xs:schema>

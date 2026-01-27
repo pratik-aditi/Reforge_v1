@@ -53,11 +53,26 @@ This returns JSON with resolved variables:
 
 Use these variables (`$PROJECT_NAME`, `$PROJECT_OUTPUT_DIR`, `$CONFIG`, `$REPO_ROOT`) throughout subsequent steps.
 
+Assign subdirectory variables:
+```
+$ANALYSIS_DIR = $PROJECT_OUTPUT_DIR/analysis
+```
+
 The script handles:
 - Deriving project name from config or directory basename
 - Setting `project.name` in config.json if empty
-- Creating output directory structure (`$PROJECT_OUTPUT_DIR/generated/diagrams/`)
+- Creating output directory structure (`analysis/`, `extractions/`, `derived/registries/`, `generated/`, `diagrams/sources/`, `diagrams/rendered/`)
+- Migrating legacy flat structure if detected (runs `migrate-output.sh`)
 - Creating memory subdirectories (`history/`, `backups/`, `checkpoints/`, `clarifications/`, `logs/`)
+
+### Step 0.5: Load Project Context
+
+If `.reforge/memory/project-context.md` exists, read it now. Use its contents as
+supplemental guidance throughout this command's execution:
+- **Technology Stack**: Informs language/framework detection and pattern recognition
+- **Domain Knowledge**: Provides business context for naming and categorization
+- **Analysis Guidelines**: Directs focus and exclusions beyond config.json
+- **Custom Rules**: Additional rules to follow alongside the constitution
 
 ### Step 1: Load Configuration
 
@@ -197,7 +212,7 @@ Process each file in the inventory:
 
 ### Step 6: Generate Output
 
-Write analysis results to `$PROJECT_OUTPUT_DIR/analysis.xml`:
+Write analysis results to `$ANALYSIS_DIR/analysis.xml`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -271,7 +286,7 @@ Write analysis results to `$PROJECT_OUTPUT_DIR/analysis.xml`:
    ```
    Analysis complete!
 
-   Output: $PROJECT_OUTPUT_DIR/analysis.xml
+   Output: $ANALYSIS_DIR/analysis.xml
 
    Summary:
    - Total files: [X]
@@ -296,7 +311,7 @@ Run the agent context update script to record discovered technologies:
 bash .reforge/scripts/bash/update-agent-context.sh claude --json
 ```
 
-This parses `$PROJECT_OUTPUT_DIR/analysis.xml` and updates CLAUDE.md with:
+This parses `$ANALYSIS_DIR/analysis.xml` and updates CLAUDE.md with:
 - Detected languages and their file counts
 - Detected frameworks
 - Total files and lines analyzed
@@ -493,7 +508,7 @@ Starting analysis...
 
 Analysis complete!
 
-Output: $PROJECT_OUTPUT_DIR/analysis.xml
+Output: $ANALYSIS_DIR/analysis.xml
 
 Summary:
 - Total files: 1,247

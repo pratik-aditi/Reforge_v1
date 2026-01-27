@@ -28,7 +28,7 @@ This command extracts specific types of information from the analyzed codebase:
 ## Prerequisites
 
 - Analysis must be completed (`/reforge.analyze`)
-- `$PROJECT_OUTPUT_DIR/analysis.xml` must exist
+- `$ANALYSIS_DIR/analysis.xml` must exist (where `$ANALYSIS_DIR = $PROJECT_OUTPUT_DIR/analysis`)
 
 ---
 
@@ -61,9 +61,24 @@ This returns JSON with resolved variables:
 
 Use `$PROJECT_OUTPUT_DIR` for all output paths in subsequent steps.
 
+Assign subdirectory variables:
+```
+$ANALYSIS_DIR = $PROJECT_OUTPUT_DIR/analysis
+$EXTRACTIONS_DIR = $PROJECT_OUTPUT_DIR/extractions
+```
+
+### Step 0.5: Load Project Context
+
+If `.reforge/memory/project-context.md` exists, read it now. Use its contents as
+supplemental guidance throughout this command's execution:
+- **Technology Stack**: Informs language/framework detection and pattern recognition
+- **Domain Knowledge**: Provides business context for naming and categorization
+- **Analysis Guidelines**: Directs focus and exclusions beyond config.json
+- **Custom Rules**: Additional rules to follow alongside the constitution
+
 ### Step 1: Load Analysis
 
-Read `$PROJECT_OUTPUT_DIR/analysis.xml` to get:
+Read `$ANALYSIS_DIR/analysis.xml` to get:
 - List of source files to process
 - Language information for each file
 - Component locations (classes, methods)
@@ -177,7 +192,7 @@ For each identified pattern:
 
 ### Step 5: Generate Output
 
-Write to `$PROJECT_OUTPUT_DIR/business-rules.xml`:
+Write to `$EXTRACTIONS_DIR/business-rules.xml`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -225,7 +240,7 @@ Write to `$PROJECT_OUTPUT_DIR/business-rules.xml`:
 ```
 Business Rules Extraction Complete!
 
-Output: $PROJECT_OUTPUT_DIR/business-rules.xml
+Output: $EXTRACTIONS_DIR/business-rules.xml
 
 Summary:
 - Total rules: 156
@@ -263,7 +278,7 @@ Run /reforge.clarify to resolve ambiguous extractions.
 
 ### Step 1: Load Analysis
 
-Read `$PROJECT_OUTPUT_DIR/analysis.xml` to identify:
+Read `$ANALYSIS_DIR/analysis.xml` to identify:
 - SQL files (.sql)
 - Configuration files (persistence.xml, hibernate.cfg.xml)
 - ORM entity files
@@ -399,7 +414,7 @@ For each SQL statement:
 
 ### Step 6: Generate Output
 
-Write to `$PROJECT_OUTPUT_DIR/database.xml`:
+Write to `$EXTRACTIONS_DIR/database.xml`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -457,7 +472,7 @@ Write to `$PROJECT_OUTPUT_DIR/database.xml`:
 ```
 Database Extraction Complete!
 
-Output: $PROJECT_OUTPUT_DIR/database.xml
+Output: $EXTRACTIONS_DIR/database.xml
 
 Data Model Summary:
 - Entities: 15 (12 tables, 3 views)
@@ -584,7 +599,7 @@ Identify screen-to-screen flows:
 
 ### Step 7: Generate Output
 
-Write to `$PROJECT_OUTPUT_DIR/ui-flows.xml`:
+Write to `$EXTRACTIONS_DIR/ui-flows.xml`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -703,7 +718,7 @@ For each workflow step:
 
 ### Step 4: Generate Output
 
-Write to `$PROJECT_OUTPUT_DIR/workflows.xml`:
+Write to `$EXTRACTIONS_DIR/workflows.xml`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>

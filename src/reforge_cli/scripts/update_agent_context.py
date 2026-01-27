@@ -16,7 +16,12 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .common import ReforgeError, get_project_output_dir, get_repo_root
+from .common import (
+    ReforgeError,
+    get_project_output_dir,
+    get_repo_root,
+    resolve_analysis_file,
+)
 
 
 # Agent type to context file mapping
@@ -119,7 +124,7 @@ def update_agent_context(agent_type: str = "claude") -> AgentContextResult:
     """
     repo_root = get_repo_root()
     project_output_dir = get_project_output_dir(repo_root)
-    analysis_file = project_output_dir / "analysis.xml"
+    analysis_file = resolve_analysis_file(project_output_dir)
 
     if not analysis_file.is_file():
         raise ReforgeError(f"analysis.xml not found at {analysis_file}")

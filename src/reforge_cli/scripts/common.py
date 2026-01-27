@@ -177,3 +177,132 @@ def check_dir(dir_path: Path, label: str | None = None) -> bool:
         True if directory exists, False otherwise.
     """
     return dir_path.is_dir()
+
+
+# --- Subdirectory Helpers ---
+
+
+def get_analysis_dir(project_output_dir: Path) -> Path:
+    """Get path to analysis subdirectory.
+
+    Args:
+        project_output_dir: Project output directory path.
+
+    Returns:
+        Path to analysis subdirectory.
+    """
+    return project_output_dir / "analysis"
+
+
+def get_extractions_dir(project_output_dir: Path) -> Path:
+    """Get path to extractions subdirectory.
+
+    Args:
+        project_output_dir: Project output directory path.
+
+    Returns:
+        Path to extractions subdirectory.
+    """
+    return project_output_dir / "extractions"
+
+
+def get_derived_dir(project_output_dir: Path) -> Path:
+    """Get path to derived artifacts subdirectory.
+
+    Args:
+        project_output_dir: Project output directory path.
+
+    Returns:
+        Path to derived subdirectory.
+    """
+    return project_output_dir / "derived"
+
+
+def get_generated_dir(project_output_dir: Path) -> Path:
+    """Get path to generated documentation subdirectory.
+
+    Args:
+        project_output_dir: Project output directory path.
+
+    Returns:
+        Path to generated subdirectory.
+    """
+    return project_output_dir / "generated"
+
+
+def get_diagrams_dir(project_output_dir: Path) -> Path:
+    """Get path to diagrams subdirectory.
+
+    Args:
+        project_output_dir: Project output directory path.
+
+    Returns:
+        Path to diagrams subdirectory.
+    """
+    return project_output_dir / "diagrams"
+
+
+def get_audit_dir(project_output_dir: Path) -> Path:
+    """Get path to audit subdirectory.
+
+    Args:
+        project_output_dir: Project output directory path.
+
+    Returns:
+        Path to audit subdirectory.
+    """
+    return project_output_dir / "audit"
+
+
+# --- Backward-Compatible Resolvers ---
+
+
+def resolve_analysis_file(project_output_dir: Path) -> Path:
+    """Resolve analysis file path, supporting both old and new directory structures.
+
+    Checks for analysis.xml in the new location (analysis/) first,
+    then falls back to the old flat structure location.
+
+    Args:
+        project_output_dir: Project output directory path.
+
+    Returns:
+        Path to analysis.xml (new location preferred, old as fallback,
+        or new location if neither exists).
+    """
+    new_path = project_output_dir / "analysis" / "analysis.xml"
+    old_path = project_output_dir / "analysis.xml"
+
+    if new_path.is_file():
+        return new_path
+    elif old_path.is_file():
+        return old_path
+    else:
+        # Return new path as default (file doesn't exist yet)
+        return new_path
+
+
+def resolve_extraction_file(project_output_dir: Path, extraction_type: str) -> Path:
+    """Resolve extraction file path, supporting both old and new directory structures.
+
+    Checks for extraction XML in the new location (extractions/) first,
+    then falls back to the old flat structure location.
+
+    Args:
+        project_output_dir: Project output directory path.
+        extraction_type: Extraction type (e.g., "business-rules", "database").
+
+    Returns:
+        Path to extraction XML (new location preferred, old as fallback,
+        or new location if neither exists).
+    """
+    new_path = project_output_dir / "extractions" / f"{extraction_type}.xml"
+    old_path = project_output_dir / f"{extraction_type}.xml"
+
+    if new_path.is_file():
+        return new_path
+    elif old_path.is_file():
+        return old_path
+    else:
+        # Return new path as default (file doesn't exist yet)
+        return new_path

@@ -1,19 +1,16 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.0.0 → 1.1.0 (Alignment with plan.md)
+Version change: 1.2.0 → 1.3.0 (Add Verification Phase: audit and fix commands)
 Modified principles: None
 Modified sections:
-  - Framework Architecture: Updated templates list (added uml-class.md, sysml-block.md, ascii-layout.md, user-stories.md schema; removed sitemap.md)
-  - Framework Architecture: Added reanalyze.md command
-  - Output Directory: Updated generated/ contents (added user-stories.json, diagrams/)
+  - Framework Architecture: Added audit.md, fix.md commands; audit-report.md, correction-plan.md schemas
+  - Output Directory: Added audit/ subdirectory with audit-report.xml and correction-plan.xml
+  - Command Workflow: Added Verification Phase with audit and fix commands
 Removed sections: None
 Templates requiring updates:
-  - .specify/templates/plan-template.md ✅ (compatible - Constitution Check section works)
-  - .specify/templates/spec-template.md ✅ (compatible - no changes needed)
-  - .specify/templates/tasks-template.md ✅ (compatible - phases align with LLM workflow)
-  - .specify/templates/agent-file-template.md ⚠️ (pending - should be updated when first feature planned)
-  - CLAUDE.md ✅ (updated with Reforge overview)
+  - CLAUDE.md ✅ (updated with new commands)
+  - status.md ✅ (updated next-steps recommendations)
 Follow-up TODOs: None
 -->
 
@@ -93,6 +90,12 @@ Additional tooling (validators, transformers, visualizers) MAY be added as an **
 
 **Rationale:** Keeping tooling optional maintains the zero-dependency core while allowing power users to enhance their workflow.
 
+## Project-Specific Context
+
+The file `.reforge/memory/project-context.md` (created via `/reforge.init`) contains
+project-specific guidance. When present, treat its contents as supplemental rules
+that operate alongside this constitution. The constitution takes precedence on conflicts.
+
 ## Framework Architecture
 
 ### Directory Structure
@@ -100,19 +103,26 @@ Additional tooling (validators, transformers, visualizers) MAY be added as an **
 ```
 .reforge/
 ├── commands/           # Slash command prompt templates
+│   ├── init.md         # /reforge.init - Initialize project context
 │   ├── analyze.md      # /reforge.analyze - Analyze legacy codebase
 │   ├── extract.md      # /reforge.extract - Extract specific elements
 │   ├── generate.md     # /reforge.generate - Generate documentation
 │   ├── clarify.md      # /reforge.clarify - Clarification workflow
 │   ├── status.md       # /reforge.status - Show analysis status
-│   └── reanalyze.md    # /reforge.reanalyze - Incremental re-analysis
+│   ├── reanalyze.md    # /reforge.reanalyze - Incremental re-analysis
+│   ├── audit.md        # /reforge.audit - Audit extraction coverage
+│   └── fix.md          # /reforge.fix - Execute audit corrections
 ├── schemas/            # Output structure definitions
 │   ├── analysis.md     # Analysis output schema
 │   ├── business-rules.md
 │   ├── database.md
 │   ├── ui-flows.md
 │   ├── workflows.md
-│   └── user-stories.md
+│   ├── user-stories.md
+│   ├── cross-mappings.md
+│   ├── features-requirements.md
+│   ├── audit-report.md    # Audit coverage report schema
+│   └── correction-plan.md # Correction plan schema
 ├── templates/          # Output templates for generation
 │   ├── user-story.md
 │   ├── data-dictionary.md
@@ -120,8 +130,9 @@ Additional tooling (validators, transformers, visualizers) MAY be added as an **
 │   ├── sysml-block.md  # SysML block diagrams
 │   └── ascii-layout.md # UI layout visualization
 ├── memory/             # Project-specific state
-│   ├── constitution.md # This file
-│   └── analysis/       # Analysis outputs stored here
+│   ├── constitution.md    # This file
+│   ├── project-context.md # Project-specific guidance (user-created via /reforge.init)
+│   └── analysis/          # Analysis outputs stored here
 └── config.json         # Framework configuration
 ```
 
@@ -130,19 +141,43 @@ Additional tooling (validators, transformers, visualizers) MAY be added as an **
 ```
 reforge_output/
 ├── <project-name>/
-│   ├── analysis.xml        # Main analysis document
-│   ├── business-rules.xml  # Extracted business rules
-│   ├── database.xml        # Database interactions
-│   ├── ui-flows.xml        # UI component flows
-│   ├── workflows.xml       # Business workflows
-│   └── generated/          # Generated documentation
-│       ├── user-stories.md
-│       ├── user-stories.json
-│       ├── data-dictionary.md
-│       └── diagrams/       # UML/SysML diagram outputs
+│   ├── analysis/               # Analysis inventory
+│   │   └── analysis.xml
+│   ├── extractions/            # Extracted knowledge
+│   │   ├── business-rules.xml
+│   │   ├── database.xml
+│   │   ├── ui-flows.xml
+│   │   └── workflows.xml
+│   ├── derived/                # Derived artifacts
+│   │   ├── cross-mappings.xml
+│   │   ├── features-requirements.xml
+│   │   └── registries/
+│   │       ├── business-rules-registry.md
+│   │       ├── functional-requirements-registry.md
+│   │       └── non-functional-requirements-registry.md
+│   ├── generated/              # Generated documentation
+│   │   ├── documentation.md
+│   │   ├── user-stories.md
+│   │   ├── user-stories.json
+│   │   ├── user-stories.csv
+│   │   ├── user-stories.xml
+│   │   └── data-dictionary.md
+│   ├── audit/                  # Audit and correction outputs
+│   │   ├── audit-report.xml
+│   │   └── correction-plan.xml
+│   └── diagrams/               # Diagram outputs
+│       ├── sources/
+│       │   ├── *.puml
+│       │   └── *.mmd
+│       └── rendered/
+│           └── *.png
 ```
 
 ## Command Workflow
+
+### Setup Phase
+
+0. **`/reforge.init`** — Define project context (name, tech stack, domain knowledge, analysis rules)
 
 ### Analysis Phase
 
@@ -154,6 +189,11 @@ reforge_output/
 
 4. **`/reforge.generate [artifact]`** — Generate documentation from extracted knowledge
 5. **`/reforge.status`** — Report on analysis completeness and coverage
+
+### Verification Phase
+
+6. **`/reforge.audit [type]`** — Audit extraction coverage, identify gaps and stale references
+7. **`/reforge.fix`** — Execute corrections from the audit correction plan
 
 ### Workflow Rules
 
@@ -184,4 +224,4 @@ reforge_output/
 - `CLAUDE.md` (or equivalent agent file) SHOULD reference this constitution
 - Runtime guidance MUST NOT contradict constitutional principles
 
-**Version**: 1.1.0 | **Ratified**: 2025-01-12 | **Last Amended**: 2025-01-13
+**Version**: 1.3.0 | **Ratified**: 2025-01-12 | **Last Amended**: 2026-01-23
