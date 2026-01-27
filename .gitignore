@@ -26,4 +26,4 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
-src/reforge_cli/__pycache__/
+__pycache__/
