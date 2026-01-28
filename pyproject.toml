@@ -17,6 +17,7 @@ dev = [
 
 [project.scripts]
 reforge = "reforge_cli:main"
+reforge-scripts = "reforge_cli:scripts"
 
 [build-system]
 requires = ["hatchling"]

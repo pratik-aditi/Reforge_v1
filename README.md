@@ -52,22 +52,24 @@ Open your project in Claude Code and run:
 /reforge.analyze
 ```
 
-### CLI Commands
+### CLI Reference
 
 ```
 Usage: reforge [OPTIONS] [TARGET_PATH]
 
+Commands:
+  --claude              Install/set up Reforge for Claude Code
+  --remove              Remove Reforge from target project
+
 Options:
-  --claude     Install/set up Reforge for Claude Code
-  --remove     Remove Reforge from target project
-  --version    Show framework version
-  --update     Refresh framework files (preserves config)
-  --force      Skip confirmation prompts
-  --dry-run    Show what would be done
-  --help       Show this message and exit
+  --update              Refresh framework files (preserves config)
+  --force               Skip confirmation prompts
+  --dry-run             Show what would be done
+  --version             Show framework version
+  --help                Show this message and exit
 
 Arguments:
-  TARGET_PATH  Target project directory (defaults to current directory)
+  TARGET_PATH           Target project directory (defaults to current directory)
 ```
 
 | Example | What it does |
@@ -77,6 +79,22 @@ Arguments:
 | `reforge --claude --update .` | Update framework files |
 | `reforge --claude --dry-run .` | Preview what would be installed |
 | `reforge --remove .` | Uninstall from current directory |
+
+### Helper Scripts CLI
+
+The `reforge-scripts` command provides internal utilities used by prompt templates during analysis:
+
+```
+Usage: reforge-scripts [OPTIONS] COMMAND [ARGS]...
+
+Commands:
+  init-project          Initialize project output structure
+  check-prerequisites   Validate prerequisites for Reforge commands
+  checkpoint            Manage checkpoint state (read/create/delete)
+  update-context        Update agent context file with analysis results
+```
+
+These are called automatically by the AI agent during `/reforge.*` command execution. You typically don't need to run them directly.
 
 ### Updating
 
@@ -255,7 +273,6 @@ When you run `reforge --claude`, the following is added to your project:
 ├── commands/           # Prompt templates that define each command
 ├── schemas/            # XML output structure definitions
 ├── templates/          # Generation templates (UML, user stories, etc.)
-├── scripts/bash/       # Helper scripts for checkpoints and context
 ├── memory/
 │   ├── constitution.md # Framework principles
 │   ├── analysis/       # Analysis state
@@ -268,7 +285,7 @@ When you run `reforge --claude`, the following is added to your project:
 .claude/
 ├── commands/
 │   └── reforge.*.md    # Thin wrappers that register slash commands
-└── settings.local.json # Permissions for helper scripts
+└── settings.local.json # Permissions for reforge-scripts CLI
 ```
 
 Runtime state directories (`checkpoints/`, `clarifications/`, `logs/`) and `reforge_output/` are added to `.gitignore` automatically.

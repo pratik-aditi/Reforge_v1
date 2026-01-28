@@ -20,12 +20,28 @@ from .scripts.common import ReforgeError
 
 __version__ = "1.0.0"
 
-app = typer.Typer(help="Reforge - LLM-driven legacy codebase analysis and documentation framework")
+EXAMPLES = (
+    "Examples: "
+    "[dim]reforge --claude .[/dim] (install), "
+    "[dim]reforge --claude --update .[/dim] (update), "
+    "[dim]reforge --remove .[/dim] (uninstall)"
+)
+
+app = typer.Typer(
+    help="Reforge - LLM-driven legacy codebase analysis and documentation framework",
+    add_completion=False,
+    rich_markup_mode="rich",
+    epilog=EXAMPLES,
+)
+
+# Separate CLI for internal helper scripts (called by prompt templates)
+scripts = typer.Typer(
+    help="Internal helper scripts for Reforge prompt templates",
+    add_completion=False,
+)
+
 console = Console()
 console_err = Console(stderr=True)
-
-# Create a subcommand group for helper scripts
-scripts_app = typer.Typer(help="Helper scripts for Reforge commands")
 
 
 def get_reforge_home() -> Path:
@@ -174,12 +190,12 @@ arguments provided above.
 
 def merge_settings(target: Path, dry_run: bool):
     settings_file = target / ".claude" / "settings.local.json"
-    # Python scripts are invoked via `reforge` CLI, no bash permissions needed
+    # Python scripts are invoked via `reforge-scripts` CLI
     permissions = [
-        'Bash(reforge init-project:*)',
-        'Bash(reforge check-prerequisites:*)',
-        'Bash(reforge checkpoint:*)',
-        'Bash(reforge update-context:*)',
+        'Bash(reforge-scripts init-project:*)',
+        'Bash(reforge-scripts check-prerequisites:*)',
+        'Bash(reforge-scripts checkpoint:*)',
+        'Bash(reforge-scripts update-context:*)',
     ]
 
     if dry_run:
@@ -402,11 +418,11 @@ def do_remove(target: Path, force: bool, dry_run: bool):
             settings = json.loads(settings_file.read_text())
             
             if "permissions" in settings and "allow" in settings["permissions"]:
-                # Remove reforge permissions (both old bash and new Python CLI)
+                # Remove reforge permissions (old bash scripts and Python CLI)
                 settings["permissions"]["allow"] = [
                     perm for perm in settings["permissions"]["allow"]
                     if ".reforge/scripts/bash/" not in perm
-                    and not perm.startswith("Bash(reforge ")
+                    and not perm.startswith("Bash(reforge-scripts ")
                 ]
             
             settings_file.write_text(json.dumps(settings, indent=2) + '\n')
@@ -459,23 +475,29 @@ def do_remove(target: Path, force: bool, dry_run: bool):
 @app.callback(invoke_without_command=True)
 def cli(
     ctx: typer.Context,
-    claude: bool = typer.Option(False, "--claude", help="Install/set up Reforge for Claude Code"),
-    remove: bool = typer.Option(False, "--remove", help="Remove Reforge from target project"),
-    version: bool = typer.Option(False, "--version", help="Show framework version"),
+    claude: bool = typer.Option(
+        False, "--claude",
+        help="Install/set up Reforge for Claude Code",
+        rich_help_panel="Commands",
+    ),
+    remove: bool = typer.Option(
+        False, "--remove",
+        help="Remove Reforge from target project",
+        rich_help_panel="Commands",
+    ),
     update: bool = typer.Option(False, "--update", help="Refresh framework files (preserves config)"),
     force: bool = typer.Option(False, "--force", help="Skip confirmation prompts"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Show what would be done"),
+    version: bool = typer.Option(False, "--version", help="Show framework version"),
     target_path: Optional[str] = typer.Argument(None, help="Target project directory (defaults to current directory)"),
 ):
-    # If a subcommand is being invoked, skip the main callback logic
-    if ctx.invoked_subcommand is not None:
-        return
-
+    """Reforge - LLM-driven legacy codebase analysis and documentation framework."""
     if version:
         console.print(f"reforge v{__version__}")
         raise typer.Exit()
 
     if not claude and not remove:
+        # Show help when no command specified
         console.print(ctx.get_help())
         raise typer.Exit()
 
@@ -495,10 +517,10 @@ def cli(
         do_remove(target, force, dry_run)
 
 
-# --- Script Subcommands ---
+# --- Script Commands (reforge-scripts CLI) ---
 
 
-@app.command("init-project")
+@scripts.command("init-project")
 def cmd_init_project(
     target_path: Optional[str] = typer.Argument(None, help="Target directory"),
     name: Optional[str] = typer.Option(None, "--name", "-n", help="Override project name"),
@@ -510,7 +532,7 @@ def cmd_init_project(
         result = init_project(target_path=target, project_name_override=name)
 
         if json_output:
-            console.print(result.to_json())
+            print(result.to_json())
         else:
             ok(f"Project initialized: {result.project_name}")
             info(f"  Output directory: {result.project_output_dir}")
@@ -520,7 +542,7 @@ def cmd_init_project(
         raise typer.Exit(1)
 
 
-@app.command("check-prerequisites")
+@scripts.command("check-prerequisites")
 def cmd_check_prerequisites(
     require_analysis: bool = typer.Option(False, "--require-analysis", help="Require analysis.xml"),
     require_extraction: Optional[str] = typer.Option(None, "--require-extraction", help="Require specific extraction"),
@@ -536,7 +558,7 @@ def cmd_check_prerequisites(
         )
 
         if json_output:
-            console.print(result.to_json())
+            print(result.to_json())
         else:
             ok("Prerequisites check:")
             info(f"  Project: {result.project_name}")
@@ -549,7 +571,7 @@ def cmd_check_prerequisites(
         raise typer.Exit(1)
 
 
-@app.command("checkpoint")
+@scripts.command("checkpoint")
 def cmd_checkpoint(
     action: str = typer.Argument(..., help="Action: read, create, or delete"),
     checkpoint_type: str = typer.Option("analysis", "--type", "-t", help="Checkpoint type"),
@@ -560,7 +582,7 @@ def cmd_checkpoint(
         if action == "read":
             result = read_checkpoint(checkpoint_type=checkpoint_type)
             if json_output:
-                console.print(result.to_json())
+                print(result.to_json())
             else:
                 if result.exists:
                     ok(f"Checkpoint: {checkpoint_type}")
@@ -575,14 +597,14 @@ def cmd_checkpoint(
         elif action == "create":
             result = create_checkpoint(checkpoint_type=checkpoint_type)
             if json_output:
-                console.print(result.to_json())
+                print(result.to_json())
             else:
                 ok(f"Checkpoint path: {result.checkpoint_file}")
 
         elif action == "delete":
             result = delete_checkpoint(checkpoint_type=checkpoint_type)
             if json_output:
-                console.print(result.to_json())
+                print(result.to_json())
             else:
                 if result.deleted:
                     ok(f"Deleted checkpoint: {result.file}")
@@ -598,7 +620,7 @@ def cmd_checkpoint(
         raise typer.Exit(1)
 
 
-@app.command("update-context")
+@scripts.command("update-context")
 def cmd_update_context(
     agent_type: str = typer.Argument("claude", help="Agent type: claude, gemini, copilot, cursor, windsurf"),
     json_output: bool = typer.Option(False, "--json", help="Output as JSON"),
@@ -608,7 +630,7 @@ def cmd_update_context(
         result = update_agent_context(agent_type=agent_type)
 
         if json_output:
-            console.print(result.to_json())
+            print(result.to_json())
         else:
             if result.updated:
                 ok(f"Updated {result.context_file} with analysis results")

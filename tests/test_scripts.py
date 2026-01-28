@@ -13,6 +13,7 @@ from typer.testing import CliRunner
 from reforge_cli import (
     __version__,
     app,
+    scripts,
     copy_framework,
     create_memory_dirs,
     do_install,
@@ -790,27 +791,24 @@ class TestCLI:
         assert "No .reforge/ directory found" in result.output
 
     def test_init_project_command(self, temp_repo: Path):
-        """init-project subcommand works."""
-        # CLI requires: reforge [TARGET_PATH] COMMAND [ARGS]
-        # Pass "." as target_path, then the subcommand
-        result = runner.invoke(app, [str(temp_repo), "init-project"])
+        """init-project subcommand works via reforge-scripts."""
+        result = runner.invoke(scripts, ["init-project", str(temp_repo)])
 
         assert result.exit_code == 0
         assert "Project initialized" in result.output
 
     def test_init_project_command_json(self, temp_repo: Path):
         """init-project --json outputs JSON."""
-        result = runner.invoke(app, [str(temp_repo), "init-project", "--json"])
+        result = runner.invoke(scripts, ["init-project", "--json", str(temp_repo)])
 
         assert result.exit_code == 0
         data = json.loads(result.output)
         assert "PROJECT_NAME" in data
 
     def test_check_prerequisites_command(self, temp_repo: Path, monkeypatch):
-        """check-prerequisites subcommand works."""
-        # check-prerequisites doesn't accept target_path, uses get_repo_root() from cwd
+        """check-prerequisites subcommand works via reforge-scripts."""
         monkeypatch.chdir(temp_repo)
-        result = runner.invoke(app, [".", "check-prerequisites"])
+        result = runner.invoke(scripts, ["check-prerequisites"])
 
         assert result.exit_code == 0
         assert "Prerequisites check" in result.output
@@ -818,7 +816,7 @@ class TestCLI:
     def test_checkpoint_invalid_action(self, temp_repo: Path, monkeypatch):
         """checkpoint with unknown action exits with error."""
         monkeypatch.chdir(temp_repo)
-        result = runner.invoke(app, [".", "checkpoint", "invalid-action"])
+        result = runner.invoke(scripts, ["checkpoint", "invalid-action"])
 
         assert result.exit_code == 1
         assert "Unknown action" in result.output
@@ -826,7 +824,7 @@ class TestCLI:
     def test_checkpoint_read_command(self, temp_repo: Path, monkeypatch):
         """checkpoint read subcommand works."""
         monkeypatch.chdir(temp_repo)
-        result = runner.invoke(app, [".", "checkpoint", "read"])
+        result = runner.invoke(scripts, ["checkpoint", "read"])
 
         assert result.exit_code == 0
         assert "No checkpoint found" in result.output
@@ -834,7 +832,7 @@ class TestCLI:
     def test_checkpoint_create_command(self, temp_repo: Path, monkeypatch):
         """checkpoint create subcommand works."""
         monkeypatch.chdir(temp_repo)
-        result = runner.invoke(app, [".", "checkpoint", "create"])
+        result = runner.invoke(scripts, ["checkpoint", "create"])
 
         assert result.exit_code == 0
         assert "Checkpoint path" in result.output
@@ -842,17 +840,16 @@ class TestCLI:
     def test_checkpoint_delete_command(self, temp_repo: Path, monkeypatch):
         """checkpoint delete subcommand works."""
         monkeypatch.chdir(temp_repo)
-        result = runner.invoke(app, [".", "checkpoint", "delete"])
+        result = runner.invoke(scripts, ["checkpoint", "delete"])
 
         assert result.exit_code == 0
         # Either deleted or not found is valid
         assert "delete" in result.output.lower() or "checkpoint" in result.output.lower()
 
     def test_update_context_command(self, temp_repo_with_analysis: Path, monkeypatch):
-        """update-context subcommand works."""
-        # update-context doesn't accept target_path, uses get_repo_root() from cwd
+        """update-context subcommand works via reforge-scripts."""
         monkeypatch.chdir(temp_repo_with_analysis)
-        result = runner.invoke(app, [".", "update-context"])
+        result = runner.invoke(scripts, ["update-context"])
 
         assert result.exit_code == 0
         # Either updated or skipped is valid (depending on CLAUDE.md presence)
@@ -860,7 +857,7 @@ class TestCLI:
     def test_update_context_without_analysis(self, temp_repo: Path, monkeypatch):
         """update-context fails without analysis.xml."""
         monkeypatch.chdir(temp_repo)
-        result = runner.invoke(app, [".", "update-context"])
+        result = runner.invoke(scripts, ["update-context"])
 
         assert result.exit_code == 1
         assert "analysis.xml not found" in result.output
