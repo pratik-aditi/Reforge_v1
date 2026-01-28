@@ -1,0 +1,5 @@
+# Mark bash script as linguist-vendored (deprecated)
+bin/reforge linguist-vendored
+
+# Mark Python as primary language
+*.py linguist-detectable=true
