@@ -29,7 +29,7 @@ uv tool install reforge-cli
 Or install from git:
 
 ```bash
-uv tool install git+https://github.com/your-org/reforge.git
+uv tool install git+https://github.com/Aditi-Consulting/reforge.git
 ```
 
 Or using pip:
@@ -49,7 +49,8 @@ This copies the framework files, generates Claude Code slash command wrappers, c
 Open your project in Claude Code and run:
 
 ```
-/reforge.analyze
+/reforge.init      # Set up project context (recommended)
+/reforge.analyze   # Begin codebase analysis
 ```
 
 ### CLI Reference
@@ -130,6 +131,22 @@ uv tool uninstall reforge-cli
 
 ## Commands
 
+### `/reforge.init`
+
+Initialize project context with domain knowledge. This interactive command collects information about your project that guides all subsequent analysis.
+
+```
+/reforge.init [--update]
+```
+
+Creates `.reforge/memory/project-context.md` containing:
+- Project identity (name, description, root path)
+- Technology stack (languages, frameworks, databases)
+- Domain knowledge (business concepts, terminology)
+- Analysis guidelines (focus areas, known patterns)
+
+Run this before `/reforge.analyze` for best results.
+
 ### `/reforge.analyze`
 
 Scan and inventory a legacy codebase. Detects languages, frameworks, module boundaries, and file relationships. Produces an XML inventory used by subsequent commands.
@@ -174,6 +191,41 @@ Generate documentation and artifacts from extracted metadata.
 | `data-dictionary` | Database entity documentation |
 | `uml` | Class diagrams (PlantUML/Mermaid) |
 | `sysml` | System architecture block diagrams |
+| `cross-mappings` | Relationships between extraction types |
+| `features` | Features and requirements derived from extractions |
+| `registries` | Consolidated registries (API endpoints, events, etc.) |
+
+### `/reforge.audit`
+
+Audit extraction coverage and identify gaps against the analyzed codebase.
+
+```
+/reforge.audit [type] [--json]
+```
+
+Compares your analysis inventory against extraction outputs to identify:
+- **Coverage gaps** — analyzed files with no extraction references
+- **Stale references** — extractions pointing to changed or missing files
+- **Per-type breakdown** — coverage statistics for each extraction type
+
+Produces two outputs in `reforge_output/<project>/audit/`:
+- `audit-report.xml` — Read-only diagnostic with coverage statistics
+- `correction-plan.xml` — Actionable plan consumed by `/reforge.fix`
+
+### `/reforge.fix`
+
+Execute corrections from the audit correction plan.
+
+```
+/reforge.fix [--type <type>] [--items <ids>] [--interactive] [--resume]
+```
+
+Processes corrections in dependency order:
+1. **Analysis corrections** — Re-analyze stale files first
+2. **Extraction corrections** — Re-extract or fill gaps
+3. **Generation corrections** — Regenerate affected outputs
+
+Each correction dispatches to the appropriate command (`/reforge.reanalyze`, `/reforge.extract`, `/reforge.generate`). Supports checkpointing for interruption/resume.
 
 ### `/reforge.status`
 
@@ -249,20 +301,24 @@ After installation, edit `.reforge/config.json` in your target project:
 ## Typical Workflow
 
 ```
-1. Install:     uv tool install reforge-cli
-2. Setup:       reforge --claude /path/to/project
-3. Configure:   Edit .reforge/config.json (project name, exclusions)
-4. Analyze:     /reforge.analyze
-5. Extract:     /reforge.extract business-rules
-                /reforge.extract database
-                /reforge.extract ui
-                /reforge.extract workflows
-6. Clarify:     /reforge.clarify (resolve ambiguities)
-7. Generate:    /reforge.generate user-stories
-                /reforge.generate data-dictionary
-                /reforge.generate uml
-8. Review:      Check reforge_output/ for results
+ 1. Install:     uv tool install reforge-cli
+ 2. Setup:       reforge --claude /path/to/project
+ 3. Initialize:  /reforge.init                      # Set project context
+ 4. Analyze:     /reforge.analyze                   # Inventory codebase
+ 5. Extract:     /reforge.extract business-rules    # Extract knowledge
+                 /reforge.extract database
+                 /reforge.extract ui
+                 /reforge.extract workflows
+ 6. Clarify:     /reforge.clarify                   # Resolve ambiguities
+ 7. Generate:    /reforge.generate user-stories     # Create documentation
+                 /reforge.generate data-dictionary
+                 /reforge.generate cross-mappings
+ 8. Audit:       /reforge.audit                     # Check coverage
+ 9. Fix:         /reforge.fix                       # Fill gaps
+10. Review:      Check reforge_output/ for results
 ```
+
+The audit/fix cycle (steps 8-9) can be repeated as needed to achieve comprehensive coverage.
 
 ## What Gets Installed
 
@@ -274,11 +330,11 @@ When you run `reforge --claude`, the following is added to your project:
 ├── schemas/            # XML output structure definitions
 ├── templates/          # Generation templates (UML, user stories, etc.)
 ├── memory/
-│   ├── constitution.md # Framework principles
-│   ├── analysis/       # Analysis state
-│   ├── checkpoints/    # Resume capability (gitignored)
-│   ├── clarifications/ # Pending clarifications (gitignored)
-│   └── logs/           # Operation logs (gitignored)
+│   ├── constitution.md   # Framework principles
+│   ├── project-context.md # Project-specific context (from /reforge.init)
+│   ├── checkpoints/      # Resume capability (gitignored)
+│   ├── clarifications/   # Pending clarifications (gitignored)
+│   └── logs/             # Operation logs (gitignored)
 ├── config.json         # Project configuration
 └── .version            # Installed framework version
 
@@ -288,7 +344,29 @@ When you run `reforge --claude`, the following is added to your project:
 └── settings.local.json # Permissions for reforge-scripts CLI
 ```
 
-Runtime state directories (`checkpoints/`, `clarifications/`, `logs/`) and `reforge_output/` are added to `.gitignore` automatically.
+Analysis outputs go to `reforge_output/<project-name>/`:
+
+```
+reforge_output/<project-name>/
+├── analysis/           # Codebase inventory (analysis.xml)
+├── extractions/        # Extracted knowledge
+│   ├── business-rules/
+│   ├── database/
+│   ├── ui-flows/
+│   └── workflows/
+├── derived/            # Cross-referenced artifacts
+│   ├── cross-mappings/
+│   ├── features-requirements/
+│   └── registries/
+├── generated/          # Documentation output
+│   ├── markdown/
+│   ├── user-stories/
+│   └── data-dictionary/
+├── audit/              # Audit reports and correction plans
+└── diagrams/           # UML/SysML diagram sources and renders
+```
+
+Runtime state directories and `reforge_output/` are added to `.gitignore` automatically.
 
 ## Architecture
 
