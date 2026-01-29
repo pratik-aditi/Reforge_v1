@@ -46,16 +46,27 @@ console_err = Console(stderr=True)
 
 def get_reforge_home() -> Path:
     import site
-    
+
+    # For uv tool installs, shared data is at the venv root level
+    # Structure: ~/.local/share/uv/tools/reforge-cli/share/reforge-cli/.reforge
+    # Site packages: ~/.local/share/uv/tools/reforge-cli/lib/python3.x/site-packages
     for site_dir in site.getsitepackages():
-        share_path = Path(site_dir).parent / "share" / "reforge-cli" / ".reforge"
-        if share_path.exists():
-            return share_path.parent
-    
+        site_path = Path(site_dir)
+        # Search upward through parent directories for the share data location
+        # This handles varying Python installation layouts without hardcoding depth
+        for ancestor in site_path.parents:
+            share_path = ancestor / "share" / "reforge-cli" / ".reforge"
+            if share_path.exists():
+                return share_path.parent
+            # Stop searching if we've gone too far (more than 5 levels)
+            if len(ancestor.parts) < len(site_path.parts) - 5:
+                break
+
+    # Fallback for development: check if running from source repo
     package_dir = Path(__file__).parent.parent.parent
     if (package_dir / ".reforge").exists():
         return package_dir
-    
+
     console_err.print("[red]Error: Framework files not found[/red]")
     raise typer.Exit(1)
 

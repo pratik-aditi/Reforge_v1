@@ -41,7 +41,7 @@ The audit produces two outputs:
 Run the prerequisites script to validate state and resolve paths:
 
 ```bash
-bash .reforge/scripts/bash/check-prerequisites.sh --json --require-analysis
+reforge-scripts check-prerequisites --json --require-analysis
 ```
 
 This returns JSON with resolved variables:

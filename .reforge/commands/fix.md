@@ -42,7 +42,7 @@ Each correction dispatches to the appropriate reforge command (`/reforge.reanaly
 Run the prerequisites script to validate state and resolve paths:
 
 ```bash
-bash .reforge/scripts/bash/check-prerequisites.sh --json --require-audit
+reforge-scripts check-prerequisites --json --require-audit
 ```
 
 This returns JSON with resolved variables:

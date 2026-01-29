@@ -43,7 +43,7 @@ Before running this command, ensure:
 Run the initialization script to resolve paths and set up directories:
 
 ```bash
-bash .reforge/scripts/bash/init-project.sh --json [--name <name>] [target-path]
+reforge-scripts init-project --json [--name <name>] [target-path]
 ```
 
 This returns JSON with resolved variables:
@@ -308,7 +308,7 @@ Write analysis results to `$ANALYSIS_DIR/analysis.xml`:
 Run the agent context update script to record discovered technologies:
 
 ```bash
-bash .reforge/scripts/bash/update-agent-context.sh claude --json
+reforge-scripts update-context claude --json
 ```
 
 This parses `$ANALYSIS_DIR/analysis.xml` and updates CLAUDE.md with:

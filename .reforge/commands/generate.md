@@ -42,10 +42,10 @@ Run the prerequisites script to validate state and resolve paths:
 
 ```bash
 # For markdown, user-stories, sysml:
-bash .reforge/scripts/bash/check-prerequisites.sh --json --require-analysis
+reforge-scripts check-prerequisites --json --require-analysis
 
 # For data-dictionary and uml (which require database extraction):
-bash .reforge/scripts/bash/check-prerequisites.sh --json --require-analysis --require-extraction database
+reforge-scripts check-prerequisites --json --require-analysis --require-extraction database
 ```
 
 This returns JSON with resolved variables:

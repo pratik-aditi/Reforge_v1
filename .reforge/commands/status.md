@@ -34,7 +34,7 @@ This command provides visibility into the analysis state, showing:
 Run the prerequisites script to resolve paths and check checkpoint state:
 
 ```bash
-bash .reforge/scripts/bash/check-prerequisites.sh --json --include-checkpoint
+reforge-scripts check-prerequisites --json --include-checkpoint
 ```
 
 This returns JSON with resolved variables:
@@ -45,7 +45,7 @@ This returns JSON with resolved variables:
 If a checkpoint exists, also run the checkpoint reader:
 
 ```bash
-bash .reforge/scripts/bash/manage-checkpoint.sh read --json
+reforge-scripts checkpoint read --json
 ```
 
 This returns:

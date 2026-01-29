@@ -39,7 +39,7 @@ This command allows interactive resolution of ambiguous code patterns identified
 Run the prerequisites script to validate state and resolve paths:
 
 ```bash
-bash .reforge/scripts/bash/check-prerequisites.sh --json --require-analysis
+reforge-scripts check-prerequisites --json --require-analysis
 ```
 
 This returns JSON with resolved variables:
