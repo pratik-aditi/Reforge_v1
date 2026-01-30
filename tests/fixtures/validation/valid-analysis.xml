@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Valid analysis.xml fixture for testing XSD validation.
+  This file conforms to the analysis.xsd schema.
+-->
+<analysis xmlns="http://reforge.dev/schema/analysis"
+          version="1.0.0"
+          generated="2026-01-29T12:00:00Z">
+
+  <project id="test-project"
+           name="Test Project"
+           root-path="/path/to/project"
+           status="completed">
+    <configuration>
+      <exclusion-pattern>node_modules/</exclusion-pattern>
+      <exclusion-pattern>.git/</exclusion-pattern>
+    </configuration>
+  </project>
+
+  <files count="2">
+    <file path="src/main.py"
+          language="Python"
+          file-type="source"
+          size-bytes="1024"
+          line-count="50"
+          hash="abc123"
+          analysis-status="completed"
+          analyzed-at="2026-01-29T12:00:00Z">
+      <components>
+        <component type="function" name="main" line-start="10" line-end="25"/>
+        <component type="class" name="App" line-start="30" line-end="50"/>
+      </components>
+      <imports>
+        <import>os</import>
+        <import>sys</import>
+      </imports>
+      <exports>
+        <export>main</export>
+        <export>App</export>
+      </exports>
+    </file>
+    <file path="src/utils.py"
+          language="Python"
+          file-type="source"
+          size-bytes="512"
+          line-count="25"
+          hash="def456"
+          analysis-status="completed"
+          analyzed-at="2026-01-29T12:00:00Z">
+      <components>
+        <component type="function" name="helper" line-start="1" line-end="10"/>
+      </components>
+    </file>
+  </files>
+
+  <summary total-files="2" total-lines="75" analyzed="2" skipped="0">
+    <languages>
+      <language name="Python" count="2" lines="75"/>
+    </languages>
+    <file-types>
+      <type name="source" count="2"/>
+    </file-types>
+  </summary>
+
+</analysis>

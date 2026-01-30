@@ -188,6 +188,25 @@ Analysis can be interrupted and resumed:
 3. Choose to resume or start fresh
 4. `/reforge.status` shows current progress
 
+## Validating XML Output
+
+The `reforge-scripts validate-xml` command validates XML files against their XSD schemas:
+
+```bash
+# Validate an extraction
+reforge-scripts validate-xml reforge_output/my-project/extractions/business-rules.xml business-rules
+
+# Validate with JSON output
+reforge-scripts validate-xml reforge_output/my-project/analysis/analysis.xml analysis --json
+
+# List all available schemas
+reforge-scripts validate-xml --list-schemas
+```
+
+Validation provides structured error output with line numbers and fix suggestions, optimized for AI agent self-correction workflows.
+
+**Available schemas**: analysis, business-rules, database, ui-flows, workflows, user-stories, audit-report, correction-plan
+
 ## Troubleshooting
 
 ### Analysis taking too long?

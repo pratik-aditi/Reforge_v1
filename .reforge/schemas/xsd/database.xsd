@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Reforge Database Schema
+  Defines structure for database interactions and data model (database.xml)
+  Version: 1.0.0
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:rf="http://reforge.dev/schema/database"
+           targetNamespace="http://reforge.dev/schema/database"
+           elementFormDefault="qualified">
+
+  <!-- Shared Types -->
+  <xs:simpleType name="ConfidenceType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="high"/>
+      <xs:enumeration value="medium"/>
+      <xs:enumeration value="low"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:complexType name="SourceReferenceType">
+    <xs:sequence>
+      <xs:element name="snippet" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="file" type="xs:string" use="required"/>
+    <xs:attribute name="line-start" type="xs:integer" use="required"/>
+    <xs:attribute name="line-end" type="xs:integer" use="required"/>
+  </xs:complexType>
+
+  <!-- Root Element -->
+  <xs:element name="database">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="data-model" type="rf:DataModelType"/>
+        <xs:element name="interactions" type="rf:InteractionsType"/>
+      </xs:sequence>
+      <xs:attribute name="project-id" type="xs:string" use="required"/>
+      <xs:attribute name="version" type="xs:string" use="required"/>
+      <xs:attribute name="generated" type="xs:dateTime" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Data Model -->
+  <xs:complexType name="DataModelType">
+    <xs:sequence>
+      <xs:element name="entity" type="rf:DataEntityType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="relationship" type="rf:RelationshipType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="entity-count" type="xs:integer" use="required"/>
+  </xs:complexType>
+
+  <!-- Data Entity -->
+  <xs:complexType name="DataEntityType">
+    <xs:sequence>
+      <xs:element name="column" type="rf:ColumnType" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="source" type="rf:SourceReferenceType" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:string" use="required"/>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="type" type="rf:EntityTypeEnum" use="required"/>
+    <xs:attribute name="source-type" type="rf:SourceTypeEnum" use="required"/>
+    <xs:attribute name="confidence" type="rf:ConfidenceType" use="required"/>
+  </xs:complexType>
+
+  <xs:simpleType name="EntityTypeEnum">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="table"/>
+      <xs:enumeration value="view"/>
+      <xs:enumeration value="entity"/>
+      <xs:enumeration value="dto"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="SourceTypeEnum">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="ddl"/>
+      <xs:enumeration value="orm"/>
+      <xs:enumeration value="inferred"/>
+      <xs:enumeration value="config"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Column -->
+  <xs:complexType name="ColumnType">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="data-type" type="xs:string" use="required"/>
+    <xs:attribute name="nullable" type="xs:boolean"/>
+    <xs:attribute name="primary-key" type="xs:boolean"/>
+    <xs:attribute name="foreign-key" type="xs:string"/>
+  </xs:complexType>
+
+  <!-- Relationship -->
+  <xs:complexType name="RelationshipType">
+    <xs:attribute name="from-entity" type="xs:string" use="required"/>
+    <xs:attribute name="from-column" type="xs:string" use="required"/>
+    <xs:attribute name="to-entity" type="xs:string" use="required"/>
+    <xs:attribute name="to-column" type="xs:string" use="required"/>
+    <xs:attribute name="type" type="rf:RelationshipTypeEnum" use="required"/>
+  </xs:complexType>
+
+  <xs:simpleType name="RelationshipTypeEnum">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="one-to-one"/>
+      <xs:enumeration value="one-to-many"/>
+      <xs:enumeration value="many-to-many"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Interactions -->
+  <xs:complexType name="InteractionsType">
+    <xs:sequence>
+      <xs:element name="interaction" type="rf:DatabaseInteractionType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:integer" use="required"/>
+  </xs:complexType>
+
+  <!-- Database Interaction -->
+  <xs:complexType name="DatabaseInteractionType">
+    <xs:sequence>
+      <xs:element name="sql" type="xs:string"/>
+      <xs:element name="tables" type="rf:TablesRefType"/>
+      <xs:element name="columns" type="rf:ColumnsRefType" minOccurs="0"/>
+      <xs:element name="context" type="rf:ExecutionContextType"/>
+      <xs:element name="source" type="rf:SourceReferenceType"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:string" use="required"/>
+    <xs:attribute name="operation" type="rf:OperationType" use="required"/>
+    <xs:attribute name="confidence" type="rf:ConfidenceType" use="required"/>
+  </xs:complexType>
+
+  <xs:simpleType name="OperationType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="SELECT"/>
+      <xs:enumeration value="INSERT"/>
+      <xs:enumeration value="UPDATE"/>
+      <xs:enumeration value="DELETE"/>
+      <xs:enumeration value="DDL"/>
+      <xs:enumeration value="CALL"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Tables Reference -->
+  <xs:complexType name="TablesRefType">
+    <xs:sequence>
+      <xs:element name="table" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Columns Reference -->
+  <xs:complexType name="ColumnsRefType">
+    <xs:sequence>
+      <xs:element name="column" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Execution Context -->
+  <xs:complexType name="ExecutionContextType">
+    <xs:attribute name="method" type="xs:string" use="required"/>
+    <xs:attribute name="class" type="xs:string"/>
+    <xs:attribute name="trigger" type="xs:string"/>
+  </xs:complexType>
+
+</xs:schema>

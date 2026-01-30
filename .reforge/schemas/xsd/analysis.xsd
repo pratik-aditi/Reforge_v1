@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Reforge Analysis Schema
+  Defines structure for codebase inventory output (analysis.xml)
+  Version: 1.0.0
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:rf="http://reforge.dev/schema/analysis"
+           targetNamespace="http://reforge.dev/schema/analysis"
+           elementFormDefault="qualified">
+
+  <!-- Root Element -->
+  <xs:element name="analysis">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="project" type="rf:ProjectType"/>
+        <xs:element name="files" type="rf:FilesType"/>
+        <xs:element name="summary" type="rf:SummaryType"/>
+      </xs:sequence>
+      <xs:attribute name="version" type="xs:string" use="required"/>
+      <xs:attribute name="generated" type="xs:dateTime" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Project Information -->
+  <xs:complexType name="ProjectType">
+    <xs:sequence>
+      <xs:element name="configuration" type="rf:ConfigurationType" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:string" use="required"/>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="root-path" type="xs:string" use="required"/>
+    <xs:attribute name="status" type="rf:ProjectStatusType" use="required"/>
+  </xs:complexType>
+
+  <xs:simpleType name="ProjectStatusType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="not-started"/>
+      <xs:enumeration value="in-progress"/>
+      <xs:enumeration value="completed"/>
+      <xs:enumeration value="paused"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Configuration -->
+  <xs:complexType name="ConfigurationType">
+    <xs:sequence>
+      <xs:element name="exclusion-pattern" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+      <xs:element name="language-hints" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Files Collection -->
+  <xs:complexType name="FilesType">
+    <xs:sequence>
+      <xs:element name="file" type="rf:FileType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:integer" use="required"/>
+  </xs:complexType>
+
+  <!-- Individual File -->
+  <xs:complexType name="FileType">
+    <xs:sequence>
+      <xs:element name="components" type="rf:ComponentsType" minOccurs="0"/>
+      <xs:element name="imports" type="rf:ImportsType" minOccurs="0"/>
+      <xs:element name="exports" type="rf:ExportsType" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="path" type="xs:string" use="required"/>
+    <xs:attribute name="language" type="xs:string" use="required"/>
+    <xs:attribute name="file-type" type="rf:FileTypeEnum" use="required"/>
+    <xs:attribute name="size-bytes" type="xs:integer" use="required"/>
+    <xs:attribute name="line-count" type="xs:integer"/>
+    <xs:attribute name="hash" type="xs:string" use="required"/>
+    <xs:attribute name="analysis-status" type="rf:AnalysisStatusType" use="required"/>
+    <xs:attribute name="analyzed-at" type="xs:dateTime"/>
+  </xs:complexType>
+
+  <xs:simpleType name="FileTypeEnum">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="source"/>
+      <xs:enumeration value="config"/>
+      <xs:enumeration value="template"/>
+      <xs:enumeration value="data"/>
+      <xs:enumeration value="binary"/>
+      <xs:enumeration value="unknown"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="AnalysisStatusType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="pending"/>
+      <xs:enumeration value="in-progress"/>
+      <xs:enumeration value="completed"/>
+      <xs:enumeration value="skipped"/>
+      <xs:enumeration value="error"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- File Components (classes, functions, etc.) -->
+  <xs:complexType name="ComponentsType">
+    <xs:sequence>
+      <xs:element name="component" minOccurs="0" maxOccurs="unbounded">
+        <xs:complexType>
+          <xs:attribute name="type" type="xs:string" use="required"/>
+          <xs:attribute name="name" type="xs:string" use="required"/>
+          <xs:attribute name="line-start" type="xs:integer"/>
+          <xs:attribute name="line-end" type="xs:integer"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Imports/Dependencies -->
+  <xs:complexType name="ImportsType">
+    <xs:sequence>
+      <xs:element name="import" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Exports/Public API -->
+  <xs:complexType name="ExportsType">
+    <xs:sequence>
+      <xs:element name="export" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Summary Statistics -->
+  <xs:complexType name="SummaryType">
+    <xs:sequence>
+      <xs:element name="languages" type="rf:LanguageSummaryType"/>
+      <xs:element name="file-types" type="rf:FileTypeSummaryType"/>
+    </xs:sequence>
+    <xs:attribute name="total-files" type="xs:integer" use="required"/>
+    <xs:attribute name="total-lines" type="xs:integer" use="required"/>
+    <xs:attribute name="analyzed" type="xs:integer" use="required"/>
+    <xs:attribute name="skipped" type="xs:integer" use="required"/>
+  </xs:complexType>
+
+  <xs:complexType name="LanguageSummaryType">
+    <xs:sequence>
+      <xs:element name="language" minOccurs="0" maxOccurs="unbounded">
+        <xs:complexType>
+          <xs:attribute name="name" type="xs:string" use="required"/>
+          <xs:attribute name="count" type="xs:integer" use="required"/>
+          <xs:attribute name="lines" type="xs:integer" use="required"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="FileTypeSummaryType">
+    <xs:sequence>
+      <xs:element name="type" minOccurs="0" maxOccurs="unbounded">
+        <xs:complexType>
+          <xs:attribute name="name" type="xs:string" use="required"/>
+          <xs:attribute name="count" type="xs:integer" use="required"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+</xs:schema>

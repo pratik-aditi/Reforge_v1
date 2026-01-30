@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Invalid analysis.xml fixture for testing XSD validation.
+  This file has intentional errors:
+  1. Missing required 'version' attribute on root element
+  2. Misspelled element 'projetc' instead of 'project'
+  3. Missing required 'status' attribute on project
+-->
+<analysis xmlns="http://reforge.dev/schema/analysis"
+          generated="2026-01-29T12:00:00Z">
+
+  <!-- Error: misspelled 'project' as 'projetc' -->
+  <projetc id="test-project"
+           name="Test Project"
+           root-path="/path/to/project">
+  </projetc>
+
+  <files count="1">
+    <!-- Error: missing required 'hash' attribute -->
+    <file path="src/main.py"
+          language="Python"
+          file-type="source"
+          size-bytes="1024"
+          analysis-status="completed">
+    </file>
+  </files>
+
+  <summary total-files="1" total-lines="50" analyzed="1" skipped="0">
+    <languages>
+      <language name="Python" count="1" lines="50"/>
+    </languages>
+    <file-types>
+      <type name="source" count="1"/>
+    </file-types>
+  </summary>
+
+</analysis>

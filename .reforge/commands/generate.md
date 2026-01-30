@@ -957,6 +957,23 @@ When extractions are updated:
 
 ---
 
+## Optional Validation
+
+After generating XML output, you can validate it against the XSD schema using:
+
+```bash
+reforge-scripts validate-xml $GENERATED_DIR/user-stories.xml user-stories
+```
+
+If validation fails, the output will show structured errors with line numbers and fix suggestions. Correct any issues before proceeding.
+
+To list all available schema types:
+```bash
+reforge-scripts validate-xml --list-schemas
+```
+
+---
+
 ## Output Schema Reference
 
 - User Stories: `.reforge/schemas/user-stories.md`

@@ -15,6 +15,13 @@ from .scripts import (
     init_project,
     read_checkpoint,
     update_agent_context,
+    validate_xml,
+    get_available_schemas,
+    format_structured_output,
+    format_list_schemas,
+    EXIT_VALID,
+    EXIT_INVALID,
+    EXIT_ERROR,
 )
 from .scripts.common import ReforgeError
 
@@ -207,6 +214,7 @@ def merge_settings(target: Path, dry_run: bool):
         'Bash(reforge-scripts check-prerequisites:*)',
         'Bash(reforge-scripts checkpoint:*)',
         'Bash(reforge-scripts update-context:*)',
+        'Bash(reforge-scripts validate-xml:*)',
     ]
 
     if dry_run:
@@ -652,6 +660,67 @@ def cmd_update_context(
     except ReforgeError as e:
         error(str(e))
         raise typer.Exit(1)
+
+
+@scripts.command("validate-xml")
+def cmd_validate_xml(
+    xml_file: Optional[str] = typer.Argument(None, help="Path to XML file to validate"),
+    schema_type: Optional[str] = typer.Argument(None, help="Schema type (e.g., business-rules, analysis)"),
+    json_output: bool = typer.Option(False, "--json", help="Output in JSON format"),
+    list_schemas: bool = typer.Option(False, "--list-schemas", help="Show available schema types"),
+):
+    """Validate XML file against XSD schema.
+
+    Uses xmllint to validate XML output against formal XSD schemas.
+    Returns structured output optimized for LLM parsing.
+
+    Exit codes:
+      0 - Valid (XML passes schema validation)
+      1 - Invalid (XML fails schema validation)
+      2 - Error (system/usage error)
+
+    Examples:
+      reforge-scripts validate-xml output.xml business-rules
+      reforge-scripts validate-xml --list-schemas
+      reforge-scripts validate-xml output.xml analysis --json
+    """
+    try:
+        # Handle --list-schemas
+        if list_schemas:
+            schemas = get_available_schemas()
+            if not schemas:
+                error("No XSD schemas found in .reforge/schemas/xsd/")
+                raise typer.Exit(EXIT_ERROR)
+            print(format_list_schemas(schemas))
+            raise typer.Exit(EXIT_VALID)
+
+        # Validate required arguments
+        if xml_file is None:
+            error("Missing required argument: xml-file")
+            info("Usage: reforge-scripts validate-xml <xml-file> <schema-type>")
+            info("       reforge-scripts validate-xml --list-schemas")
+            raise typer.Exit(EXIT_ERROR)
+
+        if schema_type is None:
+            error("Missing required argument: schema-type")
+            info("Usage: reforge-scripts validate-xml <xml-file> <schema-type>")
+            info("Use --list-schemas to see available schema types")
+            raise typer.Exit(EXIT_ERROR)
+
+        # Run validation
+        result = validate_xml(Path(xml_file), schema_type)
+
+        # Output result
+        if json_output:
+            print(result.to_json())
+        else:
+            print(format_structured_output(result))
+
+        raise typer.Exit(result.exit_code)
+
+    except ReforgeError as e:
+        error(str(e))
+        raise typer.Exit(EXIT_ERROR)
 
 
 def main():

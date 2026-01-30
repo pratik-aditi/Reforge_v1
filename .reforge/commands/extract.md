@@ -812,6 +812,26 @@ When confidence is low:
 
 ---
 
+## Optional Validation
+
+After generating extraction output, you can validate the XML against its XSD schema using:
+
+```bash
+reforge-scripts validate-xml $EXTRACTIONS_DIR/business-rules.xml business-rules
+reforge-scripts validate-xml $EXTRACTIONS_DIR/database.xml database
+reforge-scripts validate-xml $EXTRACTIONS_DIR/ui-flows.xml ui-flows
+reforge-scripts validate-xml $EXTRACTIONS_DIR/workflows.xml workflows
+```
+
+If validation fails, the output will show structured errors with line numbers and fix suggestions. Correct any issues before proceeding.
+
+To list all available schema types:
+```bash
+reforge-scripts validate-xml --list-schemas
+```
+
+---
+
 ## Output Schema References
 
 - Business Rules: `.reforge/schemas/business-rules.md`

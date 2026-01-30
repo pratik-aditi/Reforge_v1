@@ -31,6 +31,21 @@ from .manage_checkpoint import (
 )
 from .update_agent_context import update_agent_context, AgentContextResult
 from .migrate_output import migrate_output, MigrationResult
+from .validation import (
+    validate_xml,
+    check_xmllint_available,
+    get_available_schemas,
+    parse_xmllint_errors,
+    generate_suggestion,
+    format_structured_output,
+    format_list_schemas,
+    ValidationResult,
+    ValidationError,
+    EXIT_VALID,
+    EXIT_INVALID,
+    EXIT_ERROR,
+    SCHEMA_DESCRIPTIONS,
+)
 
 __all__ = [
     # common - core
@@ -70,4 +85,18 @@ __all__ = [
     # migrate_output
     "migrate_output",
     "MigrationResult",
+    # validation
+    "validate_xml",
+    "check_xmllint_available",
+    "get_available_schemas",
+    "parse_xmllint_errors",
+    "generate_suggestion",
+    "format_structured_output",
+    "format_list_schemas",
+    "ValidationResult",
+    "ValidationError",
+    "EXIT_VALID",
+    "EXIT_INVALID",
+    "EXIT_ERROR",
+    "SCHEMA_DESCRIPTIONS",
 ]

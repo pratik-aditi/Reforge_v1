@@ -28,10 +28,15 @@ from reforge_cli import (
 )
 from reforge_cli.scripts import (
     check_prerequisites,
+    check_xmllint_available,
     create_checkpoint,
     delete_checkpoint,
+    format_list_schemas,
+    format_structured_output,
+    generate_suggestion,
     get_analysis_dir,
     get_audit_dir,
+    get_available_schemas,
     get_config_value,
     get_derived_dir,
     get_diagrams_dir,
@@ -43,10 +48,17 @@ from reforge_cli.scripts import (
     get_repo_root,
     init_project,
     migrate_output,
+    parse_xmllint_errors,
     read_checkpoint,
     resolve_analysis_file,
     resolve_extraction_file,
     update_agent_context,
+    validate_xml,
+    ValidationError,
+    ValidationResult,
+    EXIT_VALID,
+    EXIT_INVALID,
+    EXIT_ERROR,
 )
 from reforge_cli.scripts.common import (
     ReforgeError,
@@ -683,6 +695,412 @@ class TestMigrateOutput:
         assert "PROJECT_OUTPUT_DIR" in data
 
 
+class TestXmlValidation:
+    """Tests for validation.py XSD validation functions."""
+
+    @pytest.fixture
+    def temp_repo_with_schemas(self, temp_repo: Path) -> Path:
+        """Create a temp repo with XSD schemas."""
+        xsd_dir = temp_repo / ".reforge" / "schemas" / "xsd"
+        xsd_dir.mkdir(parents=True)
+
+        # Create a simple XSD schema for testing
+        analysis_xsd = """<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           targetNamespace="http://reforge.dev/schema/analysis"
+           xmlns:tns="http://reforge.dev/schema/analysis"
+           elementFormDefault="qualified">
+  <xs:element name="analysis">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="project" minOccurs="0">
+          <xs:complexType>
+            <xs:attribute name="id" type="xs:string" use="required"/>
+            <xs:attribute name="name" type="xs:string" use="required"/>
+            <xs:attribute name="root-path" type="xs:string" use="required"/>
+            <xs:attribute name="status" type="xs:string" use="optional"/>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="files" minOccurs="0">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="file" minOccurs="0" maxOccurs="unbounded">
+                <xs:complexType>
+                  <xs:attribute name="path" type="xs:string" use="required"/>
+                  <xs:attribute name="language" type="xs:string" use="required"/>
+                  <xs:attribute name="file-type" type="xs:string" use="required"/>
+                  <xs:attribute name="size-bytes" type="xs:integer" use="required"/>
+                  <xs:attribute name="analysis-status" type="xs:string" use="required"/>
+                  <xs:attribute name="hash" type="xs:string" use="optional"/>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+            <xs:attribute name="count" type="xs:integer"/>
+          </xs:complexType>
+        </xs:element>
+        <xs:element name="summary" minOccurs="0">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="languages" minOccurs="0">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="language" minOccurs="0" maxOccurs="unbounded">
+                      <xs:complexType>
+                        <xs:attribute name="name" type="xs:string" use="required"/>
+                        <xs:attribute name="count" type="xs:integer" use="required"/>
+                        <xs:attribute name="lines" type="xs:integer" use="required"/>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+              <xs:element name="file-types" minOccurs="0">
+                <xs:complexType>
+                  <xs:sequence>
+                    <xs:element name="type" minOccurs="0" maxOccurs="unbounded">
+                      <xs:complexType>
+                        <xs:attribute name="name" type="xs:string" use="required"/>
+                        <xs:attribute name="count" type="xs:integer" use="required"/>
+                      </xs:complexType>
+                    </xs:element>
+                  </xs:sequence>
+                </xs:complexType>
+              </xs:element>
+            </xs:sequence>
+            <xs:attribute name="total-files" type="xs:integer"/>
+            <xs:attribute name="total-lines" type="xs:integer"/>
+            <xs:attribute name="analyzed" type="xs:integer"/>
+            <xs:attribute name="skipped" type="xs:integer"/>
+          </xs:complexType>
+        </xs:element>
+      </xs:sequence>
+      <xs:attribute name="version" type="xs:string" use="optional"/>
+      <xs:attribute name="generated" type="xs:dateTime" use="optional"/>
+    </xs:complexType>
+  </xs:element>
+</xs:schema>
+"""
+        (xsd_dir / "analysis.xsd").write_text(analysis_xsd)
+
+        # Create other schema stubs for list-schemas test
+        for name in ["business-rules", "database", "ui-flows", "workflows",
+                     "user-stories", "audit-report", "correction-plan"]:
+            (xsd_dir / f"{name}.xsd").write_text(f"<!-- {name} schema stub -->")
+
+        return temp_repo
+
+    def test_check_xmllint_available(self):
+        """check_xmllint_available returns availability status."""
+        available, version, instructions = check_xmllint_available()
+
+        # Either xmllint is available or we get install instructions
+        if available:
+            assert version is not None
+            assert instructions is None
+        else:
+            assert version is None
+            assert instructions is not None
+            assert "install" in instructions.lower()
+
+    def test_get_available_schemas(self, temp_repo_with_schemas: Path):
+        """get_available_schemas finds XSD files."""
+        schemas = get_available_schemas(temp_repo_with_schemas)
+
+        assert "analysis" in schemas
+        assert schemas["analysis"].name == "analysis.xsd"
+        assert len(schemas) == 8  # 8 schema files
+
+    def test_get_available_schemas_empty_dir(self, temp_repo: Path):
+        """get_available_schemas returns empty dict when no schemas."""
+        schemas = get_available_schemas(temp_repo)
+        assert schemas == {}
+
+    def test_generate_suggestion_unknown_element(self):
+        """generate_suggestion handles unknown element errors."""
+        msg = "Element 'projetc': This element is not expected. Expected is 'project'."
+        suggestion = generate_suggestion(msg, 10, "projetc")
+
+        assert suggestion is not None
+        assert "line 10" in suggestion
+        assert "project" in suggestion
+
+    def test_generate_suggestion_missing_attribute(self):
+        """generate_suggestion handles missing attribute errors."""
+        msg = "Missing required attribute 'status' on element"
+        suggestion = generate_suggestion(msg, 5, "project")
+
+        assert suggestion is not None
+        assert "line 5" in suggestion
+        assert "project" in suggestion
+
+    def test_generate_suggestion_invalid_value(self):
+        """generate_suggestion handles invalid value errors."""
+        msg = "'abc' is not a valid value for type integer"
+        suggestion = generate_suggestion(msg, 15, "count")
+
+        assert suggestion is not None
+        assert "line 15" in suggestion
+
+    def test_generate_suggestion_generic(self):
+        """generate_suggestion provides generic suggestion for unknown errors."""
+        msg = "Some unknown error type"
+        suggestion = generate_suggestion(msg, 20, None)
+
+        assert suggestion is not None
+        assert "line 20" in suggestion
+
+    def test_parse_xmllint_errors_valid_output(self):
+        """parse_xmllint_errors parses xmllint stderr correctly."""
+        stderr = """test.xml:10: element projetc: Schemas validity error : Element 'projetc': This element is not expected.
+test.xml:15: element file: Schemas validity error : Missing required attribute 'hash'.
+test.xml fails to validate"""
+
+        errors = parse_xmllint_errors(stderr, "test.xml")
+
+        assert len(errors) == 2
+        assert errors[0].line == 10
+        assert errors[0].element == "projetc"
+        assert "not expected" in errors[0].message
+        assert errors[0].suggestion is not None
+
+        assert errors[1].line == 15
+        assert errors[1].element == "file"
+
+    def test_parse_xmllint_errors_empty(self):
+        """parse_xmllint_errors returns empty list for valid output."""
+        stderr = "test.xml validates"
+
+        errors = parse_xmllint_errors(stderr, "test.xml")
+
+        assert len(errors) == 0
+
+    def test_validate_xml_missing_file(self, temp_repo_with_schemas: Path):
+        """validate_xml returns error for missing XML file."""
+        result = validate_xml(
+            xml_file=temp_repo_with_schemas / "nonexistent.xml",
+            schema_type="analysis",
+            repo_root=temp_repo_with_schemas,
+        )
+
+        assert result.valid is False
+        assert result.exit_code == EXIT_ERROR
+        assert len(result.errors) == 1
+        assert "not found" in result.errors[0].message
+
+    def test_validate_xml_missing_schema(self, temp_repo: Path):
+        """validate_xml returns error for missing schema."""
+        # Create XML file but no schemas
+        xml_file = temp_repo / "test.xml"
+        xml_file.write_text("<test/>")
+
+        result = validate_xml(
+            xml_file=xml_file,
+            schema_type="nonexistent",
+            repo_root=temp_repo,
+        )
+
+        assert result.valid is False
+        assert result.exit_code == EXIT_ERROR
+        assert "Schema not found" in result.errors[0].message
+
+    def test_validate_xml_missing_xmllint(self, temp_repo_with_schemas: Path):
+        """validate_xml returns error when xmllint not available."""
+        xml_file = temp_repo_with_schemas / "test.xml"
+        xml_file.write_text("<test/>")
+
+        with patch("reforge_cli.scripts.validation.check_xmllint_available") as mock:
+            mock.return_value = (False, None, "Install xmllint: apt install libxml2-utils")
+
+            result = validate_xml(
+                xml_file=xml_file,
+                schema_type="analysis",
+                repo_root=temp_repo_with_schemas,
+            )
+
+        assert result.valid is False
+        assert result.exit_code == EXIT_ERROR
+        assert "xmllint" in result.errors[0].message.lower()
+
+    def test_validate_xml_valid_file(self, temp_repo: Path):
+        """validate_xml returns success for valid XML."""
+        # Use the fixture from tests/fixtures/validation
+        fixtures_dir = Path(__file__).parent / "fixtures" / "validation"
+        valid_xml = fixtures_dir / "valid-analysis.xml"
+
+        if not valid_xml.exists():
+            pytest.skip("Test fixture not found")
+
+        available, _, _ = check_xmllint_available()
+        if not available:
+            pytest.skip("xmllint not available")
+
+        # Use the actual project XSD schemas (copied to temp repo)
+        project_xsd_dir = Path(__file__).parent.parent / ".reforge" / "schemas" / "xsd"
+        if not project_xsd_dir.exists():
+            pytest.skip("Project XSD schemas not found")
+
+        # Copy actual XSD to temp repo
+        target_xsd_dir = temp_repo / ".reforge" / "schemas" / "xsd"
+        target_xsd_dir.mkdir(parents=True, exist_ok=True)
+        import shutil
+        shutil.copy(project_xsd_dir / "analysis.xsd", target_xsd_dir / "analysis.xsd")
+
+        result = validate_xml(
+            xml_file=valid_xml,
+            schema_type="analysis",
+            repo_root=temp_repo,
+        )
+
+        assert result.valid is True
+        assert result.exit_code == EXIT_VALID
+        assert len(result.errors) == 0
+
+    def test_validate_xml_invalid_file(self, temp_repo: Path):
+        """validate_xml returns errors for invalid XML."""
+        # Use the fixture from tests/fixtures/validation
+        fixtures_dir = Path(__file__).parent / "fixtures" / "validation"
+        invalid_xml = fixtures_dir / "invalid-analysis.xml"
+
+        if not invalid_xml.exists():
+            pytest.skip("Test fixture not found")
+
+        available, _, _ = check_xmllint_available()
+        if not available:
+            pytest.skip("xmllint not available")
+
+        # Use the actual project XSD schemas
+        project_xsd_dir = Path(__file__).parent.parent / ".reforge" / "schemas" / "xsd"
+        if not project_xsd_dir.exists():
+            pytest.skip("Project XSD schemas not found")
+
+        # Copy actual XSD to temp repo
+        target_xsd_dir = temp_repo / ".reforge" / "schemas" / "xsd"
+        target_xsd_dir.mkdir(parents=True, exist_ok=True)
+        import shutil
+        shutil.copy(project_xsd_dir / "analysis.xsd", target_xsd_dir / "analysis.xsd")
+
+        result = validate_xml(
+            xml_file=invalid_xml,
+            schema_type="analysis",
+            repo_root=temp_repo,
+        )
+
+        assert result.valid is False
+        assert result.exit_code == EXIT_INVALID
+        assert len(result.errors) > 0
+
+    def test_format_structured_output_valid(self):
+        """format_structured_output formats valid result correctly."""
+        result = ValidationResult(
+            valid=True,
+            exit_code=EXIT_VALID,
+            xml_file="test.xml",
+            schema_type="analysis",
+            schema_file="analysis.xsd",
+            elapsed_ms=50,
+        )
+
+        output = format_structured_output(result)
+
+        assert "VALIDATION_OK" in output
+        assert "FILE: test.xml" in output
+        assert "SCHEMA: analysis" in output
+        assert "ELAPSED_MS: 50" in output
+
+    def test_format_structured_output_invalid(self):
+        """format_structured_output formats invalid result correctly."""
+        result = ValidationResult(
+            valid=False,
+            exit_code=EXIT_INVALID,
+            xml_file="test.xml",
+            schema_type="analysis",
+            schema_file="analysis.xsd",
+            errors=[
+                ValidationError(
+                    line=10,
+                    column=None,
+                    element="projetc",
+                    message="Element not expected",
+                    suggestion="Check spelling",
+                    raw_output="test.xml:10: ...",
+                )
+            ],
+            error_count=1,
+        )
+
+        output = format_structured_output(result)
+
+        assert "VALIDATION_FAILED" in output
+        assert "ERROR_COUNT: 1" in output
+        assert "---" in output
+        assert "LINE: 10" in output
+        assert "ELEMENT: projetc" in output
+        assert "MESSAGE: Element not expected" in output
+        assert "SUGGESTION: Check spelling" in output
+
+    def test_format_list_schemas(self, temp_repo_with_schemas: Path):
+        """format_list_schemas formats schema list correctly."""
+        schemas = get_available_schemas(temp_repo_with_schemas)
+        output = format_list_schemas(schemas)
+
+        assert "Available schemas:" in output
+        assert "analysis" in output
+        assert "business-rules" in output
+
+    def test_validation_result_to_json(self):
+        """ValidationResult.to_json produces valid JSON."""
+        result = ValidationResult(
+            valid=True,
+            exit_code=EXIT_VALID,
+            xml_file="test.xml",
+            schema_type="analysis",
+            schema_file="analysis.xsd",
+            elapsed_ms=50,
+        )
+
+        json_str = result.to_json()
+        data = json.loads(json_str)
+
+        assert data["valid"] is True
+        assert data["exit_code"] == 0
+        assert data["xml_file"] == "test.xml"
+
+
+class TestValidateCLI:
+    """Tests for validate-xml CLI command."""
+
+    def test_validate_xml_help(self):
+        """validate-xml --help shows usage."""
+        result = runner.invoke(scripts, ["validate-xml", "--help"])
+
+        assert result.exit_code == 0
+        assert "validate-xml" in result.output.lower() or "validate" in result.output.lower()
+
+    def test_validate_xml_list_schemas(self, temp_repo: Path, monkeypatch):
+        """validate-xml --list-schemas shows available schemas."""
+        # Create schemas directory
+        xsd_dir = temp_repo / ".reforge" / "schemas" / "xsd"
+        xsd_dir.mkdir(parents=True)
+        (xsd_dir / "analysis.xsd").write_text("<schema/>")
+        (xsd_dir / "business-rules.xsd").write_text("<schema/>")
+
+        monkeypatch.chdir(temp_repo)
+        result = runner.invoke(scripts, ["validate-xml", "--list-schemas"])
+
+        assert result.exit_code == 0
+        assert "analysis" in result.output
+        assert "business-rules" in result.output
+
+    def test_validate_xml_missing_args(self, temp_repo: Path, monkeypatch):
+        """validate-xml without args shows usage or error."""
+        monkeypatch.chdir(temp_repo)
+        result = runner.invoke(scripts, ["validate-xml"])
+
+        # Should exit with error or show usage
+        # Either behavior is acceptable
+        assert result.exit_code != 0 or "Usage" in result.output or "Missing" in result.output
+
+
 # --- CLI Integration Tests ---
 
 
@@ -877,6 +1295,11 @@ def mock_reforge_home(tmp_path: Path) -> Path:
     (reforge_dir / "commands" / "analyze.md").write_text("> Analyze codebase\n\nContent")
     (reforge_dir / "commands" / "extract.md").write_text("> Extract knowledge\n\nContent")
     (reforge_dir / "schemas").mkdir()
+    # Create XSD schemas subdirectory
+    (reforge_dir / "schemas" / "xsd").mkdir()
+    for name in ["analysis", "business-rules", "database", "ui-flows",
+                 "workflows", "user-stories", "audit-report", "correction-plan"]:
+        (reforge_dir / "schemas" / "xsd" / f"{name}.xsd").write_text(f"<!-- {name} XSD schema -->")
     (reforge_dir / "templates").mkdir()
     (reforge_dir / "memory").mkdir()
     (reforge_dir / "memory" / "constitution.md").write_text("# Constitution")
@@ -1122,6 +1545,51 @@ class TestInstallWorkflow:
 
         with pytest.raises(typer.Exit):
             do_install(target, mock_reforge_home, dry_run=False)
+
+
+class TestXsdDeployment:
+    """Tests for XSD schema deployment during install/update."""
+
+    def test_install_copies_xsd_schemas(self, tmp_path: Path, mock_reforge_home: Path):
+        """do_install copies XSD schemas to target."""
+        target = tmp_path / "target"
+        target.mkdir()
+
+        do_install(target, mock_reforge_home, dry_run=False)
+
+        # Verify XSD directory exists
+        xsd_dir = target / ".reforge" / "schemas" / "xsd"
+        assert xsd_dir.is_dir()
+
+        # Verify all 8 XSD files are copied
+        xsd_files = list(xsd_dir.glob("*.xsd"))
+        assert len(xsd_files) == 8
+
+        # Verify specific schemas exist
+        assert (xsd_dir / "analysis.xsd").is_file()
+        assert (xsd_dir / "business-rules.xsd").is_file()
+        assert (xsd_dir / "database.xsd").is_file()
+
+    def test_update_refreshes_xsd_schemas(self, tmp_path: Path, mock_reforge_home: Path):
+        """do_update refreshes XSD schemas."""
+        target = tmp_path / "target"
+        target.mkdir()
+
+        # Initial install
+        do_install(target, mock_reforge_home, dry_run=False)
+
+        # Modify an XSD file
+        xsd_file = target / ".reforge" / "schemas" / "xsd" / "analysis.xsd"
+        original_content = xsd_file.read_text()
+        xsd_file.write_text("<!-- modified content -->")
+
+        # Update
+        do_update(target, mock_reforge_home, dry_run=False)
+
+        # Should be restored to original
+        restored_content = xsd_file.read_text()
+        assert restored_content == original_content
+        assert "modified content" not in restored_content
 
 
 class TestUpdateWorkflow:
