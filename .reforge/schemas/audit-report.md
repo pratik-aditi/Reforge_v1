@@ -197,3 +197,7 @@ Output path: `reforge_output/<project-name>/audit/audit-report.xml`
   <summary>Business rules coverage: 60.0%. 2 stale references found.</summary>
 </audit-report>
 ```
+
+## Contract Reference
+
+Based on: `specs/002-audit-fix-commands/contracts/audit-report.xsd`

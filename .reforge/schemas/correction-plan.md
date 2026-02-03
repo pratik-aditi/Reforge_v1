@@ -231,3 +231,7 @@ Output path: `reforge_output/<project-name>/audit/correction-plan.xml`
 
 </correction-plan>
 ```
+
+## Contract Reference
+
+Based on: `specs/002-audit-fix-commands/contracts/correction-plan.xsd`

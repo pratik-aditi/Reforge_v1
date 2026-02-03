@@ -294,3 +294,13 @@ Source evidence reference within a requirement.
 
 </features-requirements>
 ```
+
+## Schema Notes
+
+This is a derived schema for features and requirements output. No formal XSD contract exists as features-requirements are generated from extraction analysis. This markdown documentation serves as the authoritative schema definition.
+
+## Related Schemas
+
+- [business-rules.md](./business-rules.md) — Source rules for requirements
+- [workflows.md](./workflows.md) — Source workflows for features
+- [cross-mappings.md](./cross-mappings.md) — Related derived schema

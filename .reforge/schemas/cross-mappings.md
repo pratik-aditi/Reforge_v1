@@ -149,3 +149,15 @@ Source file reference within a trace.
 
 </cross-mappings>
 ```
+
+## Schema Notes
+
+This is a derived schema for traceability output. No formal XSD contract exists as cross-mappings are generated from other extraction artifacts. This markdown documentation serves as the authoritative schema definition.
+
+## Related Schemas
+
+- [analysis.md](./analysis.md) — Source file inventory
+- [business-rules.md](./business-rules.md) — Referenced rules
+- [workflows.md](./workflows.md) — Referenced workflows
+- [ui-flows.md](./ui-flows.md) — Referenced UI components
+- [features-requirements.md](./features-requirements.md) — Related derived schema

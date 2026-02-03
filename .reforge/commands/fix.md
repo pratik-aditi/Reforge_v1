@@ -373,6 +373,12 @@ Run /reforge.audit to generate a fresh correction plan if needed.
 
 ---
 
+## Output Schema References
+
+- Correction Plan: `.reforge/schemas/correction-plan.md` — Structure for correction-plan.xml
+
+---
+
 ## Examples
 
 ### Full Fix Execution
