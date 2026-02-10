@@ -291,7 +291,59 @@ def validate_xml(
     # Normalize schema type (remove .xsd if present)
     schema_type = schema_type.removesuffix(".xsd")
 
-    # Check xmllint availability
+    # Check XML file exists (before checking xmllint — no tool needed for this)
+    if not xml_file.exists():
+        elapsed_ms = int((time.time() - start_time) * 1000)
+        return ValidationResult(
+            valid=False,
+            exit_code=EXIT_ERROR,
+            xml_file=str(xml_file),
+            schema_type=schema_type,
+            schema_file="",
+            errors=[
+                ValidationError(
+                    line=0,
+                    column=None,
+                    element=None,
+                    message=f"XML file not found: {xml_file}",
+                    suggestion="Check the file path and ensure the file exists.",
+                    raw_output="",
+                )
+            ],
+            error_count=1,
+            elapsed_ms=elapsed_ms,
+            xmllint_version=None,
+        )
+
+    # Resolve schema path (before checking xmllint — no tool needed for this)
+    schemas = get_available_schemas(repo_root)
+    if schema_type not in schemas:
+        available = ", ".join(sorted(schemas.keys())) if schemas else "none"
+        elapsed_ms = int((time.time() - start_time) * 1000)
+        return ValidationResult(
+            valid=False,
+            exit_code=EXIT_ERROR,
+            xml_file=str(xml_file),
+            schema_type=schema_type,
+            schema_file="",
+            errors=[
+                ValidationError(
+                    line=0,
+                    column=None,
+                    element=None,
+                    message=f"Schema not found: {schema_type}. Available schemas: {available}",
+                    suggestion=f"Use one of the available schema types: {available}",
+                    raw_output="",
+                )
+            ],
+            error_count=1,
+            elapsed_ms=elapsed_ms,
+            xmllint_version=None,
+        )
+
+    schema_file = schemas[schema_type]
+
+    # Check xmllint availability (only needed if we actually have valid inputs to validate)
     xmllint_available, xmllint_version, install_instructions = check_xmllint_available()
 
     if not xmllint_available:
@@ -316,58 +368,6 @@ def validate_xml(
             elapsed_ms=elapsed_ms,
             xmllint_version=None,
         )
-
-    # Check XML file exists
-    if not xml_file.exists():
-        elapsed_ms = int((time.time() - start_time) * 1000)
-        return ValidationResult(
-            valid=False,
-            exit_code=EXIT_ERROR,
-            xml_file=str(xml_file),
-            schema_type=schema_type,
-            schema_file="",
-            errors=[
-                ValidationError(
-                    line=0,
-                    column=None,
-                    element=None,
-                    message=f"XML file not found: {xml_file}",
-                    suggestion="Check the file path and ensure the file exists.",
-                    raw_output="",
-                )
-            ],
-            error_count=1,
-            elapsed_ms=elapsed_ms,
-            xmllint_version=xmllint_version,
-        )
-
-    # Resolve schema path
-    schemas = get_available_schemas(repo_root)
-    if schema_type not in schemas:
-        available = ", ".join(sorted(schemas.keys())) if schemas else "none"
-        elapsed_ms = int((time.time() - start_time) * 1000)
-        return ValidationResult(
-            valid=False,
-            exit_code=EXIT_ERROR,
-            xml_file=str(xml_file),
-            schema_type=schema_type,
-            schema_file="",
-            errors=[
-                ValidationError(
-                    line=0,
-                    column=None,
-                    element=None,
-                    message=f"Schema not found: {schema_type}. Available schemas: {available}",
-                    suggestion=f"Use one of the available schema types: {available}",
-                    raw_output="",
-                )
-            ],
-            error_count=1,
-            elapsed_ms=elapsed_ms,
-            xmllint_version=xmllint_version,
-        )
-
-    schema_file = schemas[schema_type]
 
     # Run xmllint
     try:

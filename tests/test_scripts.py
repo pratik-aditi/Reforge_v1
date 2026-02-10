@@ -17,11 +17,16 @@ from reforge_cli import (
     copy_framework,
     create_memory_dirs,
     do_install,
+    do_install_copilot,
     do_remove,
     do_update,
+    do_update_copilot,
+    generate_copilot_agents,
+    generate_copilot_prompts,
     generate_wrappers,
     merge_config,
     merge_settings,
+    merge_vscode_settings,
     update_gitignore,
     validate_source,
     validate_target,
@@ -1140,7 +1145,7 @@ class TestCLI:
         assert "Dry run complete" in result.output
 
     def test_claude_install_fails_if_already_installed(self, tmp_path: Path):
-        """--claude fails when .reforge/ already exists."""
+        """--claude fails when Claude assistant is already installed."""
         mock_home = tmp_path / "reforge-home"
         mock_home.mkdir()
         (mock_home / ".reforge" / "commands").mkdir(parents=True)
@@ -1148,13 +1153,16 @@ class TestCLI:
 
         target = tmp_path / "target-project"
         target.mkdir()
-        (target / ".reforge").mkdir()  # Already installed
+        (target / ".reforge").mkdir()
+        # Claude-specific files must exist to trigger "already installed"
+        (target / ".claude" / "commands").mkdir(parents=True)
+        (target / ".claude" / "commands" / "reforge.analyze.md").write_text("test")
 
         with patch("reforge_cli.get_reforge_home", return_value=mock_home):
             result = runner.invoke(app, ["--claude", str(target)])
 
         assert result.exit_code == 1
-        assert "already has .reforge" in result.output
+        assert "already installed" in result.output
 
     def test_update_requires_existing_install(self, tmp_path: Path):
         """--claude --update fails without .reforge."""
@@ -1536,12 +1544,15 @@ class TestInstallWorkflow:
         assert (target / ".gitignore").is_file()
 
     def test_do_install_fails_if_exists(self, tmp_path: Path, mock_reforge_home: Path):
-        """do_install fails when .reforge/ already exists."""
+        """do_install fails when Claude assistant is already installed."""
         import typer
 
         target = tmp_path / "target"
         target.mkdir()
         (target / ".reforge").mkdir()
+        # Claude-specific files must exist to trigger "already installed"
+        (target / ".claude" / "commands").mkdir(parents=True)
+        (target / ".claude" / "commands" / "reforge.analyze.md").write_text("test")
 
         with pytest.raises(typer.Exit):
             do_install(target, mock_reforge_home, dry_run=False)
@@ -1953,3 +1964,416 @@ class TestCommonHelpers:
 
         # Should find .reforge first (it's checked first in the function)
         assert result == tmp_path
+
+
+# === Copilot Support Tests (Feature 005) ===
+
+
+class TestCopilotAgentGeneration:
+    """Tests for generate_copilot_agents() function."""
+
+    def test_generate_copilot_agents_creates_agent_files(self, tmp_path: Path, mock_reforge_home: Path):
+        """Agent files created for each command template."""
+        target = tmp_path / "target"
+        target.mkdir()
+
+        generate_copilot_agents(target, mock_reforge_home, dry_run=False)
+
+        agents_dir = target / ".github" / "agents"
+        assert agents_dir.exists()
+        assert (agents_dir / "reforge.analyze.agent.md").exists()
+        assert (agents_dir / "reforge.extract.agent.md").exists()
+
+        # Verify content: has YAML frontmatter with description, has Load-and-Execute instruction
+        content = (agents_dir / "reforge.analyze.agent.md").read_text()
+        lines = content.split("\n")
+        assert lines[0] == "---"  # YAML frontmatter start
+        assert "description:" in content
+        assert "$ARGUMENTS" in content
+        assert ".reforge/commands/analyze.md" in content
+        assert "Load and execute" in content
+
+    def test_generate_copilot_agents_dry_run(self, tmp_path: Path, mock_reforge_home: Path):
+        """Dry run creates no files."""
+        target = tmp_path / "target"
+        target.mkdir()
+
+        generate_copilot_agents(target, mock_reforge_home, dry_run=True)
+
+        assert not (target / ".github" / "agents").exists()
+
+
+class TestCopilotPromptGeneration:
+    """Tests for generate_copilot_prompts() function."""
+
+    def test_generate_copilot_prompts_creates_prompt_files(self, tmp_path: Path, mock_reforge_home: Path):
+        """Prompt files created with correct YAML frontmatter."""
+        target = tmp_path / "target"
+        target.mkdir()
+
+        # First generate agents (prompts depend on agent files)
+        generate_copilot_agents(target, mock_reforge_home, dry_run=False)
+        generate_copilot_prompts(target, dry_run=False)
+
+        prompts_dir = target / ".github" / "prompts"
+        assert prompts_dir.exists()
+        assert (prompts_dir / "reforge.analyze.prompt.md").exists()
+        assert (prompts_dir / "reforge.extract.prompt.md").exists()
+
+        # Verify YAML frontmatter content
+        content = (prompts_dir / "reforge.analyze.prompt.md").read_text()
+        assert "agent: reforge.analyze" in content
+
+    def test_generate_copilot_prompts_dry_run(self, tmp_path: Path, mock_reforge_home: Path):
+        """Dry run creates no files."""
+        target = tmp_path / "target"
+        target.mkdir()
+
+        generate_copilot_prompts(target, dry_run=True)
+
+        assert not (target / ".github" / "prompts").exists()
+
+
+class TestVscodeSettingsMerge:
+    """Tests for merge_vscode_settings() function."""
+
+    def test_merge_vscode_settings_creates_new_file(self, tmp_path: Path, mock_reforge_home: Path):
+        """Creates .vscode/settings.json with Copilot entries."""
+        target = tmp_path / "target"
+        target.mkdir()
+
+        merge_vscode_settings(target, mock_reforge_home, dry_run=False)
+
+        settings_file = target / ".vscode" / "settings.json"
+        assert settings_file.exists()
+
+        settings = json.loads(settings_file.read_text())
+        assert "chat.promptFilesRecommendations" in settings
+        assert settings["chat.promptFilesRecommendations"]["reforge.analyze"] is True
+        assert settings["chat.promptFilesRecommendations"]["reforge.extract"] is True
+        assert "chat.tools.terminal.autoApprove" in settings
+        assert settings["chat.tools.terminal.autoApprove"]["reforge-scripts "] is True
+
+    def test_merge_vscode_settings_merges_existing(self, tmp_path: Path, mock_reforge_home: Path):
+        """Existing user settings are preserved while Reforge entries are added."""
+        target = tmp_path / "target"
+        target.mkdir()
+
+        # Create existing settings
+        vscode_dir = target / ".vscode"
+        vscode_dir.mkdir()
+        (vscode_dir / "settings.json").write_text(json.dumps({
+            "editor.fontSize": 14,
+            "chat.promptFilesRecommendations": {
+                "myagent.foo": True,
+            },
+        }))
+
+        merge_vscode_settings(target, mock_reforge_home, dry_run=False)
+
+        settings = json.loads((vscode_dir / "settings.json").read_text())
+        # User settings preserved
+        assert settings["editor.fontSize"] == 14
+        assert settings["chat.promptFilesRecommendations"]["myagent.foo"] is True
+        # Reforge settings added
+        assert settings["chat.promptFilesRecommendations"]["reforge.analyze"] is True
+
+    def test_merge_vscode_settings_handles_malformed_json(self, tmp_path: Path, mock_reforge_home: Path):
+        """Graceful handling of corrupt .vscode/settings.json."""
+        target = tmp_path / "target"
+        target.mkdir()
+
+        vscode_dir = target / ".vscode"
+        vscode_dir.mkdir()
+        (vscode_dir / "settings.json").write_text("not json{{{")
+
+        merge_vscode_settings(target, mock_reforge_home, dry_run=False)
+
+        settings = json.loads((vscode_dir / "settings.json").read_text())
+        assert "chat.promptFilesRecommendations" in settings
+
+    def test_merge_vscode_settings_dry_run(self, tmp_path: Path, mock_reforge_home: Path):
+        """Dry run creates no files."""
+        target = tmp_path / "target"
+        target.mkdir()
+
+        merge_vscode_settings(target, mock_reforge_home, dry_run=True)
+
+        assert not (target / ".vscode" / "settings.json").exists()
+
+
+class TestCopilotInstallWorkflow:
+    """Tests for Copilot install workflow."""
+
+    def test_do_copilot_install_full_flow(self, tmp_path: Path, mock_reforge_home: Path):
+        """Full Copilot install creates all expected artifacts."""
+        target = tmp_path / "target"
+        target.mkdir()
+
+        do_install_copilot(target, mock_reforge_home, dry_run=False)
+
+        # Framework files
+        assert (target / ".reforge" / "commands").exists()
+        assert (target / ".reforge" / "schemas").exists()
+        assert (target / ".reforge" / "templates").exists()
+        assert (target / ".reforge" / "config.json").exists()
+
+        # Copilot agent files
+        assert (target / ".github" / "agents" / "reforge.analyze.agent.md").exists()
+        assert (target / ".github" / "agents" / "reforge.extract.agent.md").exists()
+
+        # Copilot prompt files
+        assert (target / ".github" / "prompts" / "reforge.analyze.prompt.md").exists()
+        assert (target / ".github" / "prompts" / "reforge.extract.prompt.md").exists()
+
+        # VS Code settings
+        assert (target / ".vscode" / "settings.json").exists()
+
+        # Gitignore
+        assert (target / ".gitignore").exists()
+        assert "reforge_output/" in (target / ".gitignore").read_text()
+
+    def test_copilot_install_fails_if_already_installed(self, tmp_path: Path, mock_reforge_home: Path):
+        """Copilot install fails when Copilot assistant is already installed."""
+        import typer
+
+        target = tmp_path / "target"
+        target.mkdir()
+        (target / ".reforge").mkdir()
+        # Copilot-specific files must exist to trigger "already installed"
+        (target / ".github" / "agents").mkdir(parents=True)
+        (target / ".github" / "agents" / "reforge.analyze.agent.md").write_text("test")
+
+        with pytest.raises(typer.Exit):
+            do_install_copilot(target, mock_reforge_home, dry_run=False)
+
+    def test_copilot_install_dry_run(self, tmp_path: Path, mock_reforge_home: Path):
+        """Copilot dry run creates no files."""
+        target = tmp_path / "target"
+        target.mkdir()
+
+        do_install_copilot(target, mock_reforge_home, dry_run=True)
+
+        assert not (target / ".reforge").exists()
+        assert not (target / ".github").exists()
+        assert not (target / ".vscode").exists()
+
+    def test_copilot_install_cli_dry_run(self, mock_reforge_home: Path, tmp_path: Path):
+        """CLI --copilot --dry-run works."""
+        target = tmp_path / "target"
+        target.mkdir()
+
+        with patch("reforge_cli.get_reforge_home", return_value=mock_reforge_home):
+            result = runner.invoke(app, ["--copilot", "--dry-run", str(target)])
+
+        assert result.exit_code == 0
+        assert not (target / ".reforge").exists()
+
+    def test_copilot_install_cli_fails_if_already_installed(self, mock_reforge_home: Path, tmp_path: Path):
+        """CLI --copilot fails when Copilot assistant is already installed."""
+        target = tmp_path / "target"
+        target.mkdir()
+        (target / ".reforge").mkdir()
+        # Copilot-specific files must exist to trigger "already installed"
+        (target / ".github" / "agents").mkdir(parents=True)
+        (target / ".github" / "agents" / "reforge.analyze.agent.md").write_text("test")
+
+        with patch("reforge_cli.get_reforge_home", return_value=mock_reforge_home):
+            result = runner.invoke(app, ["--copilot", str(target)])
+
+        assert result.exit_code != 0
+
+    def test_copilot_agents_preserve_non_reforge_files(self, tmp_path: Path, mock_reforge_home: Path):
+        """Non-Reforge agent files in .github/agents/ are not affected."""
+        target = tmp_path / "target"
+        target.mkdir()
+
+        # Create pre-existing non-Reforge agent file
+        (target / ".github" / "agents").mkdir(parents=True)
+        (target / ".github" / "agents" / "mybot.agent.md").write_text("my agent")
+
+        generate_copilot_agents(target, mock_reforge_home, dry_run=False)
+
+        # Non-reforge file preserved
+        assert (target / ".github" / "agents" / "mybot.agent.md").read_text() == "my agent"
+        # Reforge files also created
+        assert (target / ".github" / "agents" / "reforge.analyze.agent.md").exists()
+
+
+class TestCopilotUpdateWorkflow:
+    """Tests for Copilot update workflow."""
+
+    def test_copilot_update_refreshes_agents(self, tmp_path: Path, mock_reforge_home: Path):
+        """Update regenerates agent files."""
+        target = tmp_path / "target"
+        target.mkdir()
+
+        do_install_copilot(target, mock_reforge_home, dry_run=False)
+
+        # Modify an agent file
+        agent_file = target / ".github" / "agents" / "reforge.analyze.agent.md"
+        agent_file.write_text("modified")
+
+        do_update_copilot(target, mock_reforge_home, dry_run=False)
+
+        # Should be regenerated (not "modified")
+        assert "modified" not in agent_file.read_text()
+        assert ".reforge/commands/analyze.md" in agent_file.read_text()
+
+    def test_copilot_update_requires_existing(self, tmp_path: Path, mock_reforge_home: Path):
+        """Update fails when no Copilot agent files exist."""
+        import typer
+
+        target = tmp_path / "target"
+        target.mkdir()
+        (target / ".reforge").mkdir()
+
+        with pytest.raises(typer.Exit):
+            do_update_copilot(target, mock_reforge_home, dry_run=False)
+
+    def test_copilot_update_preserves_config(self, tmp_path: Path, mock_reforge_home: Path):
+        """Update preserves user-configured project name."""
+        target = tmp_path / "target"
+        target.mkdir()
+
+        do_install_copilot(target, mock_reforge_home, dry_run=False)
+
+        # Set user config
+        config = json.loads((target / ".reforge" / "config.json").read_text())
+        config["project"]["name"] = "my-project"
+        (target / ".reforge" / "config.json").write_text(json.dumps(config))
+
+        do_update_copilot(target, mock_reforge_home, dry_run=False)
+
+        updated_config = json.loads((target / ".reforge" / "config.json").read_text())
+        assert updated_config["project"]["name"] == "my-project"
+
+    def test_copilot_update_cli(self, tmp_path: Path, mock_reforge_home: Path):
+        """CLI --copilot --update works."""
+        target = tmp_path / "target"
+        target.mkdir()
+
+        do_install_copilot(target, mock_reforge_home, dry_run=False)
+
+        with patch("reforge_cli.get_reforge_home", return_value=mock_reforge_home):
+            result = runner.invoke(app, ["--copilot", "--update", str(target)])
+
+        assert result.exit_code == 0
+
+
+class TestCopilotRemoveWorkflow:
+    """Tests for Copilot artifact removal."""
+
+    def test_remove_cleans_copilot_agents(self, tmp_path: Path, mock_reforge_home: Path):
+        """Remove cleans Copilot agent files, preserves non-Reforge agents."""
+        target = tmp_path / "target"
+        target.mkdir()
+
+        do_install_copilot(target, mock_reforge_home, dry_run=False)
+
+        # Add non-Reforge agent
+        (target / ".github" / "agents" / "mybot.agent.md").write_text("my agent")
+
+        do_remove(target, force=True, dry_run=False)
+
+        # Reforge agents removed
+        assert not (target / ".github" / "agents" / "reforge.analyze.agent.md").exists()
+        # Non-Reforge agent preserved
+        assert (target / ".github" / "agents" / "mybot.agent.md").exists()
+
+    def test_remove_cleans_copilot_prompts(self, tmp_path: Path, mock_reforge_home: Path):
+        """Remove cleans Copilot prompt files, preserves non-Reforge prompts."""
+        target = tmp_path / "target"
+        target.mkdir()
+
+        do_install_copilot(target, mock_reforge_home, dry_run=False)
+
+        # Add non-Reforge prompt
+        (target / ".github" / "prompts" / "mybot.prompt.md").write_text("my prompt")
+
+        do_remove(target, force=True, dry_run=False)
+
+        # Reforge prompts removed
+        assert not (target / ".github" / "prompts" / "reforge.analyze.prompt.md").exists()
+        # Non-Reforge prompt preserved
+        assert (target / ".github" / "prompts" / "mybot.prompt.md").exists()
+
+    def test_remove_cleans_vscode_settings(self, tmp_path: Path, mock_reforge_home: Path):
+        """Remove cleans Reforge entries from .vscode/settings.json, preserves others."""
+        target = tmp_path / "target"
+        target.mkdir()
+
+        do_install_copilot(target, mock_reforge_home, dry_run=False)
+
+        # Add user VS Code setting
+        settings = json.loads((target / ".vscode" / "settings.json").read_text())
+        settings["editor.fontSize"] = 14
+        (target / ".vscode" / "settings.json").write_text(json.dumps(settings))
+
+        do_remove(target, force=True, dry_run=False)
+
+        remaining = json.loads((target / ".vscode" / "settings.json").read_text())
+        assert "editor.fontSize" in remaining
+        assert "chat.promptFilesRecommendations" not in remaining
+
+    def test_remove_full_uninstall_copilot(self, tmp_path: Path, mock_reforge_home: Path):
+        """Full uninstall from Copilot installation."""
+        target = tmp_path / "target"
+        target.mkdir()
+
+        do_install_copilot(target, mock_reforge_home, dry_run=False)
+        do_remove(target, force=True, dry_run=False)
+
+        assert not (target / ".reforge").exists()
+        assert not list((target / ".github" / "agents").glob("reforge.*.agent.md"))
+        assert not list((target / ".github" / "prompts").glob("reforge.*.prompt.md"))
+
+
+class TestCopilotCoexistence:
+    """Tests for Claude + Copilot coexistence."""
+
+    def test_claude_and_copilot_coexist(self, tmp_path: Path, mock_reforge_home: Path):
+        """Install Claude then Copilot — both sets of files present."""
+        target = tmp_path / "target"
+        target.mkdir()
+
+        do_install(target, mock_reforge_home, dry_run=False)
+
+        # Now install Copilot (reforge already exists, so generate Copilot files directly)
+        generate_copilot_agents(target, mock_reforge_home, dry_run=False)
+        generate_copilot_prompts(target, dry_run=False)
+        merge_vscode_settings(target, mock_reforge_home, dry_run=False)
+
+        # Claude wrappers exist
+        assert (target / ".claude" / "commands" / "reforge.analyze.md").exists()
+        # Copilot agents exist
+        assert (target / ".github" / "agents" / "reforge.analyze.agent.md").exists()
+        # Copilot prompts exist
+        assert (target / ".github" / "prompts" / "reforge.analyze.prompt.md").exists()
+
+    def test_remove_cleans_both_agents(self, tmp_path: Path, mock_reforge_home: Path):
+        """Remove cleans both Claude and Copilot artifacts."""
+        target = tmp_path / "target"
+        target.mkdir()
+
+        do_install(target, mock_reforge_home, dry_run=False)
+        generate_copilot_agents(target, mock_reforge_home, dry_run=False)
+        generate_copilot_prompts(target, dry_run=False)
+        merge_vscode_settings(target, mock_reforge_home, dry_run=False)
+
+        do_remove(target, force=True, dry_run=False)
+
+        assert not (target / ".reforge").exists()
+        assert not list((target / ".claude" / "commands").glob("reforge.*.md"))
+        assert not list((target / ".github" / "agents").glob("reforge.*.agent.md"))
+        assert not list((target / ".github" / "prompts").glob("reforge.*.prompt.md"))
+
+    def test_claude_copilot_mutual_exclusion(self, mock_reforge_home: Path, tmp_path: Path):
+        """CLI rejects --claude --copilot together."""
+        target = tmp_path / "target"
+        target.mkdir()
+
+        with patch("reforge_cli.get_reforge_home", return_value=mock_reforge_home):
+            result = runner.invoke(app, ["--claude", "--copilot", str(target)])
+
+        assert result.exit_code != 0

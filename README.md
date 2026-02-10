@@ -16,41 +16,66 @@ The framework installs into your target project as a set of slash commands. When
 
 - Python 3.11 or higher
 - [uv](https://docs.astral.sh/uv/) (recommended) or pip
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code) (or another AI coding agent that supports slash commands)
+- An AI coding agent:
+  - [Claude Code](https://docs.anthropic.com/en/docs/claude-code) — use `--claude`
+  - [GitHub Copilot](https://github.com/features/copilot) in VS Code — use `--copilot`
 
 ### Quick Start
 
-Install Reforge CLI using `uv`:
+1. **Clone the repository**:
 
 ```bash
-uv tool install reforge-cli
+git clone https://github.com/Aditi-Consulting/reforge.git
+cd reforge
 ```
 
-Or install from git:
+2. **Install the CLI tool**:
 
 ```bash
-uv tool install git+https://github.com/Aditi-Consulting/reforge.git
+uv tool install reforge-cli --from .
 ```
 
-Or using pip:
+Or from a path outside the repo:
 
 ```bash
-pip install reforge-cli
+uv tool install reforge-cli --from /path/to/reforge
 ```
 
-Then install into your target project:
+3. **Install into your target project**:
+
+For **Claude Code**:
 
 ```bash
 reforge --claude /path/to/legacy-project
 ```
 
-This copies the framework files, generates Claude Code slash command wrappers, configures permissions, and sets up `.gitignore` entries.
+For **GitHub Copilot** (VS Code):
 
-Open your project in Claude Code and run:
+```bash
+reforge --copilot /path/to/legacy-project
+```
+
+You can install both on the same project — they coexist without conflict:
+
+```bash
+reforge --claude /path/to/legacy-project
+reforge --copilot /path/to/legacy-project
+```
+
+4. **Start analyzing**:
+
+In **Claude Code**, run:
 
 ```
 /reforge.init      # Set up project context (recommended)
 /reforge.analyze   # Begin codebase analysis
+```
+
+In **GitHub Copilot Chat** (VS Code), type:
+
+```
+@reforge.init      # Set up project context (recommended)
+@reforge.analyze   # Begin codebase analysis
 ```
 
 ### CLI Reference
@@ -60,6 +85,7 @@ Usage: reforge [OPTIONS] [TARGET_PATH]
 
 Commands:
   --claude              Install/set up Reforge for Claude Code
+  --copilot             Install/set up Reforge for GitHub Copilot
   --remove              Remove Reforge from target project
 
 Options:
@@ -73,13 +99,17 @@ Arguments:
   TARGET_PATH           Target project directory (defaults to current directory)
 ```
 
+`--claude` and `--copilot` are mutually exclusive per invocation but can be run separately on the same project.
+
 | Example | What it does |
 |---------|--------------|
-| `reforge --claude .` | Install into current directory |
+| `reforge --claude .` | Install for Claude Code |
+| `reforge --copilot .` | Install for GitHub Copilot |
 | `reforge --claude /opt/legacy-app` | Install into a specific project |
-| `reforge --claude --update .` | Update framework files |
-| `reforge --claude --dry-run .` | Preview what would be installed |
-| `reforge --remove .` | Uninstall from current directory |
+| `reforge --claude --update .` | Update Claude Code framework files |
+| `reforge --copilot --update .` | Update Copilot agent files |
+| `reforge --copilot --dry-run .` | Preview what would be installed |
+| `reforge --remove .` | Uninstall all Reforge artifacts |
 
 ### Helper Scripts CLI
 
@@ -99,19 +129,22 @@ These are called automatically by the AI agent during `/reforge.*` command execu
 
 ### Updating
 
-To update the Reforge CLI tool itself:
+To update the Reforge CLI tool itself, pull the latest and reinstall:
 
 ```bash
-uv tool upgrade reforge-cli
+cd /path/to/reforge
+git pull
+uv tool install reforge-cli --from . --force
 ```
 
 To refresh framework files in an already-installed project:
 
 ```bash
-reforge --claude --update /path/to/project
+reforge --claude --update /path/to/project   # Claude Code
+reforge --copilot --update /path/to/project  # GitHub Copilot
 ```
 
-This refreshes commands, schemas, and templates while preserving your project-specific configuration (project name, custom exclusions, output directory).
+This refreshes commands, schemas, templates, and agent files while preserving your project-specific configuration (project name, custom exclusions, output directory).
 
 ### Uninstalling
 
@@ -121,7 +154,7 @@ Remove from a project:
 reforge --remove /path/to/project
 ```
 
-Removes all framework files and configuration. Your analysis output (`reforge_output/`) is preserved unless you explicitly confirm its removal.
+Removes all Reforge artifacts — framework files, Claude wrappers, Copilot agents/prompts, and VS Code settings entries. Your analysis output (`reforge_output/`) is preserved unless you explicitly confirm its removal.
 
 Uninstall the CLI tool:
 
@@ -301,28 +334,31 @@ After installation, edit `.reforge/config.json` in your target project:
 ## Typical Workflow
 
 ```
- 1. Install:     uv tool install reforge-cli
- 2. Setup:       reforge --claude /path/to/project
- 3. Initialize:  /reforge.init                      # Set project context
- 4. Analyze:     /reforge.analyze                   # Inventory codebase
- 5. Extract:     /reforge.extract business-rules    # Extract knowledge
+ 1. Clone:       git clone https://github.com/Aditi-Consulting/reforge.git
+ 2. Install:     uv tool install reforge-cli --from /path/to/reforge
+ 3. Setup:       reforge --claude /path/to/project   # or --copilot
+ 4. Initialize:  /reforge.init                       # Set project context
+ 5. Analyze:     /reforge.analyze                    # Inventory codebase
+ 6. Extract:     /reforge.extract business-rules     # Extract knowledge
                  /reforge.extract database
                  /reforge.extract ui
                  /reforge.extract workflows
- 6. Clarify:     /reforge.clarify                   # Resolve ambiguities
- 7. Generate:    /reforge.generate user-stories     # Create documentation
+ 7. Clarify:     /reforge.clarify                    # Resolve ambiguities
+ 8. Generate:    /reforge.generate user-stories      # Create documentation
                  /reforge.generate data-dictionary
                  /reforge.generate cross-mappings
- 8. Audit:       /reforge.audit                     # Check coverage
- 9. Fix:         /reforge.fix                       # Fill gaps
-10. Review:      Check reforge_output/ for results
+ 9. Audit:       /reforge.audit                      # Check coverage
+10. Fix:         /reforge.fix                        # Fill gaps
+11. Review:      Check reforge_output/ for results
 ```
 
-The audit/fix cycle (steps 8-9) can be repeated as needed to achieve comprehensive coverage.
+The audit/fix cycle (steps 9-10) can be repeated as needed to achieve comprehensive coverage.
 
 ## What Gets Installed
 
-When you run `reforge --claude`, the following is added to your project:
+Both `--claude` and `--copilot` install the shared framework files. Each mode adds its own agent integration on top.
+
+### Shared framework (always installed)
 
 ```
 .reforge/
@@ -337,11 +373,28 @@ When you run `reforge --claude`, the following is added to your project:
 │   └── logs/             # Operation logs (gitignored)
 ├── config.json         # Project configuration
 └── .version            # Installed framework version
+```
 
+### Claude Code (`--claude`)
+
+```
 .claude/
 ├── commands/
 │   └── reforge.*.md    # Thin wrappers that register slash commands
 └── settings.local.json # Permissions for reforge-scripts CLI
+```
+
+### GitHub Copilot (`--copilot`)
+
+```
+.github/
+├── agents/
+│   └── reforge.*.agent.md   # Copilot Chat agent files (one per command)
+└── prompts/
+    └── reforge.*.prompt.md  # Copilot Chat prompt files (one per command)
+
+.vscode/
+└── settings.json            # Copilot settings (prompt recommendations, terminal auto-approve)
 ```
 
 Analysis outputs go to `reforge_output/<project-name>/`:

@@ -29,7 +29,8 @@ __version__ = "1.0.0"
 
 EXAMPLES = (
     "Examples: "
-    "[dim]reforge --claude .[/dim] (install), "
+    "[dim]reforge --claude .[/dim] (install for Claude Code), "
+    "[dim]reforge --copilot .[/dim] (install for GitHub Copilot), "
     "[dim]reforge --claude --update .[/dim] (update), "
     "[dim]reforge --remove .[/dim] (uninstall)"
 )
@@ -243,6 +244,115 @@ def merge_settings(target: Path, dry_run: bool):
     settings_file.write_text(json.dumps(settings, indent=2) + '\n')
 
 
+def generate_copilot_agents(target: Path, reforge_home: Path, dry_run: bool):
+    cmd_dir = reforge_home / ".reforge" / "commands"
+
+    if dry_run:
+        info("Would create: .github/agents/ agent files")
+    else:
+        (target / ".github" / "agents").mkdir(parents=True, exist_ok=True)
+
+    for cmd_file in cmd_dir.glob("*.md"):
+        name = cmd_file.stem
+        description = f"Run reforge {name} command"
+
+        try:
+            content = cmd_file.read_text()
+            for line in content.split('\n'):
+                if line.startswith('>'):
+                    description = line.lstrip('> ').strip()
+                    break
+        except Exception:
+            pass
+
+        if dry_run:
+            info(f"  Would create: .github/agents/reforge.{name}.agent.md")
+        else:
+            agent_content = f"""---
+description: {description}
+---
+
+## User Input
+
+```text
+$ARGUMENTS
+```
+
+You **MUST** consider the user input before proceeding (if not empty).
+
+## Execution
+
+Load and execute the full command template at `.reforge/commands/{name}.md`.
+Follow all steps defined in that file exactly as written, passing through any
+arguments provided above.
+"""
+            (target / ".github" / "agents" / f"reforge.{name}.agent.md").write_text(agent_content)
+
+
+def generate_copilot_prompts(target: Path, dry_run: bool):
+    agents_dir = target / ".github" / "agents"
+
+    if dry_run:
+        info("Would create: .github/prompts/ prompt files")
+        return
+
+    if not agents_dir.exists():
+        return
+
+    (target / ".github" / "prompts").mkdir(parents=True, exist_ok=True)
+
+    for agent_file in agents_dir.glob("reforge.*.agent.md"):
+        # reforge.analyze.agent.md -> reforge.analyze
+        agent_name = agent_file.name.removesuffix(".agent.md")
+        prompt_content = f"""---
+agent: {agent_name}
+---
+"""
+        (target / ".github" / "prompts" / f"{agent_name}.prompt.md").write_text(prompt_content)
+
+
+def merge_vscode_settings(target: Path, reforge_home: Path, dry_run: bool):
+    settings_file = target / ".vscode" / "settings.json"
+    cmd_dir = reforge_home / ".reforge" / "commands"
+
+    # Build recommendations from command templates
+    recommendations = {}
+    for cmd_file in cmd_dir.glob("*.md"):
+        recommendations[f"reforge.{cmd_file.stem}"] = True
+
+    reforge_settings = {
+        "chat.promptFilesRecommendations": recommendations,
+        "chat.tools.terminal.autoApprove": {
+            "reforge-scripts ": True,
+        },
+    }
+
+    if dry_run:
+        info("Would update: .vscode/settings.json with Copilot settings")
+        return
+
+    settings_file.parent.mkdir(parents=True, exist_ok=True)
+
+    if settings_file.exists():
+        try:
+            settings = json.loads(settings_file.read_text())
+        except json.JSONDecodeError:
+            settings = {}
+
+        # Deep-merge: update each top-level key
+        for key, value in reforge_settings.items():
+            if isinstance(value, dict):
+                if not isinstance(settings.get(key), dict):
+                    settings[key] = {}
+                settings[key].update(value)
+            else:
+                settings[key] = value
+    else:
+        settings = reforge_settings
+
+    settings_file.write_text(json.dumps(settings, indent=4) + '\n')
+
+
 def update_gitignore(target: Path, dry_run: bool):
     gitignore = target / ".gitignore"
     entries = ["reforge_output/", ".reforge/memory/checkpoints/",
@@ -311,15 +421,36 @@ def merge_config(target: Path, reforge_home: Path, dry_run: bool):
         error(f"Failed to merge config: {e}")
 
 
+def is_claude_installed(target: Path) -> bool:
+    """Check if Claude assistant is installed."""
+    claude_commands = target / ".claude" / "commands"
+    return claude_commands.exists() and any(claude_commands.glob("reforge.*.md"))
+
+
+def is_copilot_installed(target: Path) -> bool:
+    """Check if Copilot assistant is installed."""
+    agents_dir = target / ".github" / "agents"
+    return agents_dir.exists() and any(agents_dir.glob("reforge.*.agent.md"))
+
+
 def do_install(target: Path, reforge_home: Path, dry_run: bool):
-    if (target / ".reforge").exists():
-        error("Target already has .reforge/ directory. Use --update to refresh, or --remove first.")
-        raise typer.Exit(1)
+    reforge_exists = (target / ".reforge").exists()
     
-    info(f"Installing Reforge framework into: {target}")
+    if reforge_exists:
+        # Check if Claude is already installed
+        if is_claude_installed(target):
+            error("Claude assistant already installed. Use --update to refresh, or --remove first.")
+            raise typer.Exit(1)
+        
+        # Reforge exists but Claude not installed - add Claude to existing installation
+        info(f"Adding Claude assistant to existing Reforge installation in: {target}")
+    else:
+        # Fresh installation
+        info(f"Installing Reforge framework into: {target}")
+        copy_framework(target, reforge_home, dry_run)
+        create_memory_dirs(target, dry_run)
     
-    copy_framework(target, reforge_home, dry_run)
-    create_memory_dirs(target, dry_run)
+    # Always generate Claude-specific files
     generate_wrappers(target, reforge_home, dry_run)
     merge_settings(target, dry_run)
     update_gitignore(target, dry_run)
@@ -329,7 +460,10 @@ def do_install(target: Path, reforge_home: Path, dry_run: bool):
         info("Dry run complete. No changes made.")
     else:
         console.print()
-        ok(f"Reforge v{__version__} installed successfully!")
+        if reforge_exists:
+            ok(f"Claude assistant added successfully!")
+        else:
+            ok(f"Reforge v{__version__} installed successfully!")
         info("Run /reforge.analyze in Claude Code to begin codebase analysis.")
 
 
@@ -390,6 +524,103 @@ def do_update(target: Path, reforge_home: Path, dry_run: bool):
         ok(f"Reforge updated to v{__version__}!")
 
 
+def do_install_copilot(target: Path, reforge_home: Path, dry_run: bool):
+    reforge_exists = (target / ".reforge").exists()
+    
+    if reforge_exists:
+        # Check if Copilot is already installed
+        if is_copilot_installed(target):
+            error("Copilot assistant already installed. Use --update to refresh, or --remove first.")
+            raise typer.Exit(1)
+        
+        # Reforge exists but Copilot not installed - add Copilot to existing installation
+        info(f"Adding Copilot assistant to existing Reforge installation in: {target}")
+    else:
+        # Fresh installation
+        info(f"Installing Reforge framework (Copilot) into: {target}")
+        copy_framework(target, reforge_home, dry_run)
+        create_memory_dirs(target, dry_run)
+
+    # Always generate Copilot-specific files
+    generate_copilot_agents(target, reforge_home, dry_run)
+    generate_copilot_prompts(target, dry_run)
+    merge_vscode_settings(target, reforge_home, dry_run)
+    update_gitignore(target, dry_run)
+
+    if dry_run:
+        console.print()
+        info("Dry run complete. No changes made.")
+    else:
+        console.print()
+        if reforge_exists:
+            ok(f"Copilot assistant added successfully!")
+        else:
+            ok(f"Reforge v{__version__} installed successfully!")
+        info("Run @reforge.analyze in Copilot Chat to begin codebase analysis.")
+
+
+def do_update_copilot(target: Path, reforge_home: Path, dry_run: bool):
+    # Detect Copilot installation by presence of agent files
+    agents_dir = target / ".github" / "agents"
+    has_copilot = agents_dir.exists() and any(agents_dir.glob("reforge.*.agent.md"))
+
+    if not has_copilot:
+        error("No Copilot agent files found. Run initial install first (reforge --copilot .).")
+        raise typer.Exit(1)
+
+    info(f"Updating Reforge framework (Copilot) in: {target}")
+
+    # Update framework files
+    dirs = ["commands", "schemas", "templates"]
+    for dir_name in dirs:
+        src = reforge_home / ".reforge" / dir_name
+        dst = target / ".reforge" / dir_name
+
+        if src.exists():
+            if dry_run:
+                info(f"Would refresh: .reforge/{dir_name}/")
+            else:
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                if dst.exists():
+                    shutil.rmtree(dst)
+                shutil.copytree(src, dst)
+
+    # Update constitution and README
+    for file_name in ["memory/constitution.md", "README.md"]:
+        src = reforge_home / ".reforge" / file_name
+        if src.exists():
+            if dry_run:
+                info(f"Would refresh: .reforge/{file_name}")
+            else:
+                dst = target / ".reforge" / file_name
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(src, dst)
+
+    # Merge config
+    merge_config(target, reforge_home, dry_run)
+
+    # Update version stamp
+    if dry_run:
+        info("Would update: .reforge/.version")
+    else:
+        (target / ".reforge" / ".version").write_text(__version__)
+
+    # Regenerate Copilot files
+    generate_copilot_agents(target, reforge_home, dry_run)
+    generate_copilot_prompts(target, dry_run)
+    merge_vscode_settings(target, reforge_home, dry_run)
+
+    # Ensure gitignore is up to date
+    update_gitignore(target, dry_run)
+
+    if dry_run:
+        console.print()
+        info("Dry run complete. No changes made.")
+    else:
+        console.print()
+        ok(f"Reforge (Copilot) updated to v{__version__}!")
+
+
 def do_remove(target: Path, force: bool, dry_run: bool):
     if not (target / ".reforge").exists():
         error(f"No .reforge/ directory found in: {target}")
@@ -399,11 +630,14 @@ def do_remove(target: Path, force: bool, dry_run: bool):
         info("Would remove: .reforge/")
         info("Would remove: .claude/commands/reforge.*.md")
         info("Would remove reforge permissions from: .claude/settings.local.json")
+        info("Would remove: .github/agents/reforge.*.agent.md")
+        info("Would remove: .github/prompts/reforge.*.prompt.md")
+        info("Would remove reforge entries from: .vscode/settings.json")
         info("Would remove reforge entries from: .gitignore")
         console.print()
         info("Dry run complete. No changes made.")
         return
-    
+
     # Confirmation
     if not force:
         console.print()
@@ -411,6 +645,9 @@ def do_remove(target: Path, force: bool, dry_run: bool):
         console.print("  - .reforge/ directory")
         console.print("  - .claude/commands/reforge.*.md wrappers")
         console.print("  - Reforge permissions from .claude/settings.local.json")
+        console.print("  - .github/agents/reforge.*.agent.md agent files")
+        console.print("  - .github/prompts/reforge.*.prompt.md prompt files")
+        console.print("  - Reforge entries from .vscode/settings.json")
         console.print("  - Reforge entries from .gitignore")
         console.print()
         
@@ -430,6 +667,51 @@ def do_remove(target: Path, force: bool, dry_run: bool):
             wrapper.unlink()
     ok("Removed .claude/commands/reforge.*.md")
     
+    # Remove Copilot agent files
+    copilot_agents = target / ".github" / "agents"
+    if copilot_agents.exists():
+        for agent in copilot_agents.glob("reforge.*.agent.md"):
+            agent.unlink()
+    ok("Removed .github/agents/reforge.*.agent.md")
+
+    # Remove Copilot prompt files
+    copilot_prompts = target / ".github" / "prompts"
+    if copilot_prompts.exists():
+        for prompt in copilot_prompts.glob("reforge.*.prompt.md"):
+            prompt.unlink()
+    ok("Removed .github/prompts/reforge.*.prompt.md")
+
+    # Clean .vscode/settings.json
+    vscode_settings = target / ".vscode" / "settings.json"
+    if vscode_settings.exists():
+        try:
+            settings = json.loads(vscode_settings.read_text())
+            changed = False
+
+            # Remove reforge entries from chat.promptFilesRecommendations
+            if "chat.promptFilesRecommendations" in settings:
+                keys_to_remove = [k for k in settings["chat.promptFilesRecommendations"] if k.startswith("reforge.")]
+                for k in keys_to_remove:
+                    del settings["chat.promptFilesRecommendations"][k]
+                    changed = True
+                if not settings["chat.promptFilesRecommendations"]:
+                    del settings["chat.promptFilesRecommendations"]
+
+            # Remove reforge entries from chat.tools.terminal.autoApprove
+            if "chat.tools.terminal.autoApprove" in settings:
+                keys_to_remove = [k for k in settings["chat.tools.terminal.autoApprove"] if k.startswith("reforge-scripts")]
+                for k in keys_to_remove:
+                    del settings["chat.tools.terminal.autoApprove"][k]
+                    changed = True
+                if not settings["chat.tools.terminal.autoApprove"]:
+                    del settings["chat.tools.terminal.autoApprove"]
+
+            if changed:
+                vscode_settings.write_text(json.dumps(settings, indent=4) + '\n')
+            ok("Cleaned .vscode/settings.json")
+        except Exception as e:
+            warn(f"Could not clean .vscode/settings.json: {e}")
+
     # Clean settings.local.json
     settings_file = target / ".claude" / "settings.local.json"
     if settings_file.exists():
@@ -499,6 +781,11 @@ def cli(
         help="Install/set up Reforge for Claude Code",
         rich_help_panel="Commands",
     ),
+    copilot: bool = typer.Option(
+        False, "--copilot",
+        help="Install/set up Reforge for GitHub Copilot",
+        rich_help_panel="Commands",
+    ),
     remove: bool = typer.Option(
         False, "--remove",
         help="Remove Reforge from target project",
@@ -515,7 +802,11 @@ def cli(
         console.print(f"reforge v{__version__}")
         raise typer.Exit()
 
-    if not claude and not remove:
+    if claude and copilot:
+        error("Cannot use --claude and --copilot together. Run them separately.")
+        raise typer.Exit(1)
+
+    if not claude and not copilot and not remove:
         # Show help when no command specified
         console.print(ctx.get_help())
         raise typer.Exit()
@@ -532,6 +823,13 @@ def cli(
             do_update(target, reforge_home, dry_run)
         else:
             do_install(target, reforge_home, dry_run)
+    elif copilot:
+        validate_source(reforge_home)
+        validate_target(target, reforge_home)
+        if update:
+            do_update_copilot(target, reforge_home, dry_run)
+        else:
+            do_install_copilot(target, reforge_home, dry_run)
     elif remove:
         do_remove(target, force, dry_run)
 

@@ -70,6 +70,8 @@ This project is built using the Specify workflow:
 ## Active Technologies
 - Markdown prompt templates (no compiled code per Constitution Principle I) + None (LLM-native tools only: Read, Write, Glob, Grep) (002-audit-fix-commands)
 - XML files for audit report and correction plan; structured markdown for command templates (002-audit-fix-commands)
+- Python 3.11+ + Typer (CLI framework), Rich (console output) (005-copilot-support)
+- Filesystem (markdown files, JSON config) (005-copilot-support)
 
 ## Recent Changes
 - 002-audit-fix-commands: Added Markdown prompt templates (no compiled code per Constitution Principle I) + None (LLM-native tools only: Read, Write, Glob, Grep)
