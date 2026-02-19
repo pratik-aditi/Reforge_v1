@@ -68,6 +68,7 @@ In **Claude Code**, run:
 
 ```
 /reforge.init      # Set up project context (recommended)
+/reforge.profile   # Generate extraction profile (recommended)
 /reforge.analyze   # Begin codebase analysis
 ```
 
@@ -75,6 +76,7 @@ In **GitHub Copilot Chat** (VS Code), type:
 
 ```
 @reforge.init      # Set up project context (recommended)
+@reforge.profile   # Generate extraction profile (recommended)
 @reforge.analyze   # Begin codebase analysis
 ```
 
@@ -179,6 +181,22 @@ Creates `.reforge/memory/project-context.md` containing:
 - Analysis guidelines (focus areas, known patterns)
 
 Run this before `/reforge.analyze` for best results.
+
+### `/reforge.profile`
+
+Generate a language-specific and architecture-specific extraction profile. Gathers your project's tech stack (languages, frameworks, architectural patterns) and produces tailored extraction guidance at `.reforge/memory/extraction-profile.md`.
+
+```
+/reforge.profile [--update]
+```
+
+- **Auto-discovers** languages by scanning file extensions when you don't declare them
+- **Universal language support** — the LLM generates extraction rules for any language from its training knowledge (no restrictions)
+- **Architecture guidance** — declare patterns (layered, microservices, event-driven, etc.) for targeted extraction
+- **Custom notes** — add project-specific extraction guidance
+- **Update mode** — add or remove languages without losing existing profile content
+
+The extract command loads this profile automatically. Run before `/reforge.extract` for language-aware extraction.
 
 ### `/reforge.analyze`
 
@@ -338,18 +356,19 @@ After installation, edit `.reforge/config.json` in your target project:
  2. Install:     uv tool install reforge-cli --from /path/to/reforge
  3. Setup:       reforge --claude /path/to/project   # or --copilot
  4. Initialize:  /reforge.init                       # Set project context
- 5. Analyze:     /reforge.analyze                    # Inventory codebase
- 6. Extract:     /reforge.extract business-rules     # Extract knowledge
+ 5. Profile:     /reforge.profile                    # Generate extraction profile
+ 6. Analyze:     /reforge.analyze                    # Inventory codebase
+ 7. Extract:     /reforge.extract business-rules     # Extract knowledge
                  /reforge.extract database
                  /reforge.extract ui
                  /reforge.extract workflows
- 7. Clarify:     /reforge.clarify                    # Resolve ambiguities
- 8. Generate:    /reforge.generate user-stories      # Create documentation
+ 8. Clarify:     /reforge.clarify                    # Resolve ambiguities
+ 9. Generate:    /reforge.generate user-stories      # Create documentation
                  /reforge.generate data-dictionary
                  /reforge.generate cross-mappings
- 9. Audit:       /reforge.audit                      # Check coverage
-10. Fix:         /reforge.fix                        # Fill gaps
-11. Review:      Check reforge_output/ for results
+10. Audit:       /reforge.audit                      # Check coverage
+11. Fix:         /reforge.fix                        # Fill gaps
+12. Review:      Check reforge_output/ for results
 ```
 
 The audit/fix cycle (steps 9-10) can be repeated as needed to achieve comprehensive coverage.
