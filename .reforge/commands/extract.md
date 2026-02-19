@@ -76,6 +76,20 @@ supplemental guidance throughout this command's execution:
 - **Analysis Guidelines**: Directs focus and exclusions beyond config.json
 - **Custom Rules**: Additional rules to follow alongside the constitution
 
+### Step 0.6: Load Extraction Profile
+
+If `.reforge/memory/extraction-profile.md` exists, read it now. Use its contents as
+language-specific and architecture-specific guidance throughout this extraction:
+- **Language Rules**: Apply language-specific extraction rules (type quirks, operator
+  differences, naming conventions, common pitfalls) when extracting from code in those languages
+- **Architecture Guidance**: Use architecture-specific patterns to locate business rules,
+  data access, workflows, and integration points in the expected locations
+- **Framework Patterns**: Apply framework-specific extraction guidance when relevant
+- **Custom Notes**: Follow project-specific extraction guidance provided by the user
+
+If no extraction profile exists, proceed without language-specific guidance. Consider
+suggesting that the user run `/reforge.profile` for improved extraction accuracy.
+
 ### Step 1: Load Analysis
 
 Read `$ANALYSIS_DIR/analysis.xml` to get:
@@ -976,30 +990,6 @@ When confidence is low:
 
 ---
 
-## Language-Specific Extraction Rules
-
-When extracting from code in these languages, be aware of these known traps:
-
-### VB.NET
-- **Array declarations**: `Dim arr(6) As Byte` creates an array with 7 elements (indices 0-6), NOT 6 elements. The number in parentheses is the UPPER BOUND, not the size.
-- **Boolean operators**: `OrElse` is short-circuit OR (different from `Or` which evaluates both sides). `AndAlso` is short-circuit AND (different from `And`). Always record the exact operator used.
-- **Option Strict**: When `Option Strict On` is set, implicit conversions are disallowed. Note this when extracting type-related rules.
-- **Custom enum patterns**: VB.NET projects may use custom base classes like `Enumeration(Of TValue, TEnum)` instead of standard `Enum`. Always check the base class before assuming integer-based enum values.
-- **String comparison**: `=` operator for strings performs value comparison by default in VB.NET (unlike C# reference comparison). Note the comparison semantics.
-- **Nothing vs null**: VB.NET uses `Nothing` which is equivalent to `null` but also means `default(T)` for value types.
-
-### C#
-- **No trailing newline**: Many C# files lack a trailing newline. When counting lines with `wc -l`, this undercounts by 1. Use `cat -n` from the Read tool to verify actual line count.
-- **nameof() expressions**: `nameof(variable)` produces a string at compile time. Extract the actual string value it produces.
-- **Null-conditional operators**: `?.` and `??` -- describe the actual null-handling behavior, don't simplify.
-- **Pattern matching**: C# switch expressions and pattern matching can be complex. Extract the full pattern, not a simplified version.
-
-### General
-- **Encoding matters**: When extracting byte arrays, protocol buffers, or binary formats, note the exact encoding and byte order.
-- **Off-by-one awareness**: When counting items in enums, arrays, or lists, COUNT them explicitly in the source. Never derive a count from an index value without understanding the language's indexing convention.
-- **Custom base classes**: Before assuming any type follows standard language patterns, check its base class/interface hierarchy.
-
----
 
 ## Required Validation
 
