@@ -83,6 +83,14 @@ Read `$ANALYSIS_DIR/analysis.xml` to get:
 - Language information for each file
 - Component locations (classes, methods)
 
+**CRITICAL**: For every file you extract from, you MUST:
+1. Read the file using the Read tool IN THIS SESSION before writing any extraction from it
+2. Do NOT extract from memory of previous sessions or from analysis.xml metadata alone
+3. If a file is too large to read in one pass, read it in sections and process each section
+4. Track which files you have actually read -- only reference files read in this session
+
+The analysis.xml inventory tells you WHICH files to examine. You must still READ each file to extract accurate content from it.
+
 ### Step 2: Scan for Business Logic Patterns
 
 For each source file, identify:
@@ -150,6 +158,58 @@ State constraints:
   if (account.isClosed()) ...
 ```
 
+#### Enumeration and Constant Patterns
+
+```
+Enum declarations:
+  enum StatusType { Active, Inactive, Suspended }
+  Public Enum StateOfOnBoard As Integer
+  public class StatusCodes : Enumeration<String>
+  Public Class PTCStatus : Inherits Enumeration(Of String, PTCStatus)
+
+Named constant sets:
+  const MAX_RETRIES = 3
+  Public Const TIMEOUT_MS As Integer = 5000
+  static readonly string[] VALID_STATES = { ... }
+
+State machine definitions:
+  States: New -> InProgress -> Completed -> Archived
+  Transitions: Submit(), Approve(), Reject()
+```
+
+**CRITICAL for enums**: When extracting enumeration types:
+1. Read the ENTIRE enum/class declaration from source, not just a summary
+2. Copy EVERY member name exactly as declared (spelling, casing, underscores)
+3. Record the underlying type from the declaration:
+   - Standard enum: note `As Integer`, `As String`, `: int`, etc.
+   - Custom base class: note the full inheritance (e.g., `Inherits Enumeration(Of String, PTCStatus)`)
+   - If type is ambiguous, read the base class source to determine value type
+4. Copy any assigned values (numeric or string) exactly as written in source
+5. Do NOT infer member names from usage context or descriptive comments
+6. If the enum has more than 20 members, extract ALL of them -- do not summarize
+7. Record the total member count (verified by counting in source)
+
+### Step 2.5: Verbatim Extraction Rules
+
+**CRITICAL ANTI-HALLUCINATION MANDATE**: When extracting any of the following, you MUST copy the EXACT text from source code as shown by the Read tool. Do NOT paraphrase, infer, or reconstruct names from memory:
+
+- **Identifiers**: Class names, method names, property names, field names, variable names
+- **Enum members**: Copy every member name character-for-character from the source declaration
+- **Constant values**: Copy literal values (strings, numbers) exactly as declared
+- **Type annotations**: Copy generic type parameters, base classes, and interface names exactly
+- **File names**: Use the exact filename from the filesystem; do not guess filenames
+- **String literals**: Copy protocol strings, format strings, and message templates verbatim
+- **Boolean operators**: Copy the exact operator (`OrElse`, `AndAlso`, `&&`, `||`, `Or`, `And`) -- do not paraphrase to "AND"/"OR"
+
+**Verification requirement**: After writing any identifier into the extraction output, re-read the source file to confirm the identifier exists at the claimed location. If you cannot verify an identifier, mark it with `confidence="low"` and add a `<clarification>` note explaining what could not be verified.
+
+**Prohibited patterns**:
+- Do NOT generate enum member names from description context (e.g., don't infer "InactiveLoggedOn" from knowing there's an inactive logged-on state)
+- Do NOT assume integer values for string-typed enums or vice versa
+- Do NOT reconstruct method names from behavioral descriptions (e.g., don't write "DisableJointControlTracks" when the actual method is "EnableJointControlTracks(False)")
+- Do NOT fabricate file names by analogy (e.g., don't write "SrmManager.vb" when the actual file is "Srm.vb")
+- Do NOT paraphrase boolean logic: if the code says `OrElse`, write `OrElse`, not "OR"
+
 ### Step 3: Extract Rule Details
 
 For each identified pattern:
@@ -158,6 +218,12 @@ For each identified pattern:
    - Extract the condition expression
    - Extract the action/consequence
    - Identify any else/default cases
+   - **Preserve data types**: When the rule references a typed value (enum, constant, collection),
+     record the actual declared type from source code, not an inferred type.
+     Example: If source declares `Public Class PTCStatus : Inherits Enumeration(Of String)`,
+     record it as a string enumeration, NOT as an integer enum.
+   - **Include type declarations in snippets**: When a rule depends on a specific type,
+     include the type declaration in the `<snippet>` or reference it in a `<related-rules>` entry.
 
 2. **Determine confidence level:**
    - **High**: Clear business logic with descriptive names
@@ -184,6 +250,24 @@ For each identified pattern:
    - Database tables implied
    - Other rules that interact
 
+#### 3a. Technical Mechanism Accuracy
+
+When extracting rules or workflows that involve:
+
+- **Authentication/crypto**: Describe the EXACT mechanism implemented in code, not a textbook definition. If code shows HMAC signing on the client side with a hardcoded key, describe it as "client-side HMAC signing with hardcoded key", NOT as "challenge-response authentication". Include:
+  - Key source (hardcoded, derived, negotiated)
+  - Signed data (what exact bytes/strings are signed)
+  - Verification point (where and how signature is checked)
+  - Protocol sequence from actual code flow
+- **Communication protocols**: Describe the actual framing, encoding, and transport observed in code. Copy protocol constants (SOH, EOT, STX markers) verbatim from source.
+- **External integrations**: Describe the actual API calls, message formats, and endpoints found in code, not assumed standard patterns.
+- **Security findings**: Every security-related extraction MUST include:
+  - The exact source file and line number
+  - A verbatim code snippet proving the claim
+  - Do NOT fabricate which functions are called in which files -- verify by reading the file
+
+**Self-check rule**: When you find yourself writing a description that sounds like a textbook definition rather than a code-specific implementation detail, STOP and re-read the source code. The extraction must describe WHAT THE CODE DOES, not what the technology generally does.
+
 ### Step 4: Group Related Rules
 
 - Group rules by domain entity (Order, Customer, Product, etc.)
@@ -193,6 +277,12 @@ For each identified pattern:
 ### Step 5: Generate Output
 
 Write to `$EXTRACTIONS_DIR/business-rules.xml`:
+
+**Aggregation accuracy requirements**:
+- The `count` attribute on the root element MUST equal the actual number of child elements. Count them explicitly; do not estimate.
+- When extracting an enum with N members, verify by counting members in the source declaration. Do not derive count from the highest index value.
+- When referencing totals across multiple files, re-count at output time. Do not carry forward counts from earlier analysis steps.
+- If the extraction reports category breakdowns (e.g., "Validation: 45, Pricing: 23"), the subcategory counts MUST sum to the total count.
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -234,6 +324,44 @@ Write to `$EXTRACTIONS_DIR/business-rules.xml`:
 
 </business-rules>
 ```
+
+### Step 5.5: Post-Extraction Verification
+
+Before finalizing output, perform these MANDATORY verification checks:
+
+#### A. Source File Existence
+For every `<source file="...">` reference in the output:
+1. Confirm the file exists at the specified path using Glob or Read
+2. If the file does not exist, REMOVE the extraction item or mark confidence="low"
+3. Do NOT reference files you have not actually read during this extraction session
+
+#### B. Identifier Sampling Verification
+Select a random sample of at least 20% of extraction items (minimum 5 items, or all items if fewer than 5 exist). For each sampled item:
+1. Re-read the source file at the stated line numbers using the Read tool
+2. Verify every identifier (class, method, enum member, constant) exists at the stated location
+3. Verify any `<snippet>` content matches the source code at those lines
+4. If any identifier is not found, search the entire file for it
+5. If still not found, the identifier may be fabricated -- remove it, correct it, or flag as confidence="low"
+
+#### C. Line Number Accuracy
+For each sampled item:
+1. Verify `line-start` and `line-end` are within the file's actual line count
+2. Verify the code at those lines matches the extracted content
+3. If line numbers are off by more than 5 lines, re-locate and update them
+
+#### D. Enum/Constant Full Verification
+For ALL enum and constant extractions (not just the 20% sample):
+1. Re-read the source declaration
+2. Compare every extracted member name against the source character-by-character
+3. Verify the declared type matches the extraction
+4. Verify the member count matches
+
+#### E. Cross-Reference Consistency
+For every `<rule-ref>`, `<sql-ref>`, or `<workflow-ref>`:
+1. Confirm the referenced ID exists in the appropriate extraction file
+2. If the referenced extraction does not yet exist, note it as "pending verification"
+
+**If verification reveals errors**: Correct them in the extraction XML before proceeding to Step 6. Do NOT finalize output with known inaccuracies.
 
 ### Step 6: Report Results
 
@@ -681,6 +809,17 @@ For each entry point:
    - Record each method invocation
    - Track parameters passed
    - Note return values used
+   - **Copy method names EXACTLY as they appear in source**: use `EnableJointControlTracks(False)`,
+     NOT a paraphrased `DisableJointControlTracks`. The actual code identifier matters for
+     downstream consumers who need to find the method in the codebase.
+   - **Include actual parameters when they affect semantics**: If a boolean parameter like
+     `False` or `True` changes the method's behavior, include it in the extraction
+     (e.g., `EnableJointControlTracks(False)` not just `EnableJointControlTracks`).
+   - **Verify method existence**: Before writing a method reference, use Grep to confirm
+     the method name exists in the codebase. If grep returns 0 results, the name may be
+     fabricated -- re-read the source to find the actual method name.
+   - **Record the call site**: Note the exact file and line where the method is called,
+     not just the method's definition location.
 
 3. **Handle decision points:**
    - If/else branches → create branch nodes
@@ -784,9 +923,11 @@ Write to `$EXTRACTIONS_DIR/workflows.xml`:
 
 | Level | Criteria |
 |-------|----------|
-| `high` | Clear pattern, descriptive naming, straightforward logic |
-| `medium` | Pattern identified but naming is generic or logic has some complexity |
-| `low` | Unclear pattern, magic numbers, complex/obfuscated logic |
+| `high` | Pattern clearly identified AND all identifiers verified against source code via Read/Grep AND snippets match source verbatim AND file references confirmed to exist |
+| `medium` | Pattern identified but some identifiers could not be re-verified, OR logic has complexity that may cause misinterpretation, OR source file was read but specific lines could not be reconfirmed |
+| `low` | Pattern inferred from context, OR identifiers reconstructed from memory rather than copied from source, OR source file could not be re-read for verification, OR extraction based on partial file reading |
+
+**IMPORTANT**: Confidence reflects VERIFICATION STATUS, not just pattern clarity. An extraction with clear business logic but unverified identifiers MUST be rated `medium` or `low`, never `high`. The question is not "does this look right?" but "did I verify this against source code?"
 
 ### Source References
 
@@ -795,6 +936,29 @@ All extractions include:
 - `line-start`: Starting line number
 - `line-end`: Ending line number
 - `snippet` (optional): Actual code snippet
+
+**File existence requirement**: Before writing any `file` attribute value:
+1. Use Glob to confirm the file exists at the stated path
+2. If the exact path is not found, search for the filename in the project tree
+3. Use the actual discovered path, not a guessed or recalled path
+4. NEVER reference a file you have not opened and read during this extraction session
+
+**Common fabrication patterns to avoid**:
+- Adding "Manager", "Service", "Helper", "Base", or "Factory" suffixes to filenames
+- Changing file extensions (e.g., ".cs" vs actual ".vb")
+- Guessing subdirectory paths from module names
+- Referencing files from a different project or module
+- Using a class name as a filename without verifying (class `SrmManager` may live in `Srm.vb`)
+
+**Snippet fidelity requirements**:
+- Snippets MUST be verbatim copies of source code from the Read tool output
+- Do NOT reformat, simplify, or "clean up" code in snippets
+- Do NOT add or remove comments; whitespace normalization is acceptable
+- Do NOT translate between programming languages in snippets
+- Do NOT substitute equivalent expressions (e.g., don't change `OrElse` to `||`)
+- If a code block is too long for a snippet, use the first and last relevant lines
+  with `<!-- ... N lines omitted ... -->` to indicate omission, preserving exact code at boundaries
+- Every snippet MUST be verifiable by reading the source file at the stated line numbers
 
 ### Error Handling
 
@@ -812,9 +976,36 @@ When confidence is low:
 
 ---
 
-## Optional Validation
+## Language-Specific Extraction Rules
 
-After generating extraction output, you can validate the XML against its XSD schema using:
+When extracting from code in these languages, be aware of these known traps:
+
+### VB.NET
+- **Array declarations**: `Dim arr(6) As Byte` creates an array with 7 elements (indices 0-6), NOT 6 elements. The number in parentheses is the UPPER BOUND, not the size.
+- **Boolean operators**: `OrElse` is short-circuit OR (different from `Or` which evaluates both sides). `AndAlso` is short-circuit AND (different from `And`). Always record the exact operator used.
+- **Option Strict**: When `Option Strict On` is set, implicit conversions are disallowed. Note this when extracting type-related rules.
+- **Custom enum patterns**: VB.NET projects may use custom base classes like `Enumeration(Of TValue, TEnum)` instead of standard `Enum`. Always check the base class before assuming integer-based enum values.
+- **String comparison**: `=` operator for strings performs value comparison by default in VB.NET (unlike C# reference comparison). Note the comparison semantics.
+- **Nothing vs null**: VB.NET uses `Nothing` which is equivalent to `null` but also means `default(T)` for value types.
+
+### C#
+- **No trailing newline**: Many C# files lack a trailing newline. When counting lines with `wc -l`, this undercounts by 1. Use `cat -n` from the Read tool to verify actual line count.
+- **nameof() expressions**: `nameof(variable)` produces a string at compile time. Extract the actual string value it produces.
+- **Null-conditional operators**: `?.` and `??` -- describe the actual null-handling behavior, don't simplify.
+- **Pattern matching**: C# switch expressions and pattern matching can be complex. Extract the full pattern, not a simplified version.
+
+### General
+- **Encoding matters**: When extracting byte arrays, protocol buffers, or binary formats, note the exact encoding and byte order.
+- **Off-by-one awareness**: When counting items in enums, arrays, or lists, COUNT them explicitly in the source. Never derive a count from an index value without understanding the language's indexing convention.
+- **Custom base classes**: Before assuming any type follows standard language patterns, check its base class/interface hierarchy.
+
+---
+
+## Required Validation
+
+After generating extraction output, you MUST perform both structural and content validation:
+
+### Structural Validation (XSD)
 
 ```bash
 reforge-scripts validate-xml $EXTRACTIONS_DIR/business-rules.xml business-rules
@@ -829,6 +1020,23 @@ To list all available schema types:
 ```bash
 reforge-scripts validate-xml --list-schemas
 ```
+
+### Content Validation (Post-Extraction Verification)
+Execute the verification checks from Step 5.5 above. At minimum:
+1. Spot-check at least 20% of source file references by re-reading the files
+2. Verify ALL enum/constant extractions have verbatim member names
+3. Confirm ALL snippet content matches source code at stated line numbers
+4. Report verification results in the extraction summary (Step 6)
+
+If content verification reveals errors, correct them before finalizing the extraction output.
+
+**Important limitation**: XSD validation checks structural correctness only (elements, attributes, types). It does NOT verify content accuracy. A structurally valid extraction may still contain:
+- File paths that don't exist
+- Line numbers outside the file's range
+- Fabricated identifiers, enum members, or method names
+- Paraphrased snippets that don't match source code
+
+Content accuracy verification (Step 5.5) is REQUIRED, not optional.
 
 ---
 
