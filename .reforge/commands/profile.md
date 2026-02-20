@@ -49,6 +49,26 @@ If `.reforge/memory/project-context.md` exists, read it now. Use its contents to
 If `project-context.md` does not exist, proceed without pre-population. Note to the user
 that running `/reforge.init` first provides better defaults.
 
+### Step 0.7: Check/Update Project Plan
+
+If `.reforge/memory/project-plan.md` exists, read it now.
+
+**On command start:**
+- Parse the plan file to count total items and completed items
+- Display: "📋 Project Plan: X/Y items complete (Z%)"
+- Identify the item tagged `<!-- reforge:profile -->` and display its status
+
+**On command completion (success only):**
+- Locate the plan item by searching for `<!-- reforge:profile -->`
+- If found and unchecked (`- [ ]`): change to `- [x]` and append ` *(completed: YYYY-MM-DD)*`
+- If found and already checked (`- [x]`): leave unchanged (idempotent)
+- If tag not found: emit warning — "⚠️ No plan item found for this operation. Run /reforge.plan to add it."
+- If file write fails: emit warning — "⚠️ Could not update project plan." Continue without failing.
+- Update the `**Last Updated**` metadata line to today's date
+
+If `.reforge/memory/project-plan.md` does not exist, skip this step silently.
+The project plan is optional — its absence MUST NOT affect command behavior.
+
 ### Step 1: Check Existing Profile
 
 Read `.reforge/memory/extraction-profile.md` if it exists.

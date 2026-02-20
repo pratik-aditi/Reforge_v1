@@ -90,6 +90,27 @@ language-specific and architecture-specific guidance throughout this extraction:
 If no extraction profile exists, proceed without language-specific guidance. Consider
 suggesting that the user run `/reforge.profile` for improved extraction accuracy.
 
+### Step 0.7: Check/Update Project Plan
+
+If `.reforge/memory/project-plan.md` exists, read it now.
+
+**On command start:**
+- Parse the plan file to count total items and completed items
+- Display: "📋 Project Plan: X/Y items complete (Z%)"
+- Derive the plan tag from the extraction type argument: `<!-- reforge:extract:<type> -->` (e.g., `<!-- reforge:extract:business-rules -->`)
+- Identify the item with that tag and display its status
+
+**On command completion (success only):**
+- Locate the plan item by searching for `<!-- reforge:extract:<type> -->`
+- If found and unchecked (`- [ ]`): change to `- [x]` and append ` *(completed: YYYY-MM-DD)*`
+- If found and already checked (`- [x]`): leave unchanged (idempotent)
+- If tag not found: emit warning — "⚠️ No plan item found for this extraction type. Run /reforge.plan to add it."
+- If file write fails: emit warning — "⚠️ Could not update project plan." Continue without failing.
+- Update the `**Last Updated**` metadata line to today's date
+
+If `.reforge/memory/project-plan.md` does not exist, skip this step silently.
+The project plan is optional — its absence MUST NOT affect command behavior.
+
 ### Step 1: Load Analysis
 
 Read `$ANALYSIS_DIR/analysis.xml` to get:

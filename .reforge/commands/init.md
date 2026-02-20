@@ -107,6 +107,20 @@ Update `.reforge/config.json`:
 - Set `project.description` to the provided description
 - Set `project.root` to the provided root path
 
+### Step 0.7: Update Project Plan
+
+**On command completion (success only):**
+
+If `.reforge/memory/project-plan.md` exists:
+- Locate the plan item by searching for `<!-- reforge:init -->`
+- If found and unchecked (`- [ ]`): change to `- [x]` and append ` *(completed: YYYY-MM-DD)*`
+- If found and already checked (`- [x]`): leave unchanged (idempotent)
+- If tag not found: skip silently (init may run before a plan exists)
+- Update the `**Last Updated**` metadata line to today's date
+
+If `.reforge/memory/project-plan.md` does not exist, skip this step silently.
+The project plan is optional — its absence MUST NOT affect command behavior.
+
 ### Step 9: Confirm
 
 Display a summary of what was saved and remind the user that they can

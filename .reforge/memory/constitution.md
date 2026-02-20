@@ -1,16 +1,15 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.2.0 → 1.3.0 (Add Verification Phase: audit and fix commands)
+Version change: 1.3.0 → 1.4.0 (Add Planning Phase: /reforge.plan command and Step 0.7 integration)
 Modified principles: None
 Modified sections:
-  - Framework Architecture: Added audit.md, fix.md commands; audit-report.md, correction-plan.md schemas
-  - Output Directory: Added audit/ subdirectory with audit-report.xml and correction-plan.xml
-  - Command Workflow: Added Verification Phase with audit and fix commands
+  - Framework Architecture: Added plan.md, profile.md to commands directory listing (correcting pre-existing omissions)
+  - Command Workflow: Restructured into Planning → Setup → Extraction → Generation → Cross-Cutting phases; added "Planning is optional" workflow rule
 Removed sections: None
 Templates requiring updates:
-  - CLAUDE.md ✅ (updated with new commands)
-  - status.md ✅ (updated next-steps recommendations)
+  - CLAUDE.md ✅ (updated with /reforge.plan command)
+  - All 10 command templates ✅ (Step 0.7 added for plan integration)
 Follow-up TODOs: None
 -->
 
@@ -103,11 +102,13 @@ that operate alongside this constitution. The constitution takes precedence on c
 ```
 .reforge/
 ├── commands/           # Slash command prompt templates
+│   ├── plan.md         # /reforge.plan - Create and manage project plan
 │   ├── init.md         # /reforge.init - Initialize project context
 │   ├── analyze.md      # /reforge.analyze - Analyze legacy codebase
+│   ├── profile.md      # /reforge.profile - Generate extraction profile
 │   ├── extract.md      # /reforge.extract - Extract specific elements
-│   ├── generate.md     # /reforge.generate - Generate documentation
 │   ├── clarify.md      # /reforge.clarify - Clarification workflow
+│   ├── generate.md     # /reforge.generate - Generate documentation
 │   ├── status.md       # /reforge.status - Show analysis status
 │   ├── reanalyze.md    # /reforge.reanalyze - Incremental re-analysis
 │   ├── audit.md        # /reforge.audit - Audit extraction coverage
@@ -175,32 +176,44 @@ reforge_output/
 
 ## Command Workflow
 
+### Planning Phase (optional)
+
+0. **`/reforge.plan`** — Create and manage a checklist-based project plan tracking all extraction work
+
 ### Setup Phase
 
-0. **`/reforge.init`** — Define project context (name, tech stack, domain knowledge, analysis rules)
+1. **`/reforge.init`** — Define project context (name, tech stack, domain knowledge, analysis rules)
+2. **`/reforge.analyze`** — Scan codebase, identify modules, detect languages, create analysis inventory
+3. **`/reforge.profile`** — Generate language-specific and architecture-specific extraction profile
 
-### Analysis Phase
+### Extraction Phase (per extraction type)
 
-1. **`/reforge.analyze`** — Scan codebase, identify modules, detect languages, create analysis inventory
-2. **`/reforge.extract [type]`** — Extract specific elements (business-rules, database, ui, workflows)
-3. **`/reforge.clarify`** — Interactive clarification for ambiguous extractions
+For each extraction type (business-rules, database, ui, workflows), the following pipeline applies:
 
-### Generation Phase
-
-4. **`/reforge.generate [artifact]`** — Generate documentation from extracted knowledge
-5. **`/reforge.status`** — Report on analysis completeness and coverage
-
-### Verification Phase
-
+4. **`/reforge.extract [type]`** — Extract specific elements from the codebase
+5. **`/reforge.clarify`** — Interactive clarification for ambiguous extractions
 6. **`/reforge.audit [type]`** — Audit extraction coverage, identify gaps and stale references
 7. **`/reforge.fix`** — Execute corrections from the audit correction plan
 
+### Generation Phase (per extraction type)
+
+8. **`/reforge.generate [artifact]`** — Generate documentation from extracted knowledge
+9. **`/reforge.audit [type]`** — Audit generated output for completeness
+10. **`/reforge.fix`** — Execute corrections for generated output issues
+
+### Cross-Cutting Commands
+
+- **`/reforge.status`** — Report on analysis completeness, coverage, and plan progress
+- **`/reforge.reanalyze [path]`** — Re-process specific files without full re-analysis
+
 ### Workflow Rules
 
-- Analysis MUST complete before generation
-- Each extraction type MAY be run independently
+- Planning is optional — all commands function with or without a project plan
+- Analysis MUST complete before extraction
+- Each extraction type MAY be run independently through the full pipeline
 - Clarify MAY be invoked at any point to resolve ambiguities
 - All commands MUST be idempotent — running twice produces same result
+- All commands with a project plan auto-read on start and auto-mark on completion (Step 0.7)
 
 ## Governance
 
@@ -224,4 +237,4 @@ reforge_output/
 - `CLAUDE.md` (or equivalent agent file) SHOULD reference this constitution
 - Runtime guidance MUST NOT contradict constitutional principles
 
-**Version**: 1.3.0 | **Ratified**: 2025-01-12 | **Last Amended**: 2026-01-23
+**Version**: 1.4.0 | **Ratified**: 2025-01-12 | **Last Amended**: 2026-02-20

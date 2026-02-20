@@ -64,6 +64,26 @@ supplemental guidance throughout this command's execution:
 - **Analysis Guidelines**: Directs focus and exclusions beyond config.json
 - **Custom Rules**: Additional rules to follow alongside the constitution
 
+### Step 0.7: Check/Update Project Plan
+
+If `.reforge/memory/project-plan.md` exists, read it now.
+
+**On command start:**
+- Parse the plan file to count total items and completed items
+- Display: "📋 Project Plan: X/Y items complete (Z%)"
+- Identify the item tagged `<!-- reforge:analyze -->` and display its status (reanalyze refreshes the same artifact as analyze)
+
+**On command completion (success only):**
+- Locate the plan item by searching for `<!-- reforge:analyze -->`
+- If found and unchecked (`- [ ]`): change to `- [x]` and append ` *(completed: YYYY-MM-DD)*`
+- If found and already checked (`- [x]`): leave unchanged (idempotent)
+- If tag not found: emit warning — "⚠️ No plan item found for this operation. Run /reforge.plan to add it."
+- If file write fails: emit warning — "⚠️ Could not update project plan." Continue without failing.
+- Update the `**Last Updated**` metadata line to today's date
+
+If `.reforge/memory/project-plan.md` does not exist, skip this step silently.
+The project plan is optional — its absence MUST NOT affect command behavior.
+
 ### Step 1: Validate Targets
 
 1. **Check path exists:**

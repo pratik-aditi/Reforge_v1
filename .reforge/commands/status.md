@@ -70,6 +70,20 @@ supplemental guidance throughout this command's execution:
 - **Analysis Guidelines**: Directs focus and exclusions beyond config.json
 - **Custom Rules**: Additional rules to follow alongside the constitution
 
+### Step 0.7: Check/Update Project Plan
+
+If `.reforge/memory/project-plan.md` exists, read it now.
+
+**Include in status report:**
+- Display plan progress: "📋 Project Plan: X/Y items complete (Z%)"
+- Per-section breakdown: Setup (X/3), \<Type\> (X/7) for each workflow group, Custom Tasks (X/N) if present
+- List next unchecked items as "Suggested next steps"
+
+This command does NOT mark any plan item complete — it is read-only.
+
+If `.reforge/memory/project-plan.md` does not exist, include in status report:
+"No project plan found. Run /reforge.plan to create one."
+
 ### Step 1: Check Analysis State
 
 Look for analysis outputs and checkpoints:
