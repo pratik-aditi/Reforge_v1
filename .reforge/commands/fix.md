@@ -77,6 +77,39 @@ supplemental guidance throughout this command's execution:
 - **Analysis Guidelines**: Directs focus and exclusions beyond config.json
 - **Custom Rules**: Additional rules to follow alongside the constitution
 
+### Step 0.7: Check/Update Project Plan
+
+If `.reforge/memory/project-plan.md` exists, read it now.
+
+**On command start:**
+- Parse the plan file to count total items and completed items
+- Display: "📋 Project Plan: X/Y items complete (Z%)"
+- Identify fix-related items and display their status
+
+**On command completion (success only):**
+
+Determine the fix target context from what was fixed during execution:
+- If the fix targeted files in `$PROJECT_OUTPUT_DIR/extractions/` → use tag `<!-- reforge:fix:<type> -->`
+- If the fix targeted files in `$PROJECT_OUTPUT_DIR/generated/` → use tag `<!-- reforge:fix-generated:<type> -->`
+- If both were processed → mark both tags
+
+If a specific `--type` argument was provided:
+- Locate the plan item by searching for the appropriate tag (based on context above)
+- If found and unchecked (`- [ ]`): change to `- [x]` and append ` *(completed: YYYY-MM-DD)*`
+- If found and already checked (`- [x]`): leave unchanged (idempotent)
+- If tag not found: emit warning — "⚠️ No plan item found for this fix operation. Run /reforge.plan to add it."
+
+If no `--type` argument was provided (fix all):
+- Determine which types were fixed during execution
+- For each fixed type, search for and mark the corresponding tag(s)
+- Report how many plan items were updated
+
+- If file write fails: emit warning — "⚠️ Could not update project plan." Continue without failing.
+- Update the `**Last Updated**` metadata line to today's date
+
+If `.reforge/memory/project-plan.md` does not exist, skip this step silently.
+The project plan is optional — its absence MUST NOT affect command behavior.
+
 ### Step 1: Check for Resume State
 
 If `--resume` flag is provided:

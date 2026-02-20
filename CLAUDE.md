@@ -22,6 +22,7 @@ See `.reforge/memory/constitution.md` for governing principles. Key rules:
 
 Reforge commands follow the pattern `/reforge.<action>`:
 
+- `/reforge.plan` — Create and manage a project plan for the extraction workflow
 - `/reforge.init` — Initialize project context (name, tech stack, domain knowledge)
 - `/reforge.analyze` — Scan and inventory a legacy codebase
 - `/reforge.profile` — Generate language-specific and architecture-specific extraction profile
@@ -75,6 +76,8 @@ This project is built using the Specify workflow:
 - Filesystem (markdown files, JSON config) (005-copilot-support)
 - Markdown (prompt templates — no compiled code per Constitution Principle I) + None (LLM-native tools only: Read, Write, Glob, Grep) (006-extract-verification-gates)
 - N/A (file-based markdown prompt template) (006-extract-verification-gates)
+- Markdown prompt templates (no compiled code per Constitution Principle I) + None — LLM-native tools only (Read, Write, Glob, Grep) (008-project-plan)
+- Filesystem — `.reforge/memory/project-plan.md` (structured markdown) (008-project-plan)
 
 ## Recent Changes
 - 002-audit-fix-commands: Added Markdown prompt templates (no compiled code per Constitution Principle I) + None (LLM-native tools only: Read, Write, Glob, Grep)

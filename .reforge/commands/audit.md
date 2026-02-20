@@ -72,6 +72,39 @@ supplemental guidance throughout this command's execution:
 - **Analysis Guidelines**: Directs focus and exclusions beyond config.json
 - **Custom Rules**: Additional rules to follow alongside the constitution
 
+### Step 0.7: Check/Update Project Plan
+
+If `.reforge/memory/project-plan.md` exists, read it now.
+
+**On command start:**
+- Parse the plan file to count total items and completed items
+- Display: "📋 Project Plan: X/Y items complete (Z%)"
+- Identify audit-related items and display their status
+
+**On command completion (success only):**
+
+Determine the audit target context from what was audited during execution:
+- If the audit targeted files in `$PROJECT_OUTPUT_DIR/extractions/` → use tag `<!-- reforge:audit:<type> -->`
+- If the audit targeted files in `$PROJECT_OUTPUT_DIR/generated/` → use tag `<!-- reforge:audit-generated:<type> -->`
+- If both were processed → mark both tags
+
+If a specific `[type]` argument was provided:
+- Locate the plan item by searching for the appropriate tag (based on context above)
+- If found and unchecked (`- [ ]`): change to `- [x]` and append ` *(completed: YYYY-MM-DD)*`
+- If found and already checked (`- [x]`): leave unchanged (idempotent)
+- If tag not found: emit warning — "⚠️ No plan item found for this audit operation. Run /reforge.plan to add it."
+
+If no `[type]` argument was provided (full audit):
+- Determine which types were audited during execution
+- For each audited type, search for and mark the corresponding tag(s)
+- Report how many plan items were updated
+
+- If file write fails: emit warning — "⚠️ Could not update project plan." Continue without failing.
+- Update the `**Last Updated**` metadata line to today's date
+
+If `.reforge/memory/project-plan.md` does not exist, skip this step silently.
+The project plan is optional — its absence MUST NOT affect command behavior.
+
 ### Step 1: Read Analysis Inventory
 
 1. **Read `$ANALYSIS_DIR/analysis.xml`**:
