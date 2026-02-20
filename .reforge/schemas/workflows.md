@@ -6,11 +6,26 @@
 
 The workflows schema captures business process flows extracted by `/reforge.extract workflows`. It documents execution paths, decision points, and cross-references to related components.
 
+## Common Elements
+
+This schema extends the [Common Extraction Schema](./common-schema.md), which defines shared structural elements used across all extraction types:
+
+- **Root attributes**: `project-id`, `version`, `schema-version`, `generated`, `xmlns`
+- **Metadata container**: `<metadata>` with `<total-count>`, `<confidence-distribution>`, `<extraction-timestamp>`
+- **Source references**: Canonical `<source>` format with `file`, `line-start`, `line-end` attributes
+- **Confidence vocabulary**: `high`, `medium`, `low` enumeration
+- **ID patterns**: `WF-{CATEGORY}-{SEQUENCE}` format
+
+See `common-schema.md` for complete definitions. Elements defined there MUST NOT be redefined in this schema.
+
 ## Root Element
 
 ```xml
-<workflows project-id="my-app" version="1.0.0"
-           generated="2024-01-15T10:30:00Z" count="15">
+<workflows xmlns="http://reforge.dev/schema/extraction"
+           project-id="my-app" version="1.0.0"
+           schema-version="1.0.0"
+           generated="2024-01-15T10:30:00Z">
+  <metadata>...</metadata>
   <workflow>...</workflow>
 </workflows>
 ```
@@ -19,10 +34,13 @@ The workflows schema captures business process flows extracted by `/reforge.extr
 
 | Attribute | Type | Required | Description |
 |-----------|------|----------|-------------|
+| `xmlns` | URI | Yes | Must be `http://reforge.dev/schema/extraction` |
 | `project-id` | string | Yes | Reference to analysis project |
-| `version` | string | Yes | Schema version |
-| `generated` | dateTime | Yes | Extraction timestamp |
-| `count` | integer | Yes | Total workflows discovered |
+| `version` | string | Yes | Extraction version (semver) |
+| `schema-version` | string | Yes | Common schema version (initial: `1.0.0`) |
+| `generated` | dateTime | Yes | Extraction timestamp (ISO-8601) |
+
+> Root attributes and `<metadata>` are defined by the [Common Extraction Schema](./common-schema.md). The `<metadata>` element is required as the first child of the root element.
 
 ## Elements
 
@@ -161,23 +179,24 @@ Cross-references to related extraction elements.
 </related>
 ```
 
-## Shared Types
-
-### ConfidenceType
-
-| Value | Description |
-|-------|-------------|
-| `high` | Workflow clearly traced through code |
-| `medium` | Workflow identified but path may vary |
-| `low` | Possible workflow, dynamic/reflection-based |
-
 ## Example Output
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<workflows xmlns="http://reforge.dev/schema/workflows"
+<workflows xmlns="http://reforge.dev/schema/extraction"
            project-id="ecommerce-legacy" version="1.0.0"
-           generated="2024-01-15T10:30:00Z" count="2">
+           schema-version="1.0.0"
+           generated="2024-01-15T10:30:00Z">
+
+  <metadata>
+    <total-count>2</total-count>
+    <confidence-distribution>
+      <high>2</high>
+      <medium>0</medium>
+      <low>0</low>
+    </confidence-distribution>
+    <extraction-timestamp>2024-01-15T10:30:00Z</extraction-timestamp>
+  </metadata>
 
   <workflow id="WF-001" name="Order Submission"
             entry-point="OrderController.submitOrder"
@@ -250,6 +269,7 @@ Cross-references to related extraction elements.
 
 ## Related Schemas
 
+- [Common Schema](./common-schema.md) — Shared elements (root attributes, metadata, source references, confidence)
 - [analysis.md](./analysis.md) — Codebase inventory
 - [business-rules.md](./business-rules.md) — Rules referenced in steps
 - [database.md](./database.md) — Data access steps

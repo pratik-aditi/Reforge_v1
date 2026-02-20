@@ -321,9 +321,20 @@ Write to `$EXTRACTIONS_DIR/business-rules.xml`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<business-rules xmlns="http://reforge.dev/schema/business-rules"
+<business-rules xmlns="http://reforge.dev/schema/extraction"
                 project-id="[project]" version="1.0.0"
-                generated="[timestamp]" count="[total]">
+                schema-version="1.0.0"
+                generated="[timestamp]">
+
+  <metadata>
+    <total-count>[total]</total-count>
+    <confidence-distribution>
+      <high>[high-count]</high>
+      <medium>[medium-count]</medium>
+      <low>[low-count]</low>
+    </confidence-distribution>
+    <extraction-timestamp>[timestamp]</extraction-timestamp>
+  </metadata>
 
   <rule id="BR-001" category="pricing" confidence="high">
     <description>Apply 10% discount for orders over $100</description>
@@ -396,7 +407,76 @@ For every `<rule-ref>`, `<sql-ref>`, or `<workflow-ref>`:
 1. Confirm the referenced ID exists in the appropriate extraction file
 2. If the referenced extraction does not yet exist, note it as "pending verification"
 
-**If verification reveals errors**: Correct them in the extraction XML before proceeding to Step 6. Do NOT finalize output with known inaccuracies.
+**If verification reveals errors**: Correct them in the extraction XML before proceeding to Step 5.6. Do NOT finalize output with known inaccuracies.
+
+### Step 5.6: Schema Compliance Validation
+
+After post-extraction verification, validate the output XML against the common extraction schema before writing the final file.
+
+#### Setup
+
+Read `.reforge/schemas/common-schema.md` to load the authoritative shared element definitions. All extraction output — regardless of type — MUST conform to this schema.
+
+#### Validation Checks
+
+Perform each check against the extraction output XML:
+
+| # | Check | Rule |
+|---|-------|------|
+| 1 | **Required root attributes** | Root element MUST have all five attributes: `project-id`, `version`, `schema-version`, `generated`, `xmlns` |
+| 2 | **Namespace** | `xmlns` MUST equal `http://reforge.dev/schema/extraction` |
+| 3 | **Metadata present** | `<metadata>` MUST be the first child of the root element, containing `<total-count>`, `<confidence-distribution>` (with `<high>`, `<medium>`, `<low>` children), and `<extraction-timestamp>` |
+| 4 | **Confidence sum** | `high + medium + low` in `<confidence-distribution>` MUST equal `<total-count>` |
+| 5 | **Source reference format** | All `<source>` elements MUST use attributes `file`, `line-start`, `line-end` (canonical format). No legacy formats (`line="..."`, `lines="..."`, `<LineNumber>`) |
+| 6 | **Schema version** | `schema-version` MUST be valid semver (`MAJOR.MINOR.PATCH`) |
+
+#### Auto-Correction Rules
+
+When a check fails and auto-correction is possible, apply the correction silently and log it for the Step 6 report:
+
+| Violation | Auto-Correction |
+|-----------|-----------------|
+| Missing `schema-version` attribute | Add `schema-version="1.0.0"` to root element |
+| Missing `xmlns` attribute | Add `xmlns="http://reforge.dev/schema/extraction"` to root element |
+| Missing `<metadata>` element | Generate `<metadata>` from extracted item counts — compute `total-count`, tally items by confidence level for `<confidence-distribution>`, set `<extraction-timestamp>` to current ISO-8601 timestamp |
+| Legacy source reference format (`line="145-160"`) | Normalize to `line-start="145" line-end="160"` |
+| Legacy source reference format (`lines="45,46,47"`) | Normalize to `line-start="45" line-end="47"` |
+| Legacy source reference format (`<LineNumber>45</LineNumber>`) | Normalize to `line-start="45" line-end="45"` |
+| Missing `generated` attribute | Add `generated="{current-ISO-8601-timestamp}"` to root element |
+| Confidence sum mismatch | Recount items by confidence level and update `<confidence-distribution>` and `<total-count>` |
+
+#### SCHEMA-WARNING Behavior
+
+When a violation is detected and auto-correction is **not possible** (e.g., `project-id` is empty and cannot be inferred, or structural issues prevent safe correction):
+
+1. Insert an XML comment at the violation point:
+   ```xml
+   <!-- SCHEMA-WARNING: [description of violation] -->
+   ```
+2. **Continue writing the file** — do NOT abort the extraction
+3. Include the warning count and details in the Step 6 report summary
+
+Example:
+```xml
+<business-rules xmlns="http://reforge.dev/schema/extraction"
+    project-id=""
+    version="1.0.0"
+    schema-version="1.0.0"
+    generated="2025-01-15T10:30:00Z">
+  <!-- SCHEMA-WARNING: project-id is empty — cannot infer value -->
+  <metadata>
+    ...
+  </metadata>
+  ...
+</business-rules>
+```
+
+#### Legacy File Handling (FR-014)
+
+When processing existing extraction files that lack a `schema-version` attribute:
+- Emit warning: "Legacy extraction file detected (no schema-version). Output may use inconsistent element names."
+- Attempt best-effort parsing with known legacy patterns
+- Never crash on legacy files — degrade gracefully with warnings
 
 ### Step 6: Report Results
 
@@ -423,6 +503,12 @@ Low confidence items (may need clarification):
 - BR-045: Unclear discount logic (src/pricing/Discount.java:78)
 - BR-089: Magic number in validation (src/validate/OrderValidator.java:156)
 ...
+
+Schema Compliance (Step 5.6):
+- Validation checks: 6/6 passed
+- Auto-corrections applied: 0
+- SCHEMA-WARNING count: 0
+- Schema version: 1.0.0
 
 Run /reforge.clarify to resolve ambiguous extractions.
 ```
@@ -581,9 +667,20 @@ Write to `$EXTRACTIONS_DIR/database.xml`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<database xmlns="http://reforge.dev/schema/database"
+<database xmlns="http://reforge.dev/schema/extraction"
           project-id="[project]" version="1.0.0"
+          schema-version="1.0.0"
           generated="[timestamp]">
+
+  <metadata>
+    <total-count>[entity-count + interaction-count]</total-count>
+    <confidence-distribution>
+      <high>[high-count]</high>
+      <medium>[medium-count]</medium>
+      <low>[low-count]</low>
+    </confidence-distribution>
+    <extraction-timestamp>[timestamp]</extraction-timestamp>
+  </metadata>
 
   <data-model entity-count="15">
     <entity id="E-001" name="orders" type="table"
@@ -766,9 +863,20 @@ Write to `$EXTRACTIONS_DIR/ui-flows.xml`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<ui-flows xmlns="http://reforge.dev/schema/ui-flows"
+<ui-flows xmlns="http://reforge.dev/schema/extraction"
           project-id="[project]" version="1.0.0"
+          schema-version="1.0.0"
           generated="[timestamp]">
+
+  <metadata>
+    <total-count>[screen-count + component-count]</total-count>
+    <confidence-distribution>
+      <high>[high-count]</high>
+      <medium>[medium-count]</medium>
+      <low>[low-count]</low>
+    </confidence-distribution>
+    <extraction-timestamp>[timestamp]</extraction-timestamp>
+  </metadata>
 
   <screens count="12">
     <screen id="SCR-001" name="Order List" path="/orders">
@@ -896,9 +1004,20 @@ Write to `$EXTRACTIONS_DIR/workflows.xml`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<workflows xmlns="http://reforge.dev/schema/workflows"
+<workflows xmlns="http://reforge.dev/schema/extraction"
            project-id="[project]" version="1.0.0"
-           generated="[timestamp]" count="23">
+           schema-version="1.0.0"
+           generated="[timestamp]">
+
+  <metadata>
+    <total-count>23</total-count>
+    <confidence-distribution>
+      <high>[high-count]</high>
+      <medium>[medium-count]</medium>
+      <low>[low-count]</low>
+    </confidence-distribution>
+    <extraction-timestamp>[timestamp]</extraction-timestamp>
+  </metadata>
 
   <workflow id="WF-001" name="Order Submission"
             entry-point="OrderController.submitOrder"
@@ -954,6 +1073,8 @@ Write to `$EXTRACTIONS_DIR/workflows.xml`:
 
 ## Common Elements
 
+> Shared structural elements (root attributes, metadata, source references, confidence vocabulary, ID patterns) are defined in [common-schema.md](../schemas/common-schema.md). All extraction output MUST conform to the common schema. See that file for the authoritative specification.
+
 ### Confidence Levels
 
 | Level | Criteria |
@@ -966,11 +1087,20 @@ Write to `$EXTRACTIONS_DIR/workflows.xml`:
 
 ### Source References
 
-All extractions include:
-- `file`: Relative path to source file
-- `line-start`: Starting line number
-- `line-end`: Ending line number
-- `snippet` (optional): Actual code snippet
+All extractions MUST use the canonical source reference format defined in [common-schema.md](../schemas/common-schema.md):
+
+```xml
+<source file="{relative-path}" line-start="{integer}" line-end="{integer}">
+  <snippet>{optional-code-snippet}</snippet>
+</source>
+```
+
+- `file`: Relative path to source file (no leading `/`)
+- `line-start`: Starting line number (positive integer)
+- `line-end`: Ending line number (≥ `line-start`)
+- `snippet` (optional): Verbatim code snippet
+
+Legacy formats (`line="145-160"`, `lines="45,46,47"`, `<LineNumber>`) MUST be normalized to `line-start`/`line-end` attributes.
 
 **File existence requirement**: Before writing any `file` attribute value:
 1. Use Glob to confirm the file exists at the stated path
@@ -1014,7 +1144,7 @@ When confidence is low:
 
 ## Required Validation
 
-After generating extraction output, you MUST perform both structural and content validation:
+After generating extraction output, you MUST perform structural, content, and schema compliance validation:
 
 ### Structural Validation (XSD)
 
@@ -1049,10 +1179,24 @@ If content verification reveals errors, correct them before finalizing the extra
 
 Content accuracy verification (Step 5.5) is REQUIRED, not optional.
 
+### Schema Compliance Validation (Common Schema)
+
+Execute the schema compliance checks from Step 5.6 above. This validates structural conformance to the common extraction schema (`.reforge/schemas/common-schema.md`):
+
+1. All required root attributes present (`project-id`, `version`, `schema-version`, `generated`, `xmlns`)
+2. Namespace is `http://reforge.dev/schema/extraction`
+3. `<metadata>` element present with all required children
+4. Confidence distribution sums to total count
+5. All `<source>` elements use canonical `line-start`/`line-end` format
+6. `schema-version` is valid semver
+
+**Relationship to other validations**: Schema compliance (Step 5.6) checks structural conformance to the common schema — ensuring consistent root attributes, metadata, source references, and namespace across all extraction types. XSD validation checks formal type correctness against type-specific schemas. Content validation (Step 5.5) verifies accuracy of extracted data against the source code. All three are required.
+
 ---
 
 ## Output Schema References
 
+- **Common Schema**: `.reforge/schemas/common-schema.md` (shared elements: root attributes, metadata, source references, confidence vocabulary, ID patterns)
 - Business Rules: `.reforge/schemas/business-rules.md`
 - Database: `.reforge/schemas/database.md`
 - UI Flows: `.reforge/schemas/ui-flows.md`

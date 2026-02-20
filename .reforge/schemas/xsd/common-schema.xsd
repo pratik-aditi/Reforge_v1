@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Common Extraction Schema - Shared Types
+  Version: 1.0.0
+  Namespace: http://reforge.dev/schema/extraction
+
+  Defines shared types used across all extraction schemas:
+  - ConfidenceType: Enumeration (high, medium, low)
+  - SourceReferenceType: Canonical source code reference
+  - MetadataType: Extraction metadata container
+  - ConfidenceDistributionType: Confidence level breakdown
+
+  Type-specific schemas include this file via xs:include.
+  Authoritative definition: ../common-schema.md
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:rf="http://reforge.dev/schema/extraction"
+           targetNamespace="http://reforge.dev/schema/extraction"
+           elementFormDefault="qualified">
+
+  <!-- ==================== Simple Types ==================== -->
+
+  <!-- ConfidenceType: Enumeration for extraction confidence level -->
+  <xs:simpleType name="ConfidenceType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="high"/>
+      <xs:enumeration value="medium"/>
+      <xs:enumeration value="low"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- ==================== Complex Types ==================== -->
+
+  <!-- ConfidenceDistributionType: Breakdown of items by confidence level -->
+  <xs:complexType name="ConfidenceDistributionType">
+    <xs:sequence>
+      <xs:element name="high" type="xs:nonNegativeInteger"/>
+      <xs:element name="medium" type="xs:nonNegativeInteger"/>
+      <xs:element name="low" type="xs:nonNegativeInteger"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- MetadataType: Required metadata container for all extraction roots -->
+  <xs:complexType name="MetadataType">
+    <xs:sequence>
+      <xs:element name="total-count" type="xs:nonNegativeInteger"/>
+      <xs:element name="confidence-distribution" type="rf:ConfidenceDistributionType"/>
+      <xs:element name="extraction-timestamp" type="xs:dateTime"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- SourceReferenceType: Canonical source code reference -->
+  <xs:complexType name="SourceReferenceType">
+    <xs:sequence>
+      <xs:element name="snippet" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="file" type="xs:string" use="required"/>
+    <xs:attribute name="line-start" type="xs:positiveInteger" use="required"/>
+    <xs:attribute name="line-end" type="xs:positiveInteger" use="required"/>
+  </xs:complexType>
+
+  <!-- ==================== Attribute Groups ==================== -->
+
+  <!-- CommonRootAttributes: Required attributes for all extraction root elements -->
+  <xs:attributeGroup name="CommonRootAttributes">
+    <xs:attribute name="project-id" type="xs:string" use="required"/>
+    <xs:attribute name="version" type="xs:string" use="required"/>
+    <xs:attribute name="schema-version" type="xs:string" use="required"/>
+    <xs:attribute name="generated" type="xs:dateTime" use="required"/>
+  </xs:attributeGroup>
+
+</xs:schema>
