@@ -6,11 +6,26 @@
 
 The business rules schema captures business logic extracted by `/reforge.extract business-rules`. Each rule includes its description, implementation logic, and source traceability.
 
+## Common Elements
+
+This schema extends the [Common Extraction Schema](./common-schema.md), which defines shared structural elements used across all extraction types:
+
+- **Root attributes**: `project-id`, `version`, `schema-version`, `generated`, `xmlns`
+- **Metadata container**: `<metadata>` with `<total-count>`, `<confidence-distribution>`, `<extraction-timestamp>`
+- **Source references**: Canonical `<source>` format with `file`, `line-start`, `line-end` attributes
+- **Confidence vocabulary**: `high`, `medium`, `low` enumeration
+- **ID patterns**: `BR-{CATEGORY}-{SEQUENCE}` format
+
+See `common-schema.md` for complete definitions. Elements defined there MUST NOT be redefined in this schema.
+
 ## Root Element
 
 ```xml
-<business-rules project-id="my-app" version="1.0.0"
-                generated="2024-01-15T10:30:00Z" count="25">
+<business-rules xmlns="http://reforge.dev/schema/extraction"
+                project-id="my-app" version="1.0.0"
+                schema-version="1.0.0"
+                generated="2024-01-15T10:30:00Z">
+  <metadata>...</metadata>
   <rule>...</rule>
 </business-rules>
 ```
@@ -19,10 +34,13 @@ The business rules schema captures business logic extracted by `/reforge.extract
 
 | Attribute | Type | Required | Description |
 |-----------|------|----------|-------------|
+| `xmlns` | URI | Yes | Must be `http://reforge.dev/schema/extraction` |
 | `project-id` | string | Yes | Reference to analysis project |
-| `version` | string | Yes | Schema version |
-| `generated` | dateTime | Yes | Extraction timestamp |
-| `count` | integer | Yes | Total rules extracted |
+| `version` | string | Yes | Extraction version (semver) |
+| `schema-version` | string | Yes | Common schema version (initial: `1.0.0`) |
+| `generated` | dateTime | Yes | Extraction timestamp (ISO-8601) |
+
+> Root attributes and `<metadata>` are defined by the [Common Extraction Schema](./common-schema.md). The `<metadata>` element is required as the first child of the root element.
 
 ## Elements
 
@@ -66,15 +84,7 @@ Pseudo-code or structured representation of the rule logic. Uses a consistent fo
 
 ### `<source>`
 
-Source code location where the rule was extracted from.
-
-| Attribute | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `file` | string | Yes | Relative file path |
-| `line-start` | integer | Yes | Starting line number |
-| `line-end` | integer | Yes | Ending line number |
-
-The optional `<snippet>` child element contains the actual code implementing the rule.
+Source code location where the rule was extracted from. Uses the canonical format defined in the [Common Extraction Schema](./common-schema.md#source-references). The optional `<snippet>` child element contains the actual code implementing the rule.
 
 ### `<entities>`
 
@@ -103,16 +113,6 @@ Cross-references to other rules.
 | `id` | string | Yes | Referenced rule ID |
 | `relationship` | string | No | Relationship type (overrides, depends-on, extends) |
 
-## Shared Types
-
-### ConfidenceType
-
-| Value | Description |
-|-------|-------------|
-| `high` | Rule clearly identified with strong evidence |
-| `medium` | Rule identified but may need clarification |
-| `low` | Possible rule, requires human verification |
-
 ## Common Categories
 
 Business rules are typically categorized as:
@@ -131,9 +131,20 @@ Business rules are typically categorized as:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<business-rules xmlns="http://reforge.dev/schema/business-rules"
+<business-rules xmlns="http://reforge.dev/schema/extraction"
                 project-id="ecommerce-legacy" version="1.0.0"
-                generated="2024-01-15T10:30:00Z" count="2">
+                schema-version="1.0.0"
+                generated="2024-01-15T10:30:00Z">
+
+  <metadata>
+    <total-count>2</total-count>
+    <confidence-distribution>
+      <high>2</high>
+      <medium>0</medium>
+      <low>0</low>
+    </confidence-distribution>
+    <extraction-timestamp>2024-01-15T10:30:00Z</extraction-timestamp>
+  </metadata>
 
   <rule id="BR-001" category="pricing" confidence="high">
     <description>Apply 10% discount for orders over $100</description>
@@ -170,6 +181,7 @@ Business rules are typically categorized as:
 
 ## Related Schemas
 
+- [Common Schema](./common-schema.md) — Shared elements (root attributes, metadata, source references, confidence)
 - [analysis.md](./analysis.md) — Codebase inventory
 - [database.md](./database.md) — Database interactions
 - [workflows.md](./workflows.md) — Rules often trigger workflows

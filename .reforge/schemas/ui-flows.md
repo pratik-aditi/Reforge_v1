@@ -6,10 +6,26 @@
 
 The UI flows schema captures user interface components and navigation patterns extracted by `/reforge.extract ui`. It includes screen definitions, component hierarchies, event handlers, and navigation flows.
 
+## Common Elements
+
+This schema extends the [Common Extraction Schema](./common-schema.md), which defines shared structural elements used across all extraction types:
+
+- **Root attributes**: `project-id`, `version`, `schema-version`, `generated`, `xmlns`
+- **Metadata container**: `<metadata>` with `<total-count>`, `<confidence-distribution>`, `<extraction-timestamp>`
+- **Source references**: Canonical `<source>` format with `file`, `line-start`, `line-end` attributes
+- **Confidence vocabulary**: `high`, `medium`, `low` enumeration
+- **ID patterns**: `SCR-{CATEGORY}-{SEQUENCE}` (screens), `CMP-{CATEGORY}-{SEQUENCE}` (components)
+
+See `common-schema.md` for complete definitions. Elements defined there MUST NOT be redefined in this schema.
+
 ## Root Element
 
 ```xml
-<ui-flows project-id="my-app" version="1.0.0" generated="2024-01-15T10:30:00Z">
+<ui-flows xmlns="http://reforge.dev/schema/extraction"
+          project-id="my-app" version="1.0.0"
+          schema-version="1.0.0"
+          generated="2024-01-15T10:30:00Z">
+  <metadata>...</metadata>
   <screens>...</screens>
   <navigation>...</navigation>
 </ui-flows>
@@ -19,9 +35,13 @@ The UI flows schema captures user interface components and navigation patterns e
 
 | Attribute | Type | Required | Description |
 |-----------|------|----------|-------------|
+| `xmlns` | URI | Yes | Must be `http://reforge.dev/schema/extraction` |
 | `project-id` | string | Yes | Reference to analysis project |
-| `version` | string | Yes | Schema version |
-| `generated` | dateTime | Yes | Extraction timestamp |
+| `version` | string | Yes | Extraction version (semver) |
+| `schema-version` | string | Yes | Common schema version (initial: `1.0.0`) |
+| `generated` | dateTime | Yes | Extraction timestamp (ISO-8601) |
+
+> Root attributes and `<metadata>` are defined by the [Common Extraction Schema](./common-schema.md). The `<metadata>` element is required as the first child of the root element.
 
 ## Elements
 
@@ -192,16 +212,6 @@ Individual navigation path.
 | `trigger` | string | No | What triggers navigation |
 | `condition` | string | No | Conditional navigation logic |
 
-## Shared Types
-
-### ConfidenceType
-
-| Value | Description |
-|-------|-------------|
-| `high` | Component clearly identified |
-| `medium` | Component detected but may need verification |
-| `low` | Possible component, requires human review |
-
 ## ASCII Layout Conventions
 
 ASCII layouts use consistent symbols:
@@ -220,9 +230,20 @@ ASCII layouts use consistent symbols:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
-<ui-flows xmlns="http://reforge.dev/schema/ui-flows"
+<ui-flows xmlns="http://reforge.dev/schema/extraction"
           project-id="ecommerce-legacy" version="1.0.0"
+          schema-version="1.0.0"
           generated="2024-01-15T10:30:00Z">
+
+  <metadata>
+    <total-count>10</total-count>
+    <confidence-distribution>
+      <high>10</high>
+      <medium>0</medium>
+      <low>0</low>
+    </confidence-distribution>
+    <extraction-timestamp>2024-01-15T10:30:00Z</extraction-timestamp>
+  </metadata>
 
   <screens count="2">
     <screen id="SCR-001" name="Order List" path="/orders">
@@ -281,6 +302,7 @@ ASCII layouts use consistent symbols:
 
 ## Related Schemas
 
+- [Common Schema](./common-schema.md) — Shared elements (root attributes, metadata, source references, confidence)
 - [analysis.md](./analysis.md) — Codebase inventory
 - [workflows.md](./workflows.md) — UI triggers workflows
 - [business-rules.md](./business-rules.md) — UI validation rules

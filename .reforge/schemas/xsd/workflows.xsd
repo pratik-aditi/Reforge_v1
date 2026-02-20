@@ -3,40 +3,27 @@
   Reforge Workflows Schema
   Defines structure for process flows and execution paths (workflows.xml)
   Version: 1.0.0
+  Namespace: http://reforge.dev/schema/extraction
+
+  Shared types (ConfidenceType, SourceReferenceType, MetadataType)
+  are defined in common-schema.xsd and included via xs:include.
+  Authoritative definition: ../common-schema.md
 -->
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
-           xmlns:rf="http://reforge.dev/schema/workflows"
-           targetNamespace="http://reforge.dev/schema/workflows"
+           xmlns:rf="http://reforge.dev/schema/extraction"
+           targetNamespace="http://reforge.dev/schema/extraction"
            elementFormDefault="qualified">
 
-  <!-- Shared Types -->
-  <xs:simpleType name="ConfidenceType">
-    <xs:restriction base="xs:string">
-      <xs:enumeration value="high"/>
-      <xs:enumeration value="medium"/>
-      <xs:enumeration value="low"/>
-    </xs:restriction>
-  </xs:simpleType>
-
-  <xs:complexType name="SourceReferenceType">
-    <xs:sequence>
-      <xs:element name="snippet" type="xs:string" minOccurs="0"/>
-    </xs:sequence>
-    <xs:attribute name="file" type="xs:string" use="required"/>
-    <xs:attribute name="line-start" type="xs:integer" use="required"/>
-    <xs:attribute name="line-end" type="xs:integer" use="required"/>
-  </xs:complexType>
+  <xs:include schemaLocation="common-schema.xsd"/>
 
   <!-- Root Element -->
   <xs:element name="workflows">
     <xs:complexType>
       <xs:sequence>
+        <xs:element name="metadata" type="rf:MetadataType"/>
         <xs:element name="workflow" type="rf:WorkflowType" minOccurs="0" maxOccurs="unbounded"/>
       </xs:sequence>
-      <xs:attribute name="project-id" type="xs:string" use="required"/>
-      <xs:attribute name="version" type="xs:string" use="required"/>
-      <xs:attribute name="generated" type="xs:dateTime" use="required"/>
-      <xs:attribute name="count" type="xs:integer" use="required"/>
+      <xs:attributeGroup ref="rf:CommonRootAttributes"/>
     </xs:complexType>
   </xs:element>
 
