@@ -227,6 +227,19 @@ When generating SysML diagrams:
 5. **Map external calls** - These become interface blocks
 6. **Group by domain** - Related blocks should be packaged together
 
+### Source-Anchored Generation (Mandatory)
+
+All generated SysML diagrams MUST comply with the Source-Anchored Generation constraints
+defined in Step 0.6 of `.reforge/commands/generate.md`. Key obligations:
+
+1. Extraction XML is the sole source of truth for all diagram content
+2. All identifiers (block names, operation names, port names) MUST be copied verbatim from extraction XML
+3. All statistics (block counts, operation counts) MUST be computed with visible derivation formulas
+4. `[DATA GAP]` markers MUST replace any content not supported by extraction data
+5. Provenance annotations MUST cite extraction source files and element counts
+6. The Content Validation Checklist MUST be completed before finalizing any diagram output
+7. The agent MUST NOT read source code files directly — all source context comes from extraction XML
+
 ## Mapping from Reforge Extractions
 
 | Reforge Element | SysML Element |
