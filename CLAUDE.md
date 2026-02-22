@@ -78,6 +78,10 @@ This project is built using the Specify workflow:
 - N/A (file-based markdown prompt template) (006-extract-verification-gates)
 - Markdown prompt templates (no compiled code per Constitution Principle I) + None — LLM-native tools only (Read, Write, Glob, Grep) (008-project-plan)
 - Filesystem — `.reforge/memory/project-plan.md` (structured markdown) (008-project-plan)
+- Markdown prompt templates + XSD 1.0 (no compiled code per Constitution Principle I) + None — LLM-native tools only (Read, Write, Glob, Grep) (009-common-extraction-schema)
+- XML files for extraction output; markdown for schema definitions; XSD for formal schema (009-common-extraction-schema)
+- Markdown prompt templates (no compiled code per Constitution Principle I) + None -- LLM-native tools only (Read, Write, Glob, Grep) (010-source-anchored-generation)
+- Filesystem -- markdown files in `.reforge/commands/` and `.reforge/templates/` (010-source-anchored-generation)
 
 ## Recent Changes
 - 002-audit-fix-commands: Added Markdown prompt templates (no compiled code per Constitution Principle I) + None (LLM-native tools only: Read, Write, Glob, Grep)
