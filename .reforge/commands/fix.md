@@ -206,6 +206,21 @@ Dispatch to the appropriate reforge command based on the `action` field:
 - Execute the generate workflow for the specified artifact type
 - This regenerates downstream documentation
 
+**For `delete <extraction-file> <item-id>` actions** (fabricated corrections):
+- Read the specified extraction XML file from `$EXTRACTIONS_DIR`
+- Locate the element with the matching `id` attribute (e.g., `id="ACR-015"`)
+- Remove the entire element and its children from the XML
+- Update the `<metadata>/<total-count>` attribute: decrement by 1
+- If the extraction file has a `<confidence-distribution>` element, update its counts to reflect the removal
+- Write the updated extraction XML back to disk
+- Record the deletion action for verification
+
+**For `update-metadata <extraction-file> <attribute>` actions** (metadata corrections):
+- Read the specified extraction XML file
+- Count the actual child elements (items with `id` attributes)
+- Update the stated metadata attribute to match the actual count
+- Write the updated extraction XML back to disk
+
 **Execution approach**: Run the action as described in the corresponding command template. The AI agent should follow the workflow steps of the dispatched command inline (not as a separate slash command invocation), applying the relevant steps to the specified files.
 
 #### 3d. Save Checkpoint
@@ -240,6 +255,18 @@ After each correction completes, verify the fix was effective:
 - Check if the stale reference has been updated or removed
 - Verify the referenced file path is now valid (exists on disk)
 - If resolved: Correction verified
+
+**For fabricated corrections** (type="fabricated"):
+- Re-read the relevant extraction XML file
+- Search for the item ID that was deleted (e.g., `id="ACR-015"`)
+- Confirm the element is no longer present in the file
+- Verify `<metadata>/<total-count>` has been decremented correctly (stated count matches actual element count)
+- If both confirmed: Correction verified
+
+**For metadata corrections** (type="inconsistent", type="arithmetic"):
+- Re-read the relevant extraction XML file
+- Compare the updated metadata attribute value against the actual element count
+- If they match: Correction verified
 
 **Update correction status**:
 - If verification passes: `status="completed"`, add `completed-at="[timestamp]"`
