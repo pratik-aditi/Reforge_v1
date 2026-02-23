@@ -124,14 +124,21 @@ The project plan is optional — its absence MUST NOT affect command behavior.
 
 If a `[type]` argument is provided, validate it against known types:
 
-**Valid extraction types**: `business-rules`, `database`, `ui-flows`, `workflows`
-**Valid generation types**: `user-stories`, `documentation`, `diagrams`
-**Valid special types**: `analysis` (checks analysis.xml for stale file entries)
+**Valid extraction types** (coverage scoping): `business-rules`, `database`, `ui-flows`, `workflows`
+**Valid generation types** (coverage scoping): `user-stories`, `documentation`, `diagrams`
+**Valid special types** (coverage scoping): `analysis` (checks analysis.xml for stale file entries)
+**Valid audit modes** (standalone — not combinable with the above): `accuracy`, `consistency`, `full`
+
+If the type is an audit mode (`accuracy`, `consistency`, `full`):
+- These are standalone audit modes that run specialized workflows
+- They are NOT combinable with extraction/generation/special types
+- Route to the corresponding workflow section (see **Audit Mode Routing** below)
+- Skip Steps 2-7 (those belong to the coverage audit workflow)
 
 If the type is invalid:
 ```
 Error: Unknown audit type '[type]'.
-Valid types: analysis, business-rules, database, ui-flows, workflows, user-stories, documentation, diagrams
+Valid types: analysis, business-rules, database, ui-flows, workflows, user-stories, documentation, diagrams, accuracy, consistency, full
 ```
 
 If the type is a generation type (`user-stories`, `documentation`, `diagrams`):
@@ -149,6 +156,19 @@ If the type is an extraction type (`business-rules`, `database`, `ui-flows`, `wo
   Error: No [type] extraction found. Run /reforge.extract [type] first.
     Expected: $EXTRACTIONS_DIR/[type].xml
   ```
+
+### Audit Mode Routing
+
+If the `[type]` argument is an audit mode, route to the corresponding workflow section. **Do not continue to Step 2** — Steps 2-7 are the coverage audit workflow only.
+
+| Type Argument | Route To | Description |
+|---------------|----------|-------------|
+| `accuracy` | **Accuracy Audit Workflow** (below) | Verify extraction items against source codebase |
+| `consistency` | **Consistency Audit Workflow** (below) | Check internal consistency of extraction corpus |
+| `full` | **Full Audit Workflow** (below) | Run coverage + consistency + accuracy in sequence |
+| _(any other valid type, or no type)_ | **Step 2** (continue below) | Default coverage audit workflow |
+
+---
 
 ### Step 2: Read Extraction References
 
@@ -479,6 +499,583 @@ When `--json` flag is provided, output structured JSON instead of human-readable
     "path": "reforge_output/[project]/audit/correction-plan.xml"
   }
 }
+```
+
+---
+
+## Accuracy Audit Workflow
+
+**Activated when**: `/reforge.audit accuracy` is invoked (routed from Audit Mode Routing above).
+
+### Accuracy Step 1: Prerequisites
+
+1. **Source codebase availability check**:
+   - The agent MUST verify that `$SOURCE_ROOT` (the root directory of the source codebase being analyzed) is accessible
+   - `$SOURCE_ROOT` is resolved from the project context established by `/reforge.init` (stored in `.reforge/memory/project-context.xml` or `.reforge/config.json`)
+   - If the source root cannot be determined or accessed:
+     ```
+     Error: Source codebase not available. The accuracy audit requires access to the original source code.
+       Expected source root: $SOURCE_ROOT
+
+       Ensure the source codebase is accessible and /reforge.init has been run.
+     ```
+   - Abort the accuracy audit — do not proceed without source access
+
+2. **Extraction corpus availability check**:
+   - Verify `$EXTRACTIONS_DIR` exists and contains at least one extraction XML file
+   - If no extraction files exist:
+     ```
+     Error: No extraction files found in $EXTRACTIONS_DIR.
+       Run /reforge.extract first to create extractions before auditing accuracy.
+     ```
+
+3. **Set output variables**:
+   - `$AUDIT_DIR` = `$PROJECT_OUTPUT_DIR/audit/`
+   - Ensure `$AUDIT_DIR` directory exists (create if needed)
+
+### Accuracy Step 2: Enumerate Extraction Items
+
+The agent MUST read all extraction files and build a complete inventory of items to verify.
+
+1. **Read all extraction files** from `$EXTRACTIONS_DIR`:
+   - `business-rules.xml`, `database.xml`, `ui-flows.xml`, `workflows.xml`
+   - Skip any extraction type that does not have a file present
+
+2. **Collect items with IDs**:
+   - For each extraction file, find all elements with an `id` attribute
+   - Record for each item: `id`, `extraction-type` (derived from filename), element name, any `source` or `file` attributes, any `line` attributes
+
+3. **Categorize by extraction type**:
+   - Group items by their extraction type (business-rules, database, ui-flows, workflows)
+   - Count totals per category
+
+4. **Record totals**:
+   - `$TOTAL_ITEMS` = total extraction items across all categories
+   - `$ITEMS_BY_CATEGORY` = map of category → item count
+
+### Accuracy Step 3: Determine Verification Scope (Sampling)
+
+The agent MUST determine whether to verify all items or use statistical sampling.
+
+1. **Check for full verification override**:
+   - If `--full-verify` flag is present: verify ALL items (methodology = `census`)
+   - If `$TOTAL_ITEMS` < 500: default to full verification (methodology = `census`)
+
+2. **Determine sample size**:
+   - If `--sample-size N` is provided: use N as absolute sample size (overrides `--sample-rate`)
+   - If `--sample-rate R` is provided: sample size = ceil($TOTAL_ITEMS * R)
+   - Otherwise: use default 20% rate → sample size = ceil($TOTAL_ITEMS * 0.20)
+
+3. **Stratified sampling**:
+   - For each category, compute stratum sample size proportional to its share of total items:
+     - `stratum_sample = max(5, round(category_count / $TOTAL_ITEMS * $SAMPLE_SIZE))`
+   - Minimum 5 items per stratum (if the stratum has >= 5 items; otherwise sample all)
+   - Adjust final sample size if rounding causes total to differ from target
+
+4. **Systematic Nth-item selection**:
+   - Within each stratum, select every Nth item where N = floor(stratum_population / stratum_sample)
+   - Starting from a random offset within [0, N)
+   - This ensures uniform distribution across the stratum
+
+5. **Record sampling metadata**:
+   - `$METHODOLOGY` = `sampling` or `census`
+   - `$SAMPLE_RATE`, `$SAMPLE_SIZE`, `$STRATA` details
+
+### Accuracy Step 4: Multi-Check-Type Verification
+
+For each item in the verification scope, the agent MUST apply the applicable check types using native tools (Grep, Read, Glob).
+
+**Check Type Definitions** (FR-023):
+
+1. **`identifier-exists`**: Word-boundary search for the item's identifier in the source codebase
+   - Use Grep with pattern `\b<identifier>\b` across `$SOURCE_ROOT`
+   - Pass: ≥1 word-boundary match found
+   - Fail: 0 matches found
+   - Record match count and file locations
+
+2. **`term-exists`**: Search for the item's name/term in comments, strings, and documentation
+   - Use Grep with the term (case-insensitive) across `$SOURCE_ROOT`
+   - Scope: comments, string literals, documentation files
+   - Pass: term found in relevant context
+   - Fail: term not found anywhere
+
+3. **`line-reference`**: Verify that the stated source file exists and has content at the stated line
+   - Use Read to check the file exists and read the stated line number
+   - Pass: file exists AND line number is within range AND has content
+   - Fail: file missing OR line out of range OR line empty
+
+4. **`content-match`**: Compare extracted code snippet against actual source content
+   - Use Read to get actual content at the stated file/line location
+   - Compare with whitespace-insensitive matching (normalize whitespace before comparison)
+   - Pass: extracted snippet matches actual source content (after whitespace normalization)
+   - Fail: content differs materially
+
+5. **`expansion-match`**: Verify acronym expansion matches source context
+   - Search for the acronym's stated expansion near occurrences of the acronym in source
+   - Use Grep to find acronym occurrences, then Read surrounding context
+   - Pass: expansion text found near an acronym occurrence
+   - Fail: expansion not found near any occurrence
+
+6. **`count-match`**: Recount elements and compare to stated count
+   - Read the source file/element and count the relevant items
+   - Pass: actual count matches stated count
+   - Fail: counts differ
+
+7. **`relationship-match`**: Verify stated relationship (calls, inherits, imports, etc.) exists
+   - Search for evidence of the stated relationship in source code
+   - Use Grep to find call sites, inheritance declarations, import statements
+   - Pass: relationship evidence found
+   - Fail: no evidence of stated relationship
+
+**Check Type Selection Per Item Type**:
+
+| Extraction Type | Always Apply | Apply When Available |
+|----------------|-------------|---------------------|
+| business-rules | `identifier-exists` | `line-reference`, `content-match`, `relationship-match` |
+| database | `identifier-exists` | `line-reference`, `content-match`, `count-match` |
+| ui-flows | `identifier-exists` | `line-reference`, `content-match` |
+| workflows | `identifier-exists` | `line-reference`, `relationship-match` |
+| *(acronyms/glossary)* | `identifier-exists`, `term-exists` | `expansion-match` |
+
+The agent MUST apply at least `identifier-exists` for every item. Additional check types are applied when the item has the necessary attributes (e.g., `line-reference` only when the item has a `line` attribute and `source file` attribute).
+
+### Accuracy Step 5: Verdict Classification
+
+For each verified item, the agent MUST assign one of five canonical verdicts (FR-022):
+
+| Verdict | Criteria |
+|---------|----------|
+| `confirmed` | All applicable checks passed; item verified in source |
+| `plausible` | Partial match only (e.g., identifier found as substring but not word-boundary match, or found in comments but not code); not conclusively confirmed |
+| `incorrect` | Found in source but with wrong value, wrong line, or wrong context |
+| `fabricated` | No evidence of item in source codebase (all checks failed, 0 matches) |
+| `skipped` | Check not applicable or could not be performed (e.g., binary file, inaccessible path) |
+
+**Decision logic**:
+- If ALL applicable checks pass → `confirmed`
+- If identifier found ONLY as substring (no word-boundary match) → `plausible`
+- If identifier found but content/line/relationship wrong → `incorrect`
+- If identifier NOT found at all (0 matches of any kind) → `fabricated`
+- If checks cannot be performed → `skipped`
+
+### Accuracy Step 6: Score Computation
+
+The agent MUST compute accuracy scores at multiple levels (FR-004).
+
+1. **Overall accuracy score**:
+   - `accuracy_score = (confirmed_count / verified_count) * 100`
+   - `verified_count` excludes items with verdict `skipped`
+
+2. **Per-category breakdown**:
+   - For each extraction type: `category_accuracy = (category_confirmed / category_verified) * 100`
+
+3. **Per-check-type breakdown**:
+   - For each check type: `total`, `passed`, `failed`
+
+4. **Confidence interval** (when methodology = `sampling`):
+   - Use the Wald interval formula for 95% confidence:
+     - `p = accuracy_score / 100`
+     - `SE = sqrt(p * (1 - p) / n)` where n = verified_count
+     - `margin_of_error = 1.96 * SE * 100` (in percentage points)
+     - `lower = accuracy_score - margin_of_error`
+     - `upper = accuracy_score + margin_of_error`
+
+5. **Low-accuracy stratum flagging** (FR-008):
+   - If any stratum has accuracy < 90%, flag it with a recommendation for full verification:
+     ```
+     Warning: Stratum '[category]' has accuracy [X]% (below 90% threshold).
+     Recommend running: /reforge.audit accuracy --full-verify
+     ```
+
+### Accuracy Step 7: Generate accuracy-audit-report.xml
+
+The agent MUST generate the accuracy audit report following the schema defined in `.reforge/schemas/accuracy-audit-report.md`.
+
+Write the report to: `$AUDIT_DIR/accuracy-audit-report.xml`
+
+The report MUST include:
+- Root element `<accuracy-audit-report>` with all required attributes (project-id, version, generated, methodology, sample-rate, total-items, verified-items, accuracy-score)
+- `<sampling-metadata>` section (when methodology = sampling): sample-rate, total-population, sample-size, confidence-level, confidence-interval, margin-of-error, per-stratum breakdown
+- `<accuracy-summary>` section: overall stats, by-category breakdown, by-check-type breakdown
+- `<verification-results>` section: individual item-level results with checks and correction hints
+- `<recommendations>` section: actionable recommendations based on findings
+
+### Accuracy Step 8: Generate accuracy-correction-plan.xml
+
+The agent MUST generate a correction plan for items that need fixing (FR-005, FR-018, FR-019).
+
+Write the correction plan to: `$AUDIT_DIR/accuracy-correction-plan.xml`
+
+**Correction entries are generated for**:
+- Items with verdict `fabricated` → correction type `fabricated`, action `delete <extraction-file> <item-id>`, severity `critical`
+- Items with verdict `incorrect` → correction type `inaccurate`, action `/reforge.reanalyze <source-file>`, severity `high`
+
+**Each correction entry MUST include**:
+- `source-audit-type="accuracy"`
+- `severity` attribute (critical for fabricated, high for incorrect)
+- `<evidence>` child element with human-readable description of failed checks
+- `category="extraction"` (since accuracy corrections target extraction items)
+
+**Priority ordering** follows the extended correction plan schema: severity-based within category (critical → high → medium → low), fabricated items before inaccurate items.
+
+### Accuracy Step 9: Display Results
+
+The agent MUST display a human-readable summary:
+
+```
+=== Reforge Accuracy Audit Report ===
+Project: [project-name]
+Methodology: [sampling at X% | full verification]
+
+--- Accuracy Score ---
+Overall: [X]% ([confirmed] of [verified] items confirmed)
+[If sampling: 95% CI: [lower]% - [upper]% (±[margin]%)]
+
+--- Accuracy by Category ---
+| Category       | Verified | Confirmed | Fabricated | Accuracy |
+|----------------|----------|-----------|------------|----------|
+| Business Rules | [N]      | [N]       | [N]        | [X]%     |
+| Database       | [N]      | [N]       | [N]        | [X]%     |
+| UI Flows       | [N]      | [N]       | [N]        | [X]%     |
+| Workflows      | [N]      | [N]       | [N]        | [X]%     |
+
+--- Verdict Summary ---
+Confirmed: [N] | Plausible: [N] | Incorrect: [N] | Fabricated: [N] | Skipped: [N]
+
+--- Top Findings ---
+[List up to 10 most significant findings — fabricated items first, then incorrect]
+
+--- Correction Plan ---
+Total corrections: [N]
+  Fabricated (delete): [N]
+  Inaccurate (re-analyze): [N]
+Path: $AUDIT_DIR/accuracy-correction-plan.xml
+
+--- Next Steps ---
+→ Review accuracy report: $AUDIT_DIR/accuracy-audit-report.xml
+→ Run /reforge.fix --plan $AUDIT_DIR/accuracy-correction-plan.xml to execute corrections
+→ Run /reforge.audit consistency for internal consistency checks
+→ Run /reforge.audit full for unified quality assessment
+```
+
+---
+
+## Consistency Audit Workflow
+
+**Activated when**: `/reforge.audit consistency` is invoked (routed from Audit Mode Routing above).
+
+### Consistency Step 1: Prerequisites
+
+1. **Extraction corpus availability check**:
+   - Verify `$EXTRACTIONS_DIR` exists and contains at least one extraction XML file
+   - If no extraction files exist:
+     ```
+     Error: No extraction files found in $EXTRACTIONS_DIR.
+       Run /reforge.extract first to create extractions before auditing consistency.
+     ```
+
+2. **Set output variables**:
+   - `$AUDIT_DIR` = `$PROJECT_OUTPUT_DIR/audit/`
+   - `$GENERATED_DIR` = `$PROJECT_OUTPUT_DIR/generated/`
+   - Ensure `$AUDIT_DIR` directory exists (create if needed)
+
+3. **Initialize counters**:
+   - `$TOTAL_CHECKS` = 0, `$PASSED_CHECKS` = 0, `$FAILED_CHECKS` = 0
+
+### Consistency Step 2: Arithmetic Checks (FR-009)
+
+The agent MUST compare stated metadata counts against actual element counts per extraction file. Zero tolerance for mismatches.
+
+1. **For each extraction file** in `$EXTRACTIONS_DIR`:
+   - Read the file and locate `<metadata>` element
+   - If no `<metadata>` element or no `total-count` attribute exists:
+     - Record as `no-metadata` — not a failure, skip this file's arithmetic check
+   - If `total-count` attribute exists:
+     - Count actual child elements (items with `id` attributes)
+     - Compare stated count vs actual count
+     - Record check result: `pass` if equal, `fail` if different
+     - Increment `$TOTAL_CHECKS` and `$PASSED_CHECKS` or `$FAILED_CHECKS`
+
+2. **Check confidence-distribution sums** (if present):
+   - If the extraction file has a `<confidence-distribution>` element with count attributes
+   - Sum all distribution counts
+   - Compare against actual element count
+   - Record check result
+
+### Consistency Step 3: Cross-Reference Validation (FR-010)
+
+The agent MUST verify that all cross-references resolve to existing targets.
+
+1. **File references**:
+   - Find all `<source file="...">` and `<cross-ref target="...">` attributes across extraction files
+   - For each file reference, verify the target file exists on disk at `$SOURCE_ROOT`
+   - Record check result per reference
+
+2. **ID references**:
+   - Find all internal ID references (elements referencing other element IDs within the corpus)
+   - Verify each referenced ID exists in the extraction corpus
+   - Record check result per reference
+
+3. **Update counters**: Increment `$TOTAL_CHECKS`, `$PASSED_CHECKS`, `$FAILED_CHECKS`
+
+### Consistency Step 4: Duplicate ID Detection (FR-011)
+
+The agent MUST detect duplicate element IDs across extraction files.
+
+1. **Collect all IDs**:
+   - Read all extraction files and collect every `id` attribute with its file path and element location
+   - Build a map: `id → list of (file, element-path)`
+
+2. **Detect duplicates**:
+   - For each ID that appears more than once:
+     - **Within same file** → severity `critical`
+     - **Within same category** (same extraction type, different implied locations) → severity `critical`
+     - **Cross-category** (different extraction types) → severity `info`
+
+3. **Record findings**: Each duplicate ID group is recorded (not counted as a check pass/fail — tracked separately as `$TOTAL_IDS_SCANNED` and `$DUPLICATES_FOUND`)
+
+### Consistency Step 5: Freshness Checks (FR-012)
+
+The agent MUST compare extraction timestamps against generated document timestamps and verify numeric claims.
+
+1. **For each generated document** in `$GENERATED_DIR`:
+   - Attempt to parse the document (markdown or HTML)
+   - If unparseable: record as `skipped` with a note, increment `$TOTAL_CHECKS` (as skipped)
+
+2. **Timestamp comparison**:
+   - Extract `generated` timestamp from the generated document (if available)
+   - Compare against the `generated` timestamp of the corresponding extraction file
+   - If generated document is older than extraction: potential staleness
+
+3. **Numeric claim verification**:
+   - Search the generated document for numeric claims about extraction counts (e.g., "981 business rules", "245 database entities")
+   - Compare each claimed number against the current actual count in the corresponding extraction XML
+   - If values differ: record a `<discrepancy>` with `metric`, `generated-value`, `extraction-value`
+
+4. **Update counters**: Increment `$TOTAL_CHECKS`, `$PASSED_CHECKS`, `$FAILED_CHECKS`
+
+### Consistency Step 6: Cross-Document Discrepancy Detection (FR-013)
+
+The agent MUST scan generated documents for numeric claims about the same metric cited with different values.
+
+1. **Extract numeric claims**:
+   - For each generated document in `$GENERATED_DIR`, find all numeric claims mentioning extraction-related metrics
+   - Pattern match for phrases like: "[N] business rules", "[N] files analyzed", "total of [N]", etc.
+   - Record: `metric name`, `value`, `file`, `location` (section/line)
+
+2. **Cluster by metric**:
+   - Group all claims by their metric name (normalized)
+   - For each metric with 2+ occurrences: check if all values agree
+
+3. **Record discrepancies**:
+   - For each metric with conflicting values, create a discrepancy cluster
+   - Generate a resolution recommendation (e.g., "Update documentation.md to use current value of X from extraction.xml")
+
+4. **Update counters**: Each cross-document check counts toward `$TOTAL_CHECKS`
+
+### Consistency Step 7: Score Computation
+
+The agent MUST compute the consistency score (FR-014).
+
+1. **Overall consistency score**:
+   - `consistency_score = ($PASSED_CHECKS / $TOTAL_CHECKS) * 100`
+
+2. **Per-category breakdown**:
+   - arithmetic: passed/total for arithmetic checks
+   - cross-reference: passed/total for cross-reference checks
+   - freshness: passed/total for freshness checks
+   - cross-document: discrepancies count
+
+### Consistency Step 8: Generate consistency-audit-report.xml
+
+The agent MUST generate the consistency audit report following the schema defined in `.reforge/schemas/consistency-audit-report.md`.
+
+Write the report to: `$AUDIT_DIR/consistency-audit-report.xml`
+
+The report MUST include:
+- Root element `<consistency-audit-report>` with all required attributes (project-id, version, generated, total-checks, passed-checks, failed-checks, consistency-score)
+- `<arithmetic-checks>` section with individual check results
+- `<cross-reference-checks>` section with individual check results
+- `<duplicate-id-checks>` section with duplicate groups and severity
+- `<freshness-checks>` section with individual check results and discrepancies
+- `<cross-document-checks>` section with discrepancy clusters and recommendations
+
+### Consistency Step 9: Generate consistency-correction-plan.xml
+
+The agent MUST generate a correction plan for consistency issues (FR-014, FR-018, FR-019).
+
+Write the correction plan to: `$AUDIT_DIR/consistency-correction-plan.xml`
+
+**Correction entries are generated for**:
+- Arithmetic mismatches → correction type `arithmetic` or `inconsistent`, category `metadata`, action `update-metadata <file> <attribute>`
+- Broken cross-references → correction type `broken-ref`, category `extraction`, action depends on reference type
+- Duplicate IDs (critical severity only) → correction type `duplicate-id`, category `extraction`
+- Stale generated documents → correction type `stale`, category `generation`, action `/reforge.generate <type>`
+- Cross-document discrepancies → correction type `inconsistent`, category `cross-document`
+
+**Each correction entry MUST include**:
+- `source-audit-type="consistency"`
+- `severity` attribute
+- `<evidence>` child element describing the specific check failure
+
+**Priority ordering**: metadata corrections before cross-document corrections before generation corrections (per extended correction plan schema).
+
+### Consistency Step 10: Display Results
+
+The agent MUST display a human-readable summary:
+
+```
+=== Reforge Consistency Audit Report ===
+Project: [project-name]
+
+--- Consistency Score ---
+Overall: [X]% ([passed] of [total] checks passed)
+
+--- Checks by Category ---
+| Category        | Total | Passed | Failed | Score   |
+|-----------------|-------|--------|--------|---------|
+| Arithmetic      | [N]   | [N]    | [N]    | [X]%    |
+| Cross-Reference | [N]   | [N]    | [N]    | [X]%    |
+| Duplicate IDs   | [N] scanned | [N] duplicates found    ||
+| Freshness       | [N]   | [N]    | [N]    | [X]%    |
+| Cross-Document  | [N] checked | [N] discrepancies       ||
+
+--- Top Findings ---
+[List up to 10 most significant findings — arithmetic/cross-ref failures first]
+
+--- Correction Plan ---
+Total corrections: [N]
+  By category: [metadata: N] [extraction: N] [cross-document: N] [generation: N]
+Path: $AUDIT_DIR/consistency-correction-plan.xml
+
+--- Next Steps ---
+→ Review consistency report: $AUDIT_DIR/consistency-audit-report.xml
+→ Run /reforge.fix --plan $AUDIT_DIR/consistency-correction-plan.xml to execute corrections
+→ Run /reforge.audit accuracy for source verification
+→ Run /reforge.audit full for unified quality assessment
+```
+
+---
+
+## Full Audit Workflow
+
+**Activated when**: `/reforge.audit full` is invoked (routed from Audit Mode Routing above).
+
+### Full Step 1: Sequential Execution
+
+The agent MUST run all three audit types in sequence (FR-015):
+
+1. **Run Coverage Audit** (Steps 0-7 above):
+   - Execute the standard coverage audit workflow
+   - Collect `$COVERAGE_SCORE` from the generated `audit-report.xml`
+   - **IMPORTANT**: Read the coverage audit's `correction-plan.xml` into memory before it can be overwritten by the merge step
+
+2. **Run Consistency Audit** (Consistency Steps 1-10 above):
+   - Execute the full consistency audit workflow
+   - Collect `$CONSISTENCY_SCORE` from the generated `consistency-audit-report.xml`
+
+3. **Run Accuracy Audit** (Accuracy Steps 1-9 above):
+   - Execute the full accuracy audit workflow
+   - Collect `$ACCURACY_SCORE` from the generated `accuracy-audit-report.xml`
+
+### Full Step 2: Composite Score and Quality Rating
+
+The agent MUST compute the composite quality score and map it to a rating (FR-016, FR-017).
+
+1. **Composite score computation**:
+   - `composite_score = ($COVERAGE_SCORE * 0.25) + ($CONSISTENCY_SCORE * 0.35) + ($ACCURACY_SCORE * 0.40)`
+
+2. **Quality rating mapping**:
+
+   | Rating | Score Range | Action Recommendation |
+   |--------|------------|----------------------|
+   | Excellent | >= 98% | Ready for downstream consumption |
+   | Good | 95 - 97.9% | Minor corrections recommended before use |
+   | Acceptable | 90 - 94.9% | Review corrections; address critical items before use |
+   | Poor | 80 - 89.9% | Significant corrections required; re-extract affected areas |
+   | Critical | < 80% | Major quality issues; consider full re-extraction |
+
+3. **Dimension highlights**:
+   - For each dimension (coverage, consistency, accuracy), extract the single most significant finding
+
+### Full Step 3: Merge Correction Plans
+
+The agent MUST merge all individual correction plans into a unified plan (FR-015, FR-019).
+
+1. **Read all correction plans**:
+   - Coverage: `$AUDIT_DIR/correction-plan.xml` (read from memory — captured in Full Step 1)
+   - Consistency: `$AUDIT_DIR/consistency-correction-plan.xml`
+   - Accuracy: `$AUDIT_DIR/accuracy-correction-plan.xml`
+
+2. **Merge entries**:
+   - Combine all `<correction>` entries into a single list
+   - Ensure each entry has `source-audit-type` set (add `source-audit-type="coverage"` to coverage entries if not present)
+   - Re-number `id` attributes sequentially (COR-001, COR-002, ...)
+
+3. **Re-prioritize**:
+   - Sort by category priority order: `analysis` → `extraction` → `metadata` → `cross-document` → `generation`
+   - Within each category, sort by severity: `critical` → `high` → `medium` → `low`
+   - Within same severity: fabricated before inaccurate, stale before gaps
+   - Assign `priority` attributes sequentially (1, 2, 3, ...)
+
+4. **Write merged plan**:
+   - Write to `$AUDIT_DIR/correction-plan.xml` (overwrites the coverage-only version)
+   - Update `total-items` count on root element
+   - Set `source-audit` to `$AUDIT_DIR/full-audit-report.xml`
+
+### Full Step 4: Generate full-audit-report.xml
+
+The agent MUST generate the full audit report following the schema defined in `.reforge/schemas/full-audit-report.md`.
+
+Write the report to: `$AUDIT_DIR/full-audit-report.xml`
+
+The report MUST include:
+- Root element `<full-audit-report>` with all required attributes (project-id, version, generated, composite-score, quality-rating)
+- `<dimension-scores>` section with individual dimension scores, weights, and weighted contributions
+- `<quality-assessment>` section with rating, action recommendation, and dimension highlights
+- `<correction-summary>` section with total corrections, by-source breakdown, and merged plan path
+
+### Full Step 5: Display Results
+
+The agent MUST display a human-readable summary:
+
+```
+=== Reforge Full Audit Report ===
+Project: [project-name]
+
+--- Quality Rating ---
+[Rating]: [composite_score]%
+[Action recommendation]
+
+--- Dimension Scores ---
+| Dimension   | Score  | Weight | Contribution |
+|-------------|--------|--------|-------------|
+| Coverage    | [X]%   | 0.25   | [X]         |
+| Consistency | [X]%   | 0.35   | [X]         |
+| Accuracy    | [X]%   | 0.40   | [X]         |
+| **Composite** | **[X]%** |      |             |
+
+--- Key Findings ---
+  Coverage: [highlight]
+  Consistency: [highlight]
+  Accuracy: [highlight]
+
+--- Correction Plan Summary ---
+Total corrections: [N]
+  By source: [coverage: N] [consistency: N] [accuracy: N]
+Path: $AUDIT_DIR/correction-plan.xml
+
+--- Reports Generated ---
+  Coverage:    $AUDIT_DIR/audit-report.xml
+  Consistency: $AUDIT_DIR/consistency-audit-report.xml
+  Accuracy:    $AUDIT_DIR/accuracy-audit-report.xml
+  Full:        $AUDIT_DIR/full-audit-report.xml
+  Corrections: $AUDIT_DIR/correction-plan.xml (merged)
+
+--- Next Steps ---
+→ Review full report: $AUDIT_DIR/full-audit-report.xml
+→ Run /reforge.fix to execute merged correction plan
+→ Run /reforge.fix --interactive for step-by-step correction approval
 ```
 
 ---
