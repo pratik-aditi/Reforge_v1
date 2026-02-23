@@ -19,6 +19,7 @@ The consistency audit report schema captures the results of `/reforge.audit cons
   <duplicate-id-checks>...</duplicate-id-checks>
   <freshness-checks>...</freshness-checks>
   <cross-document-checks>...</cross-document-checks>
+  <metrics-registry-checks>...</metrics-registry-checks>
 </consistency-audit-report>
 ```
 
@@ -207,6 +208,118 @@ Detects discrepancies where the same metric is cited with different values acros
 | `location` | string | Yes | Section or line reference within the document |
 | `value` | string | Yes | Value cited for this metric |
 
+### `<metrics-registry-checks>`
+
+Compares metric values in generated documents against the authoritative metrics registry.
+
+```xml
+<metrics-registry-checks total-claims-scanned="{N}" total-discrepancies="{N}"
+                         critical-count="{N}" warning-count="{N}" info-count="{N}"
+                         files-scanned="{N}" registry-version="{version}">
+  <discrepancy id="DIS-001" severity="critical" metric-id="{metric-id}"
+               registry-value="{value}" document-value="{value}"
+               file="{path}" line="{N}" context="{text}"
+               confidence="high" action="regenerate"
+               pattern-id="{pattern}" qualifier="{qualifier}" tolerance-percent="{decimal}"/>
+  <scan-summary>
+    <file-summary file="{path}" claims-found="{N}" discrepancies="{N}" status="clean|has-issues"/>
+    <metric-summary metric-id="{metric-id}" registry-value="{value}"
+                    occurrences-found="{N}" consistent-count="{N}" discrepant-count="{N}"
+                    status="verified|has-discrepancies|not-found"/>
+  </scan-summary>
+  <exclusions-applied>
+    <exclusion pattern-text="{text}" matches-suppressed="{N}" files-affected="{N}"/>
+  </exclusions-applied>
+</metrics-registry-checks>
+```
+
+#### `<metrics-registry-checks>` Attributes
+
+| Attribute | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `total-claims-scanned` | integer | Yes | Total numeric claims found across all scanned files |
+| `total-discrepancies` | integer | Yes | Number of discrepancies detected |
+| `critical-count` | integer | Yes | Exact value mismatches |
+| `warning-count` | integer | Yes | Out-of-tolerance approximate mismatches |
+| `info-count` | integer | Yes | Unregistered metrics |
+| `files-scanned` | integer | Yes | Number of files scanned |
+| `registry-version` | string | Yes | Version of the metrics registry used for comparison |
+
+#### `<discrepancy>` Attributes (metrics-registry)
+
+| Attribute | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `id` | string | Yes | Unique discrepancy ID (DIS-NNN) |
+| `severity` | enum | Yes | `critical` \| `warning` \| `info` |
+| `metric-id` | string | Yes | Registry metric ID, or `UNREGISTERED` |
+| `registry-value` | string | Yes | Canonical value from registry (empty if unregistered) |
+| `document-value` | string | Yes | Value extracted from the document |
+| `file` | string | Yes | Relative path to the document file |
+| `line` | integer | Yes | Line number in the document |
+| `context` | string | Yes | Surrounding text snippet |
+| `confidence` | enum | Yes | `high` \| `medium` \| `low` |
+| `action` | enum | Yes | `regenerate` \| `review` \| `register-or-ignore` \| `investigate` |
+| `pattern-id` | string | No | Which scan pattern matched |
+| `qualifier` | string | No | Tolerance qualifier if approximate |
+| `tolerance-percent` | decimal | No | Tolerance percentage applied |
+
+**Confidence assignment criteria:**
+
+- `high` = scan pattern matched AND metric unit/noun matched
+- `medium` = scan pattern matched but unit/noun ambiguous or value requires normalization
+- `low` = value-proximity match only with no supporting pattern or noun context
+
+#### `<scan-summary>` Element
+
+Contains per-file and per-metric summary rollups.
+
+```xml
+<scan-summary>
+  <file-summary file="{path}" claims-found="{N}" discrepancies="{N}" status="clean|has-issues"/>
+  <metric-summary metric-id="{metric-id}" registry-value="{value}"
+                  occurrences-found="{N}" consistent-count="{N}" discrepant-count="{N}"
+                  status="verified|has-discrepancies|not-found"/>
+</scan-summary>
+```
+
+##### `<file-summary>` Attributes
+
+| Attribute | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `file` | string | Yes | Relative path to the scanned file |
+| `claims-found` | integer | Yes | Number of numeric claims found in the file |
+| `discrepancies` | integer | Yes | Number of discrepancies in the file |
+| `status` | enum | Yes | `clean` (no discrepancies) or `has-issues` |
+
+##### `<metric-summary>` Attributes
+
+| Attribute | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `metric-id` | string | Yes | Registry metric ID |
+| `registry-value` | string | Yes | Canonical value from registry |
+| `occurrences-found` | integer | Yes | Total occurrences of this metric found across files |
+| `consistent-count` | integer | Yes | Occurrences matching the registry value |
+| `discrepant-count` | integer | Yes | Occurrences not matching the registry value |
+| `status` | enum | Yes | `verified` (all match) \| `has-discrepancies` \| `not-found` (no occurrences) |
+
+#### `<exclusions-applied>` Element
+
+Records patterns that were excluded from discrepancy reporting.
+
+```xml
+<exclusions-applied>
+  <exclusion pattern-text="{text}" matches-suppressed="{N}" files-affected="{N}"/>
+</exclusions-applied>
+```
+
+##### `<exclusion>` Attributes
+
+| Attribute | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `pattern-text` | string | Yes | The exclusion pattern text |
+| `matches-suppressed` | integer | Yes | Number of potential matches suppressed by this exclusion |
+| `files-affected` | integer | Yes | Number of files where this exclusion applied |
+
 ---
 
 ## Storage Location
@@ -263,5 +376,48 @@ Output path: `reforge_output/<project-name>/audit/consistency-audit-report.xml`
       <recommendation>Update documentation.md to use current value of 864 from analysis.xml</recommendation>
     </discrepancy-cluster>
   </cross-document-checks>
+  <metrics-registry-checks total-claims-scanned="142" total-discrepancies="3"
+                           critical-count="1" warning-count="1" info-count="1"
+                           files-scanned="6" registry-version="1.0.0">
+    <discrepancy id="DIS-001" severity="critical" metric-id="MET-BR-TOTAL"
+                 registry-value="981" document-value="785"
+                 file="generated/documentation.md" line="12"
+                 context="The system contains 785 business rules governing..."
+                 confidence="high" action="regenerate"
+                 pattern-id="PAT-COUNT-NOUN"/>
+    <discrepancy id="DIS-002" severity="warning" metric-id="MET-DB-TABLE-COUNT"
+                 registry-value="245" document-value="240"
+                 file="generated/data-dictionary.md" line="38"
+                 context="Approximately 240 database tables were identified..."
+                 confidence="medium" action="review"
+                 pattern-id="PAT-APPROX-COUNT" qualifier="approximately"
+                 tolerance-percent="5.0"/>
+    <discrepancy id="DIS-003" severity="info" metric-id="UNREGISTERED"
+                 registry-value="" document-value="47"
+                 file="generated/user-stories.md" line="94"
+                 context="There are 47 integration points between subsystems..."
+                 confidence="low" action="register-or-ignore"/>
+    <scan-summary>
+      <file-summary file="generated/documentation.md" claims-found="34" discrepancies="1" status="has-issues"/>
+      <file-summary file="generated/data-dictionary.md" claims-found="52" discrepancies="1" status="has-issues"/>
+      <file-summary file="generated/user-stories.md" claims-found="28" discrepancies="1" status="has-issues"/>
+      <file-summary file="generated/api-reference.md" claims-found="15" discrepancies="0" status="clean"/>
+      <file-summary file="generated/migration-guide.md" claims-found="8" discrepancies="0" status="clean"/>
+      <file-summary file="generated/architecture-overview.md" claims-found="5" discrepancies="0" status="clean"/>
+      <metric-summary metric-id="MET-BR-TOTAL" registry-value="981"
+                      occurrences-found="4" consistent-count="3" discrepant-count="1"
+                      status="has-discrepancies"/>
+      <metric-summary metric-id="MET-DB-TABLE-COUNT" registry-value="245"
+                      occurrences-found="3" consistent-count="2" discrepant-count="1"
+                      status="has-discrepancies"/>
+      <metric-summary metric-id="MET-WF-COUNT" registry-value="132"
+                      occurrences-found="2" consistent-count="2" discrepant-count="0"
+                      status="verified"/>
+    </scan-summary>
+    <exclusions-applied>
+      <exclusion pattern-text="page numbers and section references" matches-suppressed="23" files-affected="4"/>
+      <exclusion pattern-text="date and timestamp literals" matches-suppressed="18" files-affected="6"/>
+    </exclusions-applied>
+  </metrics-registry-checks>
 </consistency-audit-report>
 ```

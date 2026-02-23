@@ -82,6 +82,8 @@ This project is built using the Specify workflow:
 - XML files for extraction output; markdown for schema definitions; XSD for formal schema (009-common-extraction-schema)
 - Markdown prompt templates (no compiled code per Constitution Principle I) + None -- LLM-native tools only (Read, Write, Glob, Grep) (010-source-anchored-generation)
 - Filesystem -- markdown files in `.reforge/commands/` and `.reforge/templates/` (010-source-anchored-generation)
+- XML files for audit reports and correction plans; structured markdown for command templates and schema definitions (011-content-accuracy-audit)
+- XML files (`metrics-registry.xml`, `consistency-audit-report.xml`, `correction-plan.xml`); structured markdown for command and schema definitions (012-cross-doc-consistency)
 
 ## Recent Changes
 - 002-audit-fix-commands: Added Markdown prompt templates (no compiled code per Constitution Principle I) + None (LLM-native tools only: Read, Write, Glob, Grep)

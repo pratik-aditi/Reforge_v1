@@ -73,6 +73,8 @@ Individual correction item with full context for execution.
 | `broken-ref` | Cross-reference target (file or ID) does not resolve |
 | `arithmetic` | Arithmetic total or distribution sum is incorrect |
 | `duplicate-id` | Same element ID appears in multiple locations |
+| `metric-mismatch` | Document value contradicts metrics registry |
+| `unregistered-metric` | Document contains numeric claim not tracked by metrics registry |
 
 #### CategoryType Values
 
@@ -82,7 +84,8 @@ Individual correction item with full context for execution.
 | `extraction` | Extraction needs to be (re-)performed | 2nd |
 | `metadata` | Extraction metadata (counts, distributions) needs correcting | 3rd |
 | `cross-document` | Cross-document discrepancy needs resolution | 4th |
-| `generation` | Generated output needs regeneration | 5th (lowest) |
+| `metrics-consistency` | Metrics registry discrepancy needs resolution | 5th |
+| `generation` | Generated output needs regeneration | 6th (lowest) |
 
 #### StatusType Values
 
@@ -127,12 +130,14 @@ Corrections are prioritized by category (upstream before downstream):
 2. **Extraction corrections** (priority N+1-M): Fix extractions after analysis is current
 3. **Metadata corrections** (priority M+1-O): Fix extraction metadata (counts, distributions)
 4. **Cross-document corrections** (priority O+1-P): Resolve cross-document discrepancies
-5. **Generation corrections** (priority P+1-Q): Regenerate after extractions are fixed
+5. **Metrics-consistency corrections** (priority P+1-Q): Fix numeric discrepancies against metrics registry
+6. **Generation corrections** (priority Q+1-R): Regenerate after extractions are fixed
 
 Within each category, corrections are ordered by:
 - Severity: critical → high → medium → low (when severity is present)
 - Stale references before gaps (fix broken things before adding new ones)
 - Fabricated items before inaccurate items (remove hallucinations before fixing errors)
+- metric-mismatch before unregistered-metric (fix known discrepancies before triaging new ones)
 - Files with more components/lines first (higher-value files)
 
 ---
@@ -294,6 +299,50 @@ Output path: `reforge_output/<project-name>/audit/correction-plan.xml`
       <file>reforge_output/TCOS-RUMO/extractions/business-rules.xml</file>
     </affected-files>
     <evidence>Arithmetic check: metadata/total-count states 900, actual child element count is 981 (difference: +81).</evidence>
+  </correction>
+
+</correction-plan>
+```
+
+### Plan with Metrics Consistency Corrections
+
+```xml
+<correction-plan project-id="TCOS-RUMO" version="1.0.0"
+                 generated="2024-01-15T14:00:00Z"
+                 source-audit="reforge_output/TCOS-RUMO/audit/consistency-audit-report.xml"
+                 total-items="3" completed-items="0">
+
+  <correction id="COR-001" priority="1" type="metric-mismatch" category="metrics-consistency"
+              status="pending"
+              source-audit-type="consistency" severity="critical"
+              action="/reforge.generate markdown --refresh-metrics">
+    <description>documentation.md states 785 business rules but metrics registry value is 981 (MET-BR-COUNT). Regenerate documentation to use registry value.</description>
+    <affected-files>
+      <file>reforge_output/TCOS-RUMO/generated/documentation.md</file>
+    </affected-files>
+    <evidence>Metrics registry check: MET-BR-COUNT registry value 981, document value 785 at line 42. Exact mismatch (no qualifier present).</evidence>
+  </correction>
+
+  <correction id="COR-002" priority="2" type="metric-mismatch" category="metrics-consistency"
+              status="pending"
+              source-audit-type="consistency" severity="warning"
+              action="/reforge.generate user-stories --refresh-metrics">
+    <description>user-stories.md states "approximately 850 business rules" but metrics registry value is 981. Value is outside ±10% tolerance for approximate qualifier.</description>
+    <affected-files>
+      <file>reforge_output/TCOS-RUMO/generated/user-stories.md</file>
+    </affected-files>
+    <evidence>Metrics registry check: MET-BR-COUNT registry value 981, document value 850 with qualifier "approximately" at line 15. Tolerance ±10% allows 883-1079, value 850 is below range.</evidence>
+  </correction>
+
+  <correction id="COR-003" priority="3" type="unregistered-metric" category="metrics-consistency"
+              status="pending"
+              source-audit-type="consistency" severity="info"
+              action="register-or-exclude documentation.md line 87">
+    <description>documentation.md contains unregistered numeric claim "47 integration points" at line 87 not tracked by any registry metric. Register as new metric or add to exclusion list.</description>
+    <affected-files>
+      <file>reforge_output/TCOS-RUMO/generated/documentation.md</file>
+    </affected-files>
+    <evidence>Unregistered metric scan: numeric claim "47 integration points" found at documentation.md:87. No matching metric ID in registry. Not in exclusion list.</evidence>
   </correction>
 
 </correction-plan>

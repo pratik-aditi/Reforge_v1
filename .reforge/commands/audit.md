@@ -782,6 +782,49 @@ Path: $AUDIT_DIR/accuracy-correction-plan.xml
 3. **Initialize counters**:
    - `$TOTAL_CHECKS` = 0, `$PASSED_CHECKS` = 0, `$FAILED_CHECKS` = 0
 
+### Consistency Step 1.5: Metrics Registry Recomputation (FR-015)
+
+Before any scanning, the agent MUST recompute the metrics registry from current extraction data.
+This ensures the audit always validates against the freshest canonical values, regardless of
+whether a `metrics-registry.xml` file already exists from a prior generation run.
+
+1. **Discover extraction files**:
+   - Glob all XML files in each extraction category subdirectory under `$EXTRACTIONS_DIR`
+     (same discovery procedure as `generate.md` Multi-File Extraction Discovery)
+   - Also read `$ANALYSIS_DIR/analysis.xml` for codebase-level metrics
+
+2. **Compute canonical metrics**:
+   - For each extraction category, count elements using the actual element names present in XML
+   - Assign deterministic metric IDs following the `MET-{CATEGORY}-{NAME}` pattern
+   - Record per-file breakdowns for aggregate metrics
+   - Compute derivation formulas showing per-file breakdown sums
+
+3. **Handle missing or incomplete extraction data gracefully**:
+   - If an extraction category has no files, skip the corresponding metrics
+   - Report which metrics could not be computed (e.g., "Skipping MET-UI-SCREEN-COUNT: no
+     ui-flows extraction files found")
+   - Continue with available data — do NOT fail the audit due to missing extraction categories
+
+4. **Write the registry**:
+   - Write to `$PROJECT_OUTPUT_DIR/metrics-registry.xml` following the metrics-registry schema
+     (`.reforge/schemas/metrics-registry.md`)
+   - Include `<configuration>` section with default tolerance rules:
+     - `approximately` / `~` / `about` / `roughly`: ±10%
+     - `nearly`: ±5%
+     - `over` / `more than`: gte direction (value must be at least the registry value)
+     - `fewer than` / `under` / `less than`: lte direction (value must be at most the registry value)
+   - Include `<scan-patterns>` section with patterns for common metric categories
+   - Include empty `<exclusion-list>` on first creation (or preserve existing exclusions if
+     a prior registry exists)
+
+5. **Bootstrap detection**:
+   - Set `$REGISTRY_IS_BOOTSTRAP` = true if no prior `metrics-registry.xml` existed before
+     this step wrote one
+   - This flag is used in Consistency Step 6.8 for bootstrap messaging
+
+6. **Store registry path for subsequent steps**:
+   - `$METRICS_REGISTRY` = `$PROJECT_OUTPUT_DIR/metrics-registry.xml`
+
 ### Consistency Step 2: Arithmetic Checks (FR-009)
 
 The agent MUST compare stated metadata counts against actual element counts per extraction file. Zero tolerance for mismatches.
@@ -873,6 +916,158 @@ The agent MUST scan generated documents for numeric claims about the same metric
 
 4. **Update counters**: Each cross-document check counts toward `$TOTAL_CHECKS`
 
+### Consistency Step 6.5: Metrics Registry Document Scanning (FR-016)
+
+The agent MUST scan all generated documents against the authoritative metrics registry to detect
+numeric claim discrepancies.
+
+1. **Determine scan scope**:
+   - Scan all files in `$GENERATED_DIR/` (recursively) matching configured file types from the
+     registry's `<scan-file-types>` configuration (default: `.md`, `.html`, `.puml`, `.mmd`, `.svg`)
+   - Also scan `$PROJECT_OUTPUT_DIR/diagrams/` (if present) — diagram source files may be stored
+     separately from generated documents
+   - Initialize: `$CLAIMS_SCANNED` = 0, `$DISCREPANCIES` = []
+   - **Deduplication rule**: When HTML files contain inline SVG, a metric claim may appear in
+     both the HTML parser's results and the SVG `<text>` content. The agent MUST detect each
+     metric at a unique (file, line) location only once — do not double-count claims from
+     embedded SVG within HTML reports
+
+2. **For each file in scan scope**:
+   - Read the file contents
+   - Apply scan pattern descriptions from the registry's `<scan-patterns>` section to identify
+     numeric claims. The agent reads the document and uses its language understanding to recognize
+     phrases matching each pattern's `description` attribute (e.g., "Numeric value followed by
+     'business rules'" matches "981 business rules" or "approximately 850 business rules")
+   - For each identified numeric claim:
+     a. Extract the numeric value and any qualifying language (approximately, ~, about, etc.)
+     b. Match against registry metrics using the pattern's `metric-hint` and value proximity
+     c. If a metric ID annotation is present (`<!-- metric: MET-XXX -->` in HTML/Markdown,
+        `' metric: MET-XXX` in PlantUML, or `%% metric: MET-XXX` in Mermaid), use it as a
+        direct match (confidence = `high`)
+     d. If no annotation, match by pattern category and value proximity:
+        - Pattern + unit/noun match → confidence `high`
+        - Pattern match but ambiguous unit → confidence `medium`
+        - Value-proximity only → confidence `low`
+     e. Increment `$CLAIMS_SCANNED`
+
+3. **Classify each matched claim**:
+   - **consistent**: Document value exactly matches registry value (and no qualifier present)
+   - **approximate-match**: Qualifier present and value is within the tolerance range
+   - **mismatch**: No qualifier and value differs from registry, OR qualifier present but value
+     is outside tolerance range
+   - **unregistered**: Numeric claim matches a scan pattern but no corresponding metric exists
+     in the registry
+   - **ambiguous**: Multiple candidate metrics match with similar confidence — report all
+     candidates with confidence indicators (FR-020)
+
+4. **For ambiguous matches**:
+   - Report all candidate metric matches with their confidence levels
+   - Set discrepancy action to `investigate`
+   - The agent MUST NOT arbitrarily choose one candidate — ambiguity requires human review
+
+### Consistency Step 6.6: Tolerance Application (FR-012, FR-013)
+
+The agent MUST apply tolerance rules when qualifying language is present.
+
+1. **Detect qualifying language**:
+   - When a numeric claim is accompanied by qualifying language (approximately, ~, about,
+     roughly, nearly, over, fewer than, more than, less than, under), the agent MUST
+     identify the qualifier and look up the corresponding tolerance rule
+
+2. **Apply tolerance rules**:
+   - Read tolerance configuration from `$METRICS_REGISTRY` `<configuration>/<tolerance-defaults>`
+   - If the matched metric has a per-metric `<tolerance>` override, use it instead of the default
+   - For percentage-based tolerance (`percent` attribute):
+     - Compute allowed range: `[registry_value * (1 - percent/100), registry_value * (1 + percent/100)]`
+     - If document value falls within range → classify as `approximate-match`
+     - If outside range → classify as `mismatch` (warning severity)
+   - For direction-based tolerance (`direction` attribute):
+     - `gte`: Document value must be >= registry value
+     - `lte`: Document value must be <= registry value
+   - Values without any qualifying language MUST require exact match (FR-013)
+
+3. **Record tolerance application**:
+   - For each claim where tolerance was applied, record the qualifier, tolerance percentage,
+     computed range, and whether the value fell within range
+
+### Consistency Step 6.7: Exclusion List Application (FR-019)
+
+The agent MUST check the exclusion list before reporting unregistered metrics.
+
+1. **Load exclusion list**:
+   - Read `<exclusion-list>` from `$METRICS_REGISTRY` `<configuration>`
+   - Build a list of excluded pattern texts
+
+2. **For each unregistered numeric claim** (from Step 6.5):
+   - Check if the claim's text matches any exclusion pattern
+   - If matched: suppress the claim — do not report as a discrepancy
+   - Record the suppression in `$EXCLUSIONS_APPLIED` for the audit report
+
+3. **Report new unregistered metrics**:
+   - Unregistered claims NOT matching any exclusion pattern are reported as `info`-severity
+     discrepancies with action `register-or-ignore`
+   - These represent numeric claims that may be legitimate metrics not yet tracked by the
+     registry, or incidental numbers (page counts, section numbers, etc.)
+
+### Consistency Step 6.8: Metrics Discrepancy Report Generation (FR-016)
+
+The agent MUST generate the `<metrics-registry-checks>` section of the consistency audit report.
+
+1. **Build discrepancy list**:
+   - From Step 6.5 results, collect all claims classified as `mismatch`, `unregistered`
+     (non-excluded), or `ambiguous`
+   - Assign severity:
+     - `critical`: Exact value mismatch (no qualifier, values differ)
+     - `warning`: Approximate value outside tolerance range
+     - `info`: Unregistered metric (not in exclusion list)
+   - Assign unique IDs: `DIS-001`, `DIS-002`, ...
+   - Assign actions:
+     - `critical` mismatch → `regenerate`
+     - `warning` mismatch → `review`
+     - `info` unregistered → `register-or-ignore`
+     - ambiguous → `investigate`
+
+2. **Build scan summaries**:
+   - Per-file summary: for each scanned file, record claims found, discrepancies, and status
+   - Per-metric summary: for each registry metric, record occurrences found, consistent count,
+     discrepant count, and status
+
+3. **Build exclusions applied**:
+   - Record each exclusion pattern that matched, the number of suppressed matches, and
+     affected files
+
+4. **Bootstrap messaging**:
+   - If `$REGISTRY_IS_BOOTSTRAP` is true (from Step 1.5), include a note in the report:
+     "This is a bootstrap/migration scan. No prior metrics registry existed. Discrepancies
+     represent the pre-registry state of generated documents and can be resolved incrementally
+     via /reforge.fix."
+
+### Consistency Step 6.9: Metrics Correction Item Generation (FR-016)
+
+The agent MUST generate correction items for metrics discrepancies.
+
+1. **For critical and warning discrepancies** (from Step 6.8):
+   - Generate correction items using type `metric-mismatch`
+   - Set category to `metrics-consistency`
+   - Set `source-audit-type="consistency"`
+   - Set severity matching the discrepancy severity
+   - Set action to `/reforge.generate <doc-type> --refresh-metrics` for the affected document
+   - Include `<evidence>` with the specific metric ID, registry value, document value, and
+     file/line location
+
+2. **For non-excluded unregistered metrics** (info severity):
+   - Generate correction items using type `unregistered-metric`
+   - Set category to `metrics-consistency`
+   - Set `source-audit-type="consistency"`
+   - Set severity to `info`
+   - Set action to `register-or-exclude <file> line <N>`
+   - Include `<evidence>` describing the unregistered claim
+
+3. **Update counters**:
+   - Each discrepancy (critical or warning) counts as a failed check
+   - Each consistent claim counts as a passed check
+   - Increment `$TOTAL_CHECKS`, `$PASSED_CHECKS`, `$FAILED_CHECKS` accordingly
+
 ### Consistency Step 7: Score Computation
 
 The agent MUST compute the consistency score (FR-014).
@@ -885,6 +1080,7 @@ The agent MUST compute the consistency score (FR-014).
    - cross-reference: passed/total for cross-reference checks
    - freshness: passed/total for freshness checks
    - cross-document: discrepancies count
+   - metrics-consistency: claims scanned, discrepancies by severity (critical/warning/info)
 
 ### Consistency Step 8: Generate consistency-audit-report.xml
 
@@ -899,6 +1095,11 @@ The report MUST include:
 - `<duplicate-id-checks>` section with duplicate groups and severity
 - `<freshness-checks>` section with individual check results and discrepancies
 - `<cross-document-checks>` section with discrepancy clusters and recommendations
+- `<metrics-registry-checks>` section (from Step 6.8) with:
+  - Summary attributes: total-claims-scanned, total-discrepancies, critical-count, warning-count, info-count, files-scanned, registry-version
+  - `<discrepancy>` elements for each detected mismatch with full attributes (id, severity, metric-id, registry-value, document-value, file, line, context, confidence, action, pattern-id, qualifier, tolerance-percent)
+  - `<scan-summary>` with per-file and per-metric verification summaries
+  - `<exclusions-applied>` section documenting suppressed patterns
 
 ### Consistency Step 9: Generate consistency-correction-plan.xml
 
@@ -912,13 +1113,15 @@ Write the correction plan to: `$AUDIT_DIR/consistency-correction-plan.xml`
 - Duplicate IDs (critical severity only) → correction type `duplicate-id`, category `extraction`
 - Stale generated documents → correction type `stale`, category `generation`, action `/reforge.generate <type>`
 - Cross-document discrepancies → correction type `inconsistent`, category `cross-document`
+- Metrics registry mismatches (from Step 6.9) → correction type `metric-mismatch`, category `metrics-consistency`, action `/reforge.generate <doc-type> --refresh-metrics`
+- Unregistered metrics (from Step 6.9) → correction type `unregistered-metric`, category `metrics-consistency`, action `register-or-exclude <file> line <N>`
 
 **Each correction entry MUST include**:
 - `source-audit-type="consistency"`
 - `severity` attribute
 - `<evidence>` child element describing the specific check failure
 
-**Priority ordering**: metadata corrections before cross-document corrections before generation corrections (per extended correction plan schema).
+**Priority ordering**: metadata corrections before cross-document corrections before metrics-consistency corrections before generation corrections (per extended correction plan schema).
 
 ### Consistency Step 10: Display Results
 
@@ -932,20 +1135,41 @@ Project: [project-name]
 Overall: [X]% ([passed] of [total] checks passed)
 
 --- Checks by Category ---
-| Category        | Total | Passed | Failed | Score   |
-|-----------------|-------|--------|--------|---------|
-| Arithmetic      | [N]   | [N]    | [N]    | [X]%    |
-| Cross-Reference | [N]   | [N]    | [N]    | [X]%    |
-| Duplicate IDs   | [N] scanned | [N] duplicates found    ||
-| Freshness       | [N]   | [N]    | [N]    | [X]%    |
-| Cross-Document  | [N] checked | [N] discrepancies       ||
+| Category           | Total | Passed | Failed | Score   |
+|--------------------|-------|--------|--------|---------|
+| Arithmetic         | [N]   | [N]    | [N]    | [X]%    |
+| Cross-Reference    | [N]   | [N]    | [N]    | [X]%    |
+| Duplicate IDs      | [N] scanned | [N] duplicates found    ||
+| Freshness          | [N]   | [N]    | [N]    | [X]%    |
+| Cross-Document     | [N] checked | [N] discrepancies       ||
+| Metrics Consistency| [N] claims | [N] discrepancies       ||
+
+--- Metrics Consistency ---
+Claims scanned: [N] across [N] files
+Registry metrics: [N] (registry version: [version])
+Discrepancies: [critical] critical, [warning] warning, [info] info
+
+[If critical discrepancies > 0:]
+Critical mismatches:
+  | File | Line | Metric | Expected | Actual |
+  |------|------|--------|----------|--------|
+  | [file] | [line] | [MET-XXX] | [registry-value] | [document-value] |
+  ...
+
+[If bootstrap scan:]
+ℹ️ Bootstrap scan: No prior metrics registry existed. This is a migration scan.
+Discrepancies represent the pre-registry state of existing generated documents
+and can be resolved incrementally:
+  → Run /reforge.fix to apply corrections from the correction plan
+  → Or run /reforge.generate <type> --refresh-metrics to regenerate specific documents
+  → Existing documents without corrections will continue to work but may contain stale values
 
 --- Top Findings ---
-[List up to 10 most significant findings — arithmetic/cross-ref failures first]
+[List up to 10 most significant findings — metric mismatches first, then arithmetic/cross-ref failures]
 
 --- Correction Plan ---
 Total corrections: [N]
-  By category: [metadata: N] [extraction: N] [cross-document: N] [generation: N]
+  By category: [metadata: N] [extraction: N] [cross-document: N] [metrics-consistency: N] [generation: N]
 Path: $AUDIT_DIR/consistency-correction-plan.xml
 
 --- Next Steps ---
@@ -971,8 +1195,9 @@ The agent MUST run all three audit types in sequence (FR-015):
    - **IMPORTANT**: Read the coverage audit's `correction-plan.xml` into memory before it can be overwritten by the merge step
 
 2. **Run Consistency Audit** (Consistency Steps 1-10 above):
-   - Execute the full consistency audit workflow
+   - Execute the full consistency audit workflow (includes metrics registry checks from Steps 1.5, 6.5-6.9)
    - Collect `$CONSISTENCY_SCORE` from the generated `consistency-audit-report.xml`
+   - Note: the consistency score now incorporates metrics registry scan results — metric claim discrepancies count as failed checks
 
 3. **Run Accuracy Audit** (Accuracy Steps 1-9 above):
    - Execute the full accuracy audit workflow
@@ -1013,9 +1238,9 @@ The agent MUST merge all individual correction plans into a unified plan (FR-015
    - Re-number `id` attributes sequentially (COR-001, COR-002, ...)
 
 3. **Re-prioritize**:
-   - Sort by category priority order: `analysis` → `extraction` → `metadata` → `cross-document` → `generation`
+   - Sort by category priority order: `analysis` → `extraction` → `metadata` → `cross-document` → `metrics-consistency` → `generation`
    - Within each category, sort by severity: `critical` → `high` → `medium` → `low`
-   - Within same severity: fabricated before inaccurate, stale before gaps
+   - Within same severity: fabricated before inaccurate, metric-mismatch before unregistered-metric, stale before gaps
    - Assign `priority` attributes sequentially (1, 2, 3, ...)
 
 4. **Write merged plan**:
