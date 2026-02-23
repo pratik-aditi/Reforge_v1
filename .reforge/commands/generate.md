@@ -1075,7 +1075,11 @@ The agent MUST construct the following metrics table at the start of each genera
 1. The agent MUST recompute this table fresh for every generation run — never reuse metrics from a prior run
 2. Each metric's `Formula` column MUST show the actual per-file breakdown (e.g., "541 + 87 + 85 + 98 + 127 = 938")
 3. When extraction XML uses non-standard element names, the agent MUST adapt the XPath to the actual element names present
-4. The computed metrics table is ephemeral — it exists in the agent's working context during the run and is not persisted as a separate file
+4. The computed metrics table MUST be persisted as `$PROJECT_OUTPUT_DIR/metrics-registry.xml` following the metrics-registry schema (`.reforge/schemas/metrics-registry.md`). The agent MUST write this file before any document generation begins.
+5. Each computed metric MUST be assigned a deterministic ID following the `MET-{CATEGORY}-{NAME}` pattern (e.g., `MET-FILE-TOTAL`, `MET-BR-COUNT`, `MET-UI-SCREEN-COUNT`). The category prefix is derived from the metric's logical domain: `FILE` for codebase files, `MOD` for modules, `BR` for business rules, `FR` for functional requirements, `NFR` for non-functional requirements, `UI` for UI components, `DB` for database entities, `WF` for workflows, `GEN` for generation artifacts, `COV` for coverage metrics.
+6. For aggregate metrics with per-file components (e.g., total business rules summed across multiple extraction files), the agent MUST record a `<breakdown>` element in the registry with a `<component>` for each contributing file. The sum of all component `count` values MUST equal the metric's `value`.
+7. After writing the metrics registry, all subsequent generation steps MUST read metric values from the registry file rather than recomputing them. This ensures every generated document draws from the same canonical source, preventing contradictions between documents generated in the same run.
+8. If extraction data is missing or incomplete (e.g., an extraction category has no files), the agent MUST skip the corresponding metrics, report which metrics could not be computed in the generation output, and continue with available data. The registry MUST NOT contain metrics with fabricated or estimated values.
 
 ---
 
@@ -1105,7 +1109,7 @@ per category.
 
 ## Content Validation Checklist
 
-Before finalizing each generated document, the agent MUST complete this 10-item mandatory
+Before finalizing each generated document, the agent MUST complete this 11-item mandatory
 boolean checklist. Every item MUST be TRUE before the document is written to disk. If any item
 is FALSE, the agent MUST correct the issue before proceeding.
 
@@ -1121,6 +1125,66 @@ is FALSE, the agent MUST correct the issue before proceeding.
 | 8 | Provenance annotations are present on every major section as HTML comments citing extraction source file(s) and element counts | FR-013 |
 | 9 | No direct source code reads — all source information comes from extraction XML, not from reading source files during generation | FR-006 |
 | 10 | `[DATA GAP]` markers are present wherever extraction data was insufficient to populate a section with verified content | FR-007 |
+| 11 | Metric ID annotations are present for every numeric statistic as HTML comments (`<!-- metric: MET-XXX -->`) or diagram comments (`' metric: MET-XXX`) | FR-018 |
+
+---
+
+## Metric ID Annotation Conventions
+
+Every numeric statistic in generated output MUST include a metric ID annotation that links
+the value back to its entry in the metrics registry. The annotation format varies by file type:
+
+### Markdown and HTML Documents
+
+Use HTML comments immediately following the numeric value:
+
+```html
+Total files analyzed: 864 <!-- metric: MET-FILE-TOTAL -->
+Business rules extracted: 981 <!-- metric: MET-BR-COUNT -->
+```
+
+### PlantUML Diagrams (.puml)
+
+Use PlantUML single-line comments with the `metric:` prefix:
+
+```plantuml
+title TCOS-RUMO - 49 States
+' metric: MET-WF-STATES
+
+note right
+  981 business rules extracted
+  ' metric: MET-BR-COUNT
+end note
+```
+
+### Mermaid Diagrams (.mmd)
+
+Use Mermaid comment syntax with the `metric:` prefix:
+
+```mermaid
+graph TD
+    A[864 Source Files]
+    %% metric: MET-FILE-TOTAL
+    B[981 Business Rules]
+    %% metric: MET-BR-COUNT
+```
+
+### SVG Files (.svg)
+
+Use XML comments within the SVG, placed after the `<text>` element containing the metric:
+
+```xml
+<text x="100" y="50">864 Source Files</text>
+<!-- metric: MET-FILE-TOTAL -->
+```
+
+### Annotation Rules
+
+1. The annotation MUST appear on the same line or the immediately following line as the numeric
+   value it annotates
+2. The metric ID in the annotation MUST match a valid entry in the metrics registry
+3. Every numeric statistic derived from extraction data MUST have an annotation — no exceptions
+4. Annotations are invisible to end users (comments) but enable automated consistency scanning
 
 ---
 
@@ -1307,9 +1371,69 @@ reforge-scripts validate-xml --list-schemas
 
 ---
 
+## Post-Generation Consistency Scan
+
+After all documents have been generated, the agent MUST perform a post-generation consistency
+scan to verify that metric values embedded in documents match the authoritative metrics registry.
+
+### Step 1: Update Registry References
+
+For each metric in `$PROJECT_OUTPUT_DIR/metrics-registry.xml`:
+1. Search all generated files in `$GENERATED_DIR/` for the metric's ID annotation
+   (`<!-- metric: MET-XXX -->` or `' metric: MET-XXX` or `%% metric: MET-XXX`)
+2. For each occurrence found, record the file path and line number
+3. Update the metric's `<references>` section in the registry with a `<ref file="..." line="..."/>`
+   entry for each actual occurrence
+4. Write the updated registry back to `$PROJECT_OUTPUT_DIR/metrics-registry.xml`
+
+### Step 2: Quick Consistency Scan
+
+For each metric in the registry with `<references>` entries:
+1. Read the referenced file at the referenced line
+2. Extract the numeric value adjacent to the metric ID annotation
+3. Compare the extracted value against the metric's `value` attribute in the registry
+4. Classify the comparison:
+   - **Consistent**: Values match exactly
+   - **Mismatch**: Values differ (this indicates a generation bug — the document was supposed
+     to read from the registry but produced a different value)
+
+### Step 3: Report Results
+
+If zero mismatches are found:
+- No additional output — the generation is internally consistent
+
+If one or more mismatches are found:
+- Emit a WARNING at the end of the generation output:
+  ```
+  ⚠️ Post-generation consistency scan found [N] discrepancy(ies).
+  Run /reforge.audit consistency for a detailed report.
+  ```
+- The agent MUST NOT block or fail the generation run based on post-generation scan results
+  (FR-018: warn but do not block). The warning serves as an early detection mechanism; the
+  full consistency audit provides detailed diagnostics and correction items.
+
+### Selective Regeneration Consistency
+
+When performing selective regeneration (regenerating a single document type while leaving others
+unchanged), the agent MUST:
+1. Read metric values from the existing `$PROJECT_OUTPUT_DIR/metrics-registry.xml` — do NOT
+   recompute the registry unless `--refresh-metrics` is specified
+2. Apply the same metric ID annotations to the regenerated content
+3. Run the post-generation consistency scan against the existing registry
+4. This ensures the selectively regenerated document remains consistent with all other documents
+   that were generated from the same registry
+
+If `--refresh-metrics` is specified during selective regeneration, the agent MUST recompute
+the full metrics registry first (per Rule 1), then regenerate the requested document type.
+Other documents generated from a prior registry version may now be inconsistent — the agent
+MUST emit a warning listing which other documents may need regeneration.
+
+---
+
 ## Output Schema Reference
 
 - User Stories: `.reforge/schemas/user-stories.md`
 - Cross-Mappings: `.reforge/schemas/cross-mappings.md`
 - Features & Requirements: `.reforge/schemas/features-requirements.md`
+- Metrics Registry: `.reforge/schemas/metrics-registry.md`
 - Templates: `.reforge/templates/`
