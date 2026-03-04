@@ -12,9 +12,10 @@
 
 | Argument | Required | Description |
 |----------|----------|-------------|
-| `type` | Yes | Extraction type: `business-rules`, `database`, `ui`, `workflows` |
+| `type` | Yes | Extraction type: `business-rules`, `database`, `ui`, `workflows`, `call-sites`, `dependencies`, `functional-requirements`, `non-functional`, `architecture`, `issues` |
 | `--files` | No | Limit extraction to files matching pattern |
 | `--confidence` | No | Minimum confidence threshold: `high`, `medium`, `low` (default: all) |
+| `--subtype` | No | For `architecture` type only: `design-patterns`, `integrations`, `infrastructure` |
 
 ## Overview
 
@@ -24,6 +25,12 @@ This command extracts specific types of information from the analyzed codebase:
 - **database**: SQL statements, data model, entity relationships
 - **ui**: Screen definitions, components, layouts, navigation
 - **workflows**: Execution paths, process flows, decision trees
+- **call-sites**: Method/function call relationships with caller/callee traceability
+- **dependencies**: Module dependency graphs (imports, events, interfaces)
+- **functional-requirements**: Extracted functional requirements with acceptance criteria
+- **non-functional**: Non-functional requirements (SLAs) and security findings (CWE)
+- **architecture**: Architectural components, integrations, and design patterns
+- **issues**: Bugs, defects, TODOs, technical debt, and operational issues
 
 ## Prerequisites
 
@@ -1084,6 +1091,408 @@ Write to `$EXTRACTIONS_DIR/workflows.xml`:
 
 ---
 
+# Call Sites Extraction
+
+## Command
+
+```
+/reforge.extract call-sites
+```
+
+## Workflow
+
+Follow Steps 0–0.8 as defined in the Business Rules Extraction section above.
+
+For each source file, identify all outbound method calls. For each call, record the caller (method, class, module, source location) and callee (method, class, module, definition location). Classify call type (direct, virtual, interface, event, callback, reflection).
+
+### Detection Patterns
+
+| Pattern | Detection Method |
+|---------|-----------------|
+| Direct method calls | `object.method()` invocations |
+| Static calls | `ClassName.method()` references |
+| Interface calls | Calls through interface references |
+| Event dispatches | Event publish/emit/fire patterns |
+| Callback invocations | Callback/listener/handler calls |
+| Reflection calls | `Method.invoke()`, dynamic dispatch |
+
+### Output Generation
+
+Write results to `$EXTRACTIONS_DIR/call-sites.xml`:
+
+```xml
+<call-sites project-id="{project}" version="1.0" schema-version="1.0.0"
+            generated="{ISO-8601}" xmlns="http://reforge.dev/schema/extraction">
+  <metadata>
+    <source-analysis ref="analysis.xml"/>
+    <extraction-date>{ISO-8601}</extraction-date>
+    <total-count>{N}</total-count>
+    <confidence-distribution high="{n}" medium="{n}" low="{n}"/>
+  </metadata>
+
+  <call id="CS-001" confidence="high" type="direct">
+    <caller class="OrderService" method="processOrder" module="com.app.service"/>
+    <callee class="InventoryService" method="checkStock" module="com.app.inventory"/>
+    <source file="src/service/OrderService.java" line-start="42" line-end="42"/>
+  </call>
+
+</call-sites>
+```
+
+### Report Results
+
+Summarize: total call sites extracted, breakdown by call type, confidence distribution, and any unresolved callees.
+
+---
+
+# Dependencies Extraction
+
+## Command
+
+```
+/reforge.extract dependencies
+```
+
+## Workflow
+
+Follow Steps 0–0.8 as defined in the Business Rules Extraction section above.
+
+Scan all source files for dependency indicators. For each dependency found, record from-module, to-module, coupling type, direction, and source reference.
+
+### Detection Patterns
+
+| Pattern | Detection Method |
+|---------|-----------------|
+| Import statements | `import`, `require`, `using`, `from...import` |
+| Event subscriptions | Event listener registrations, pub/sub |
+| Interface implementations | `implements`, `extends`, protocol conformance |
+| Dependency injection | Constructor injection, `@Inject`, `@Autowired` |
+| Configuration references | Config files referencing modules |
+| Inheritance | Class extends/inherits relationships |
+
+### Output Generation
+
+Write results to `$EXTRACTIONS_DIR/dependencies.xml`:
+
+```xml
+<dependencies project-id="{project}" version="1.0" schema-version="1.0.0"
+              generated="{ISO-8601}" xmlns="http://reforge.dev/schema/extraction">
+  <metadata>
+    <source-analysis ref="analysis.xml"/>
+    <extraction-date>{ISO-8601}</extraction-date>
+    <total-count>{N}</total-count>
+    <confidence-distribution high="{n}" medium="{n}" low="{n}"/>
+  </metadata>
+
+  <dep-ref id="DEP-001" confidence="high" coupling="import" direction="inbound">
+    <from-module>com.app.service.OrderService</from-module>
+    <to-module>com.app.repository.OrderRepository</to-module>
+    <source file="src/service/OrderService.java" line-start="3" line-end="3"/>
+  </dep-ref>
+
+</dependencies>
+```
+
+### Report Results
+
+Summarize: total dependencies extracted, breakdown by coupling type, direction distribution, confidence distribution, and any circular dependencies detected.
+
+---
+
+# Functional Requirements Extraction
+
+## Command
+
+```
+/reforge.extract functional-requirements
+```
+
+## Workflow
+
+Follow Steps 0–0.8 as defined in the Business Rules Extraction section above.
+
+Analyze business rules, workflows, and UI flows to derive functional requirements. Each requirement gets acceptance criteria synthesized from the implementation behavior.
+
+### Detection Patterns
+
+| Pattern | Detection Method |
+|---------|-----------------|
+| User-facing features | Controller/handler methods with UI bindings |
+| CRUD operations | Create/read/update/delete implementations |
+| Validation logic | Input validation rules and error handling |
+| Business workflows | Multi-step process implementations |
+| Integration points | External service interactions |
+| Reporting features | Report generation and data aggregation |
+
+### Output Generation
+
+Write results to `$EXTRACTIONS_DIR/functional-requirements.xml`:
+
+```xml
+<functional-requirements project-id="{project}" version="1.0" schema-version="1.0.0"
+                         generated="{ISO-8601}" xmlns="http://reforge.dev/schema/extraction">
+  <metadata>
+    <source-analysis ref="analysis.xml"/>
+    <extraction-date>{ISO-8601}</extraction-date>
+    <total-count>{N}</total-count>
+    <confidence-distribution high="{n}" medium="{n}" low="{n}"/>
+  </metadata>
+
+  <requirement id="FR-001" confidence="high" priority="high">
+    <title>Order Submission</title>
+    <description>The system shall allow authenticated users to submit orders with validated items and quantities.</description>
+    <acceptance-criteria>
+      <criterion>User can add items to an order</criterion>
+      <criterion>System validates item availability before submission</criterion>
+      <criterion>Order confirmation is displayed upon success</criterion>
+    </acceptance-criteria>
+    <source file="src/controller/OrderController.java" line-start="30" line-end="85"/>
+    <related>
+      <business-rule>BR-001</business-rule>
+      <workflow>WF-001</workflow>
+    </related>
+  </requirement>
+
+</functional-requirements>
+```
+
+### Report Results
+
+Summarize: total requirements extracted, breakdown by priority, confidence distribution, and traceability to source extractions (business rules, workflows, UI flows).
+
+---
+
+# Non-Functional Requirements Extraction
+
+## Command
+
+```
+/reforge.extract non-functional
+```
+
+## Workflow
+
+Follow Steps 0–0.8 as defined in the Business Rules Extraction section above.
+
+Scan source code and configuration for non-functional characteristics (performance, scalability, availability, security, maintainability). Also identify security findings with CWE classification.
+
+### Detection Patterns — Requirements
+
+| Pattern | Detection Method |
+|---------|-----------------|
+| Performance configs | Timeouts, thread pools, cache settings |
+| Scalability patterns | Load balancing, sharding, clustering configs |
+| Availability | Health checks, circuit breakers, retry logic |
+| Security configs | Auth mechanisms, encryption, access control |
+| Maintainability | Logging, monitoring, config management |
+
+### Detection Patterns — Security Findings
+
+| Pattern | Detection Method |
+|---------|-----------------|
+| SQL injection | String concatenation in SQL queries |
+| XSS | Unescaped user input in HTML output |
+| Hardcoded credentials | Passwords/keys in source code |
+| Weak crypto | Deprecated algorithms (MD5, SHA1, DES) |
+| Missing auth checks | Unprotected endpoints |
+
+### Output Generation
+
+Write results to `$EXTRACTIONS_DIR/non-functional-requirements.xml`:
+
+```xml
+<non-functional-requirements project-id="{project}" version="1.0" schema-version="1.0.0"
+                             generated="{ISO-8601}" xmlns="http://reforge.dev/schema/extraction">
+  <metadata>
+    <source-analysis ref="analysis.xml"/>
+    <extraction-date>{ISO-8601}</extraction-date>
+    <total-count>{N}</total-count>
+    <confidence-distribution high="{n}" medium="{n}" low="{n}"/>
+  </metadata>
+
+  <requirements>
+    <requirement id="NFR-001" confidence="high" category="performance">
+      <title>Connection Pool Sizing</title>
+      <description>Database connection pool configured with max 20 connections and 30s timeout.</description>
+      <source file="src/config/DatabaseConfig.java" line-start="15" line-end="22"/>
+    </requirement>
+  </requirements>
+
+  <findings>
+    <finding id="SEC-001" confidence="high" severity="high" cwe="CWE-89">
+      <title>SQL Injection in User Search</title>
+      <description>User input concatenated directly into SQL query without parameterization.</description>
+      <source file="src/repository/UserRepository.java" line-start="45" line-end="48">
+        <snippet>String sql = "SELECT * FROM users WHERE name = '" + userName + "'";</snippet>
+      </source>
+      <recommendation>Use parameterized queries or prepared statements.</recommendation>
+    </finding>
+  </findings>
+
+</non-functional-requirements>
+```
+
+### Report Results
+
+Summarize: total NFRs extracted by category, total security findings by severity, CWE distribution, confidence distribution, and recommended remediation priorities.
+
+---
+
+# Architecture Extraction
+
+## Command
+
+```
+/reforge.extract architecture [--subtype design-patterns|integrations|infrastructure]
+```
+
+When `--subtype` is specified, only the corresponding container is populated.
+
+## Workflow
+
+Follow Steps 0–0.8 as defined in the Business Rules Extraction section above.
+
+Analyze the codebase structure to identify architectural components, integration points, and design patterns. Map layer boundaries, component responsibilities, and inter-component communication.
+
+### Detection Patterns
+
+| Pattern | Detection Method |
+|---------|-----------------|
+| Layer boundaries | Package/namespace structure, module organization |
+| Components | Major classes/services with distinct responsibilities |
+| Integration points | External API calls, message queues, file I/O |
+| Design patterns | Singleton, Factory, Observer, MVC, Repository usage |
+| Infrastructure | Database connections, cache configs, messaging setup |
+
+### Output Generation
+
+Write results to `$EXTRACTIONS_DIR/architecture.xml`:
+
+```xml
+<architecture project-id="{project}" version="1.0" schema-version="1.0.0"
+              generated="{ISO-8601}" xmlns="http://reforge.dev/schema/extraction">
+  <metadata>
+    <source-analysis ref="analysis.xml"/>
+    <extraction-date>{ISO-8601}</extraction-date>
+    <total-count>{N}</total-count>
+    <confidence-distribution high="{n}" medium="{n}" low="{n}"/>
+  </metadata>
+
+  <components>
+    <component id="COMP-001" confidence="high" layer="service">
+      <name>OrderService</name>
+      <responsibility>Orchestrates order processing workflow</responsibility>
+      <source file="src/service/OrderService.java" line-start="1" line-end="150"/>
+    </component>
+  </components>
+
+  <integrations>
+    <integration id="INT-001" confidence="high" type="rest-api">
+      <name>Payment Gateway</name>
+      <direction>outbound</direction>
+      <endpoint>https://api.payments.example.com/v2/charge</endpoint>
+      <source file="src/client/PaymentClient.java" line-start="20" line-end="45"/>
+    </integration>
+  </integrations>
+
+  <patterns>
+    <pattern id="PAT-001" confidence="high" type="repository">
+      <name>Repository Pattern</name>
+      <description>Data access abstracted through repository interfaces</description>
+      <instances>
+        <instance class="OrderRepository" source-file="src/repository/OrderRepository.java"/>
+      </instances>
+    </pattern>
+  </patterns>
+
+</architecture>
+```
+
+### Report Results
+
+Summarize: total components, integrations, and patterns identified; layer distribution; confidence distribution; and architectural style classification.
+
+---
+
+# Issues Extraction
+
+## Command
+
+```
+/reforge.extract issues
+```
+
+## Workflow
+
+Follow Steps 0–0.8 as defined in the Business Rules Extraction section above.
+
+Scan source code for bugs, defects, TODO/FIXME markers, technical debt, deprecated API usage, dead code, and other quality issues.
+
+### Detection Patterns — Bugs
+
+| Pattern | Detection Method |
+|---------|-----------------|
+| Null dereferences | Unchecked null returns, missing null guards |
+| Resource leaks | Unclosed streams, connections, file handles |
+| Race conditions | Shared mutable state without synchronization |
+| Logic errors | Incorrect operators, off-by-one, boundary issues |
+| TODO/FIXME comments | Inline markers for known issues |
+
+### Detection Patterns — Technical Issues
+
+| Pattern | Detection Method |
+|---------|-----------------|
+| Deprecated APIs | `@Deprecated`, obsolete library usage |
+| Dead code | Unreachable methods, unused imports |
+| Code duplication | Repeated logic blocks across files |
+| High complexity | Methods with cyclomatic complexity > 10 |
+| Missing tests | Public methods without test coverage |
+| Hardcoded config | Magic numbers, hardcoded URLs/paths |
+
+### Output Generation
+
+Write results to `$EXTRACTIONS_DIR/issues.xml`:
+
+```xml
+<issues project-id="{project}" version="1.0" schema-version="1.0.0"
+        generated="{ISO-8601}" xmlns="http://reforge.dev/schema/extraction">
+  <metadata>
+    <source-analysis ref="analysis.xml"/>
+    <extraction-date>{ISO-8601}</extraction-date>
+    <total-count>{N}</total-count>
+    <confidence-distribution high="{n}" medium="{n}" low="{n}"/>
+  </metadata>
+
+  <bugs>
+    <bug id="BUG-001" confidence="high" severity="high">
+      <title>Null Pointer in Order Lookup</title>
+      <description>OrderRepository.findById() return value used without null check.</description>
+      <source file="src/service/OrderService.java" line-start="67" line-end="69">
+        <snippet>Order order = orderRepo.findById(id);
+order.getStatus(); // NPE if not found</snippet>
+      </source>
+      <recommendation>Add null check or use Optional.</recommendation>
+    </bug>
+  </bugs>
+
+  <issues-list>
+    <issue id="ISSUE-001" confidence="high" category="technical-debt">
+      <title>Deprecated Hibernate API Usage</title>
+      <description>Uses deprecated Session.createCriteria() API scheduled for removal.</description>
+      <source file="src/repository/UserRepository.java" line-start="30" line-end="35"/>
+      <recommendation>Migrate to JPA Criteria API.</recommendation>
+    </issue>
+  </issues-list>
+
+</issues>
+```
+
+### Report Results
+
+Summarize: total bugs by severity, total technical issues by category, confidence distribution, and recommended remediation priorities.
+
+---
+
 ## Common Elements
 
 > Shared structural elements (root attributes, metadata, source references, confidence vocabulary, ID patterns) are defined in [common-schema.md](../schemas/common-schema.md). All extraction output MUST conform to the common schema. See that file for the authoritative specification.
@@ -1166,6 +1575,12 @@ reforge-scripts validate-xml $EXTRACTIONS_DIR/business-rules.xml business-rules
 reforge-scripts validate-xml $EXTRACTIONS_DIR/database.xml database
 reforge-scripts validate-xml $EXTRACTIONS_DIR/ui-flows.xml ui-flows
 reforge-scripts validate-xml $EXTRACTIONS_DIR/workflows.xml workflows
+reforge-scripts validate-xml $EXTRACTIONS_DIR/call-sites.xml call-sites
+reforge-scripts validate-xml $EXTRACTIONS_DIR/dependencies.xml dependencies
+reforge-scripts validate-xml $EXTRACTIONS_DIR/functional-requirements.xml functional-requirements
+reforge-scripts validate-xml $EXTRACTIONS_DIR/non-functional-requirements.xml non-functional
+reforge-scripts validate-xml $EXTRACTIONS_DIR/architecture.xml architecture
+reforge-scripts validate-xml $EXTRACTIONS_DIR/issues.xml issues
 ```
 
 If validation fails, the output will show structured errors with line numbers and fix suggestions. Correct any issues before proceeding.
@@ -1214,3 +1629,9 @@ Execute the schema compliance checks from Step 5.6 above. This validates structu
 - Database: `.reforge/schemas/database.md`
 - UI Flows: `.reforge/schemas/ui-flows.md`
 - Workflows: `.reforge/schemas/workflows.md`
+- Call Sites: `.reforge/schemas/call-sites.md`
+- Dependencies: `.reforge/schemas/dependencies.md`
+- Functional Requirements: `.reforge/schemas/functional-requirements.md`
+- Non-Functional: `.reforge/schemas/non-functional.md`
+- Architecture: `.reforge/schemas/architecture.md`
+- Issues: `.reforge/schemas/issues.md`

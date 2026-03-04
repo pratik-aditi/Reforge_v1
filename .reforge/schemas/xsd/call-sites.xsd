@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Reforge Call Sites Schema
+  Defines structure for extracted call site relationships (call-sites.xml)
+  Version: 1.0.0
+  Namespace: http://reforge.dev/schema/extraction
+
+  Shared types (ConfidenceType, SourceReferenceType, MetadataType)
+  are defined in common-schema.xsd and included via xs:include.
+  Authoritative definition: ../common-schema.md
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:rf="http://reforge.dev/schema/extraction"
+           targetNamespace="http://reforge.dev/schema/extraction"
+           elementFormDefault="qualified">
+
+  <xs:include schemaLocation="common-schema.xsd"/>
+
+  <!-- Root Element -->
+  <xs:element name="call-sites">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="metadata" type="rf:MetadataType"/>
+        <xs:element name="call" type="rf:CallType" minOccurs="0" maxOccurs="unbounded"/>
+      </xs:sequence>
+      <xs:attributeGroup ref="rf:CommonRootAttributes"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Call -->
+  <xs:complexType name="CallType">
+    <xs:sequence>
+      <xs:element name="caller" type="rf:CallerType"/>
+      <xs:element name="callee" type="rf:CalleeType"/>
+      <xs:element name="call-type" type="xs:string"/>
+      <xs:element name="parameters" type="rf:ParametersType" minOccurs="0"/>
+      <xs:element name="return-type" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:string" use="required"/>
+    <xs:attribute name="confidence" type="rf:ConfidenceType" use="required"/>
+  </xs:complexType>
+
+  <!-- Caller -->
+  <xs:complexType name="CallerType">
+    <xs:sequence>
+      <xs:element name="caller-source" type="rf:SourceReferenceType"/>
+    </xs:sequence>
+    <xs:attribute name="method" type="xs:string" use="required"/>
+    <xs:attribute name="class" type="xs:string" use="required"/>
+    <xs:attribute name="module" type="xs:string"/>
+  </xs:complexType>
+
+  <!-- Callee -->
+  <xs:complexType name="CalleeType">
+    <xs:sequence>
+      <xs:element name="callee-source" type="rf:SourceReferenceType"/>
+    </xs:sequence>
+    <xs:attribute name="method" type="xs:string" use="required"/>
+    <xs:attribute name="class" type="xs:string" use="required"/>
+    <xs:attribute name="module" type="xs:string"/>
+  </xs:complexType>
+
+  <!-- Parameters -->
+  <xs:complexType name="ParametersType">
+    <xs:sequence>
+      <xs:element name="parameter" minOccurs="0" maxOccurs="unbounded">
+        <xs:complexType>
+          <xs:attribute name="name" type="xs:string" use="required"/>
+          <xs:attribute name="type" type="xs:string"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+</xs:schema>

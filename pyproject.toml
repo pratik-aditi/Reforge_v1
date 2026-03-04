@@ -14,6 +14,9 @@ dev = [
     "pytest>=7.0",
     "pytest-cov",
 ]
+docs = [
+    "mkdocs-material>=9.5",
+]
 
 [project.scripts]
 reforge = "reforge_cli:main"

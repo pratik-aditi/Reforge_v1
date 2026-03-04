@@ -87,6 +87,12 @@ This project is built using the Specify workflow:
 - XML files (`metrics-registry.xml`, `consistency-audit-report.xml`, `correction-plan.xml`); structured markdown for command and schema definitions (012-cross-doc-consistency)
 - Markdown prompt templates (no compiled code per Constitution Principle I) + None — LLM-native tools only (Read, Write, Glob, Grep, WebSearch) (013-glossary-command)
 - XML files for glossary output; JSON for memory lookup and checkpoints; markdown for templates (013-glossary-command)
+- Markdown prompt templates + XSD 1.0 (no compiled code per Constitution Principle I) + None — LLM-native tools only (Read, Write, Glob, Grep) (014-extraction-type-expansion)
+- XML files for 6 new extraction types (call-sites, dependencies, functional-requirements, non-functional, architecture, issues); markdown for schema definitions; XSD for formal schema (014-extraction-type-expansion)
+- Markdown prompt templates (no compiled code per Constitution Principle I) + None — LLM-native tools only (Read, Write, Glob, Grep, Bash for PlantUML rendering) (015-html-documentation-standard)
+- Self-contained HTML files with inline CSS/JS; inline SVG diagrams from PlantUML; markdown templates in `.reforge/templates/` (015-html-documentation-standard)
 
 ## Recent Changes
+- 015-html-documentation-standard: Added HTML as recommended default documentation format with Stephen Few design system, inline SVG diagrams, interactive lightbox, cross-document navigation, and auto-splitting for large extraction types
+- 014-extraction-type-expansion: Added 6 new extraction types (call-sites, dependencies, functional-requirements, non-functional, architecture, issues) with schemas, XSDs, and command support
 - 002-audit-fix-commands: Added Markdown prompt templates (no compiled code per Constitution Principle I) + None (LLM-native tools only: Read, Write, Glob, Grep)

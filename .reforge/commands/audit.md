@@ -12,7 +12,7 @@
 
 | Argument | Required | Description |
 |----------|----------|-------------|
-| `type` | No | Specific artifact type to audit: `analysis`, `business-rules`, `database`, `ui-flows`, `workflows`, `user-stories`, `documentation`, `diagrams` |
+| `type` | No | Specific artifact type to audit: `analysis`, `business-rules`, `database`, `ui-flows`, `workflows`, `call-sites`, `dependencies`, `functional-requirements`, `non-functional`, `architecture`, `issues`, `user-stories`, `documentation`, `diagrams` |
 | `--json` | No | Output audit results as JSON for tooling integration |
 
 ## Overview
@@ -141,7 +141,7 @@ The glossary is optional — its absence MUST NOT affect command behavior.
 
 If a `[type]` argument is provided, validate it against known types:
 
-**Valid extraction types** (coverage scoping): `business-rules`, `database`, `ui-flows`, `workflows`
+**Valid extraction types** (coverage scoping): `business-rules`, `database`, `ui-flows`, `workflows`, `call-sites`, `dependencies`, `functional-requirements`, `non-functional`, `architecture`, `issues`
 **Valid generation types** (coverage scoping): `user-stories`, `documentation`, `diagrams`
 **Valid special types** (coverage scoping): `analysis` (checks analysis.xml for stale file entries)
 **Valid audit modes** (standalone — not combinable with the above): `accuracy`, `consistency`, `full`
@@ -155,7 +155,7 @@ If the type is an audit mode (`accuracy`, `consistency`, `full`):
 If the type is invalid:
 ```
 Error: Unknown audit type '[type]'.
-Valid types: analysis, business-rules, database, ui-flows, workflows, user-stories, documentation, diagrams, accuracy, consistency, full
+Valid types: analysis, business-rules, database, ui-flows, workflows, call-sites, dependencies, functional-requirements, non-functional, architecture, issues, user-stories, documentation, diagrams, accuracy, consistency, full
 ```
 
 If the type is a generation type (`user-stories`, `documentation`, `diagrams`):
@@ -166,7 +166,7 @@ If the type is a generation type (`user-stories`, `documentation`, `diagrams`):
     Expected: $PROJECT_OUTPUT_DIR/generated/[type]/
   ```
 
-If the type is an extraction type (`business-rules`, `database`, `ui-flows`, `workflows`):
+If the type is an extraction type (`business-rules`, `database`, `ui-flows`, `workflows`, `call-sites`, `dependencies`, `functional-requirements`, `non-functional`, `architecture`, `issues`):
 - Check if the corresponding extraction file exists in `$EXTRACTIONS_DIR`
 - If not found:
   ```

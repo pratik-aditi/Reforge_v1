@@ -12,14 +12,15 @@
 
 | Argument | Required | Description |
 |----------|----------|-------------|
-| `format` | Yes | Output format: `markdown`, `user-stories`, `data-dictionary`, `uml`, `sysml`, `cross-mappings`, `features`, `registries` |
+| `format` | Yes | Output format: `html` (recommended), `markdown`, `user-stories`, `data-dictionary`, `uml`, `sysml`, `cross-mappings`, `features`, `registries` |
 | `--output` | No | Custom output path (defaults to `$GENERATED_DIR/`) |
-| `--scope` | No | Limit to specific extraction type: `business-rules`, `database`, `ui`, `workflows` |
+| `--scope` | No | Limit to specific extraction type: `business-rules`, `database`, `ui`, `workflows`, `call-sites`, `dependencies`, `functional-requirements`, `non-functional`, `architecture`, `issues` |
 
 ## Overview
 
 This command generates documentation and artifacts from the XML extractions:
 
+- **html**: Standalone HTML reports with Stephen Few design system, inline SVG diagrams, interactive lightbox, cross-document navigation, and print-friendly output (recommended)
 - **markdown**: Comprehensive documentation of all extractions
 - **user-stories**: Modernization backlog items with acceptance criteria
 - **data-dictionary**: Database entity and column documentation
@@ -1335,10 +1336,119 @@ MUST match the canonical metrics or per-file count computed during the current g
 
 ## HTML Report Generation
 
+### Command
+
+```
+/reforge.generate html [--scope <type>]
+```
+
+### Output
+
+```
+$GENERATED_DIR/index.html                           (master index)
+$GENERATED_DIR/{type}.html                           (per-type documents)
+$GENERATED_DIR/{type}-index.html                     (sub-index for large types)
+$GENERATED_DIR/{type}-{domain}.html                  (domain sub-files)
+```
+
+### Templates
+
+- `.reforge/templates/html-report.md` — Design system, HTML skeleton, lightbox JS, diagram instructions
+- `.reforge/templates/html-index.md` — Master index page structure
+
+### Generation Process
+
+#### Step 1: Load All Extraction Sources
+
+Read all XML files from `$EXTRACTIONS_DIR/` and `$ANALYSIS_DIR/analysis.xml`. Follow the
+Multi-File Extraction Discovery procedure to enumerate all files per extraction category.
+
+#### Step 2: Compute Canonical Metrics
+
+Follow the Canonical Metrics Computation procedure. All HTML documents MUST draw statistics
+from the persisted metrics registry.
+
+#### Step 3: Plan Document Set
+
+- Inventory available extraction types (only types with data)
+- For each type: estimate item count and output size
+- Determine which types need splitting (> 200 items or > 300KB estimated HTML)
+- Build file manifest: `[{filename, title, type, items, split: boolean}]`
+
+#### Step 4: Generate Master Index
+
+- Use `html-index.md` template
+- Populate document inventory table from manifest
+- Categorize documents: Core Extractions, Extended Extractions, Derived Artifacts, Diagrams
+- Write `$GENERATED_DIR/index.html`
+
+#### Step 5: Generate Per-Type HTML Documents
+
+For each extraction type with data:
+
+1. Use `html-report.md` template
+2. Apply the complete CSS design system (inline `<style>`)
+3. Build report header with type-specific title and subtitle
+4. Build table of contents from content sections
+5. Generate content sections from extraction XML data
+6. Embed inline SVG diagrams where appropriate (see Step 6)
+7. Add `<nav class="doc-nav">` linking to index + sibling documents
+8. Apply Content Validation Checklist
+9. Write output file(s) — split if thresholds exceeded
+
+#### Step 6: Generate PlantUML Diagrams
+
+For each document that benefits from diagrams:
+
+1. Generate PlantUML source code from extraction data
+2. Render to SVG using: `plantuml -tsvg -pipe` (local) or PlantUML server (WebFetch)
+3. Embed SVG inline in `<figure class="diagram">` elements
+4. Save `.puml` sources to `$DIAGRAMS_DIR/sources/`
+5. If rendering unavailable, emit `[DIAGRAM GAP]` marker per `html-report.md` Section D
+
+#### Step 7: Insert Lightbox JavaScript
+
+- Append lightbox HTML element and IIFE script (from `html-report.md` Section C)
+- Only in documents that contain at least one `<figure class="diagram">` element
+
+#### Step 8: Apply Cross-Document Navigation
+
+- Insert `<nav class="doc-nav">` in all files (top and bottom positions)
+- Link to index + all sibling documents
+- Bold the current document name (no link, `<span class="current">`)
+- Sub-files within a split type include links to their sub-index and sibling sub-files
+
+#### Step 9: Content Validation & Provenance
+
+- Run Content Validation Checklist (11 items)
+- Insert `<!-- Source: ... -->` comments after each major section heading
+- Insert provenance footer table listing all extraction files used
+- Insert metric ID annotations with derivation formulas
+
+#### Step 10: Report Results
+
+```
+HTML Report Generation Complete!
+
+Output files:
+- $GENERATED_DIR/index.html (master index)
+- $GENERATED_DIR/{type}.html × [N] documents
+- $GENERATED_DIR/{type}-index.html × [N] sub-indexes (if splits occurred)
+- $GENERATED_DIR/{type}-{domain}.html × [N] sub-files (if splits occurred)
+
+Summary:
+- Documents generated: [N]
+- Extraction types covered: [N]
+- Inline diagrams rendered: [N]
+- Diagram gaps: [N] (if any)
+```
+
+### HTML-Specific Formatting Rules
+
 When generating HTML report output, the agent MUST apply all Source-Anchored Generation
 constraints and include the following HTML-specific elements:
 
-### Provenance Footer
+#### Provenance Footer
 
 Every generated HTML report MUST include a provenance footer listing all extraction source
 files used during generation. The footer MUST appear at the bottom of the HTML document.
@@ -1349,7 +1459,7 @@ files used during generation. The footer MUST appear at the bottom of the HTML d
 |-----------------|--------------|-------|---------------|
 | `extractions/[category]/[filename].xml` | [element name] | [N] | [timestamp] |
 
-### HTML-Specific Formatting
+#### Element Rendering
 
 - **Provenance annotations**: Render as HTML comments (`<!-- Source: ... -->`) within the
   generated HTML, positioned after each major section heading

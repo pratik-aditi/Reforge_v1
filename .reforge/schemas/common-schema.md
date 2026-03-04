@@ -54,6 +54,13 @@ Every extraction XML root element MUST include these attributes:
 | database | `<database>` |
 | ui-flows | `<ui-flows>` |
 | workflows | `<workflows>` |
+| call-sites | `<call-sites>` |
+| dependencies | `<dependencies>` |
+| functional-requirements | `<functional-requirements>` |
+| non-functional | `<non-functional-requirements>` |
+| architecture | `<architecture>` |
+| issues | `<issues>` |
+| glossary | `<acronym-glossary>` |
 
 ## Metadata
 
@@ -164,6 +171,17 @@ Extraction item IDs MUST follow this convention:
 | `SCR` | ui-flows | Screen |
 | `CMP` | ui-flows | UI component |
 | `WF` | workflows | Workflow |
+| `CALL` | call-sites | Method/function call relationship |
+| `DEP` | dependencies | Module dependency reference |
+| `FR` | functional-requirements | Functional requirement |
+| `NFR` | non-functional | Non-functional requirement |
+| `SEC` | non-functional | Security finding |
+| `ARCH` | architecture | Architectural component |
+| `INT` | architecture | Integration point |
+| `DP` | architecture | Design pattern |
+| `BUG` | issues | Bug or defect |
+| `ISS` | issues | Technical debt / operational issue |
+| `GLOSS` | glossary | Glossary entry |
 
 ### ID Examples
 
@@ -172,6 +190,17 @@ Extraction item IDs MUST follow this convention:
 - `E-CORE-001` — First core data entity
 - `SCR-DASH-001` — First dashboard screen
 - `WF-AUTH-002` — Second authentication workflow
+- `CALL-SVC-001` — First service-layer call site
+- `DEP-IMP-001` — First import dependency
+- `FR-AUTH-001` — First authentication functional requirement
+- `NFR-PERF-001` — First performance non-functional requirement
+- `SEC-CWE-001` — First CWE security finding
+- `ARCH-WEB-001` — First web-tier architectural component
+- `INT-API-001` — First API integration point
+- `DP-SING-001` — First singleton design pattern
+- `BUG-NULL-001` — First null-reference bug
+- `ISS-DEBT-001` — First technical debt issue
+- `GLOSS-DOM-001` — First domain glossary entry
 
 ## Extensibility
 

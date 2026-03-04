@@ -1,0 +1,87 @@
+site_name: Reforge
+site_description: LLM-driven legacy codebase analysis and documentation framework
+site_url: https://aditi-consulting.github.io/reforge/
+repo_url: https://github.com/Aditi-Consulting/reforge
+repo_name: Aditi-Consulting/reforge
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - content.code.copy
+    - content.code.annotate
+    - search.suggest
+    - search.highlight
+    - toc.follow
+  icon:
+    repo: fontawesome/brands/github
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Quick Start: getting-started/quickstart.md
+      - Agent Setup: getting-started/agent-setup.md
+  - Commands:
+      - Overview: commands/index.md
+      - Planning & Setup:
+          - plan: commands/plan.md
+          - init: commands/init.md
+          - profile: commands/profile.md
+          - analyze: commands/analyze.md
+      - Extraction:
+          - extract: commands/extract.md
+          - glossary: commands/glossary.md
+          - clarify: commands/clarify.md
+      - Generation:
+          - generate: commands/generate.md
+          - status: commands/status.md
+      - Maintenance:
+          - audit: commands/audit.md
+          - fix: commands/fix.md
+          - reanalyze: commands/reanalyze.md
+  - Guides:
+      - Typical Workflow: guides/workflow.md
+      - Configuration: guides/configuration.md
+      - Extraction Types: guides/extraction-types.md
+      - HTML Reports: guides/html-reports.md
+  - Architecture:
+      - How It Works: architecture/overview.md
+      - Constitution: architecture/constitution.md
+      - Schemas: architecture/schemas.md
+  - Troubleshooting: troubleshooting.md

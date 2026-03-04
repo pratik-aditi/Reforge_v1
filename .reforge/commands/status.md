@@ -111,6 +111,12 @@ Look for analysis outputs and checkpoints:
    - `$EXTRACTIONS_DIR/database.xml`
    - `$EXTRACTIONS_DIR/ui-flows.xml`
    - `$EXTRACTIONS_DIR/workflows.xml`
+   - `$EXTRACTIONS_DIR/call-sites.xml`
+   - `$EXTRACTIONS_DIR/dependencies.xml`
+   - `$EXTRACTIONS_DIR/functional-requirements.xml`
+   - `$EXTRACTIONS_DIR/non-functional-requirements.xml`
+   - `$EXTRACTIONS_DIR/architecture.xml`
+   - `$EXTRACTIONS_DIR/issues.xml`
 
 4. **Check for pending clarifications:**
    - Path: `$CLARIFICATIONS_DIR/*.xml`
@@ -172,6 +178,12 @@ Status: [Not Started | In Progress | Completed]
 | Database       | [status]    | [N]   | H:[x] M:[y] L:[z] |
 | UI Flows       | [status]    | [N]   | H:[x] M:[y] L:[z] |
 | Workflows      | [status]    | [N]   | H:[x] M:[y] L:[z] |
+| Call Sites     | [status]    | [N]   | H:[x] M:[y] L:[z] |
+| Dependencies   | [status]    | [N]   | H:[x] M:[y] L:[z] |
+| Func. Req.     | [status]    | [N]   | H:[x] M:[y] L:[z] |
+| Non-Functional | [status]    | [N]   | H:[x] M:[y] L:[z] |
+| Architecture   | [status]    | [N]   | H:[x] M:[y] L:[z] |
+| Issues         | [status]    | [N]   | H:[x] M:[y] L:[z] |
 
 --- Glossary ---
 [If glossary loaded:]
@@ -270,6 +282,30 @@ Files with errors:
     "workflows": {
       "status": "not-started",
       "count": 0
+    },
+    "call-sites": {
+      "status": "not-started",
+      "count": 0
+    },
+    "dependencies": {
+      "status": "not-started",
+      "count": 0
+    },
+    "functional-requirements": {
+      "status": "not-started",
+      "count": 0
+    },
+    "non-functional": {
+      "status": "not-started",
+      "count": 0
+    },
+    "architecture": {
+      "status": "not-started",
+      "count": 0
+    },
+    "issues": {
+      "status": "not-started",
+      "count": 0
     }
   },
   "glossary": {
@@ -317,6 +353,12 @@ Next steps:
 → Run /reforge.extract database to extract data model
 → Run /reforge.extract ui to extract UI components
 → Run /reforge.extract workflows to trace execution paths
+→ Run /reforge.extract call-sites to extract method call relationships
+→ Run /reforge.extract dependencies to extract module dependency graphs
+→ Run /reforge.extract functional-requirements to extract functional requirements
+→ Run /reforge.extract non-functional to extract NFRs and security findings
+→ Run /reforge.extract architecture to extract architectural components
+→ Run /reforge.extract issues to extract bugs and technical debt
 ```
 
 **If extractions completed, clarifications pending:**
@@ -429,6 +471,30 @@ For each extraction file, if it exists:
 - Count `<workflow>` elements
 - Group by `@confidence` attribute
 
+**call-sites.xml:**
+- Count `<call>` elements
+- Group by `@confidence` attribute
+
+**dependencies.xml:**
+- Count `<dep-ref>` elements
+- Group by `@confidence` attribute
+
+**functional-requirements.xml:**
+- Count `<requirement>` elements
+- Group by `@confidence` attribute
+
+**non-functional-requirements.xml:**
+- Count `<requirement>` and `<finding>` elements
+- Group by `@confidence` attribute
+
+**architecture.xml:**
+- Count `<component>`, `<integration>`, and `<pattern>` elements
+- Group by `@confidence` attribute
+
+**issues.xml:**
+- Count `<bug>` and `<issue>` elements
+- Group by `@confidence` attribute
+
 ---
 
 ## Examples
@@ -456,6 +522,12 @@ Coverage: 100%
 | Database       | Not Started  | -     | -                 |
 | UI Flows       | Not Started  | -     | -                 |
 | Workflows      | Not Started  | -     | -                 |
+| Call Sites     | Not Started  | -     | -                 |
+| Dependencies   | Not Started  | -     | -                 |
+| Func. Req.     | Not Started  | -     | -                 |
+| Non-Functional | Not Started  | -     | -                 |
+| Architecture   | Not Started  | -     | -                 |
+| Issues         | Not Started  | -     | -                 |
 
 --- Clarifications ---
 Pending: 0 items
@@ -473,6 +545,12 @@ Pending: 0 items
 → Run /reforge.extract database to extract data model
 → Run /reforge.extract ui to extract UI components
 → Run /reforge.extract workflows to trace execution paths
+→ Run /reforge.extract call-sites to extract method call relationships
+→ Run /reforge.extract dependencies to extract module dependency graphs
+→ Run /reforge.extract functional-requirements to extract functional requirements
+→ Run /reforge.extract non-functional to extract NFRs and security findings
+→ Run /reforge.extract architecture to extract architectural components
+→ Run /reforge.extract issues to extract bugs and technical debt
 ```
 
 ### Status During Analysis
@@ -520,6 +598,12 @@ Coverage: 100%
 | Database       | Completed | 89    | H:72 M:15 L:2     |
 | UI Flows       | Completed | 45    | H:38 M:5 L:2      |
 | Workflows      | Completed | 23    | H:18 M:4 L:1      |
+| Call Sites     | Not Started | -   | -                  |
+| Dependencies   | Not Started | -   | -                  |
+| Func. Req.     | Not Started | -   | -                  |
+| Non-Functional | Not Started | -   | -                  |
+| Architecture   | Not Started | -   | -                  |
+| Issues         | Not Started | -   | -                  |
 
 --- Clarifications ---
 Pending: 13 items

@@ -1,8 +1,26 @@
 # Reforge
 
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+[![License: Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-green.svg)](LICENSE)
+[![Tests](https://github.com/Aditi-Consulting/reforge/actions/workflows/test.yml/badge.svg)](https://github.com/Aditi-Consulting/reforge/actions/workflows/test.yml)
+[![Docs](https://github.com/Aditi-Consulting/reforge/actions/workflows/docs.yml/badge.svg)](https://aditi-consulting.github.io/reforge/)
+
 LLM-driven legacy codebase analysis and documentation framework.
 
 Reforge enables AI coding agents (Claude Code, GitHub Copilot, etc.) to analyze legacy codebases and extract knowledge into structured formats — without compiled code, external parsers, or runtime dependencies.
+
+## Table of Contents
+
+- [How It Works](#how-it-works)
+- [Installation](#installation)
+- [Commands](#commands)
+- [Configuration](#configuration)
+- [Typical Workflow](#typical-workflow)
+- [What Gets Installed](#what-gets-installed)
+- [Architecture](#architecture)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [License](#license)
 
 ## How It Works
 
@@ -129,9 +147,9 @@ Commands:
 
 These are called automatically by the AI agent during `/reforge.*` command execution. You typically don't need to run them directly.
 
-### Updating
+### Managing Your Installation
 
-To update the Reforge CLI tool itself, pull the latest and reinstall:
+**Update the CLI tool** — pull the latest and reinstall:
 
 ```bash
 cd /path/to/reforge
@@ -139,26 +157,20 @@ git pull
 uv tool install reforge-cli --from . --force
 ```
 
-To refresh framework files in an already-installed project:
+**Refresh framework files** in an already-installed project (preserves your configuration):
 
 ```bash
 reforge --claude --update /path/to/project   # Claude Code
 reforge --copilot --update /path/to/project  # GitHub Copilot
 ```
 
-This refreshes commands, schemas, templates, and agent files while preserving your project-specific configuration (project name, custom exclusions, output directory).
-
-### Uninstalling
-
-Remove from a project:
+**Remove from a project** — removes framework files, Claude wrappers, Copilot agents/prompts, and VS Code settings entries. Analysis output (`reforge_output/`) is preserved unless you explicitly confirm its removal:
 
 ```bash
 reforge --remove /path/to/project
 ```
 
-Removes all Reforge artifacts — framework files, Claude wrappers, Copilot agents/prompts, and VS Code settings entries. Your analysis output (`reforge_output/`) is preserved unless you explicitly confirm its removal.
-
-Uninstall the CLI tool:
+**Uninstall the CLI tool**:
 
 ```bash
 uv tool uninstall reforge-cli
@@ -218,6 +230,8 @@ Extract specific knowledge elements from the analyzed codebase.
 /reforge.extract <type> [--files <pattern>] [--confidence <level>]
 ```
 
+**Core types:**
+
 | Type | What it extracts |
 |------|-----------------|
 | `business-rules` | Business logic, validation rules, calculations with source file traceability |
@@ -225,7 +239,30 @@ Extract specific knowledge elements from the analyzed codebase.
 | `ui` | Screen layouts, components, navigation flows, form structures |
 | `workflows` | Execution paths, state machines, event handlers, process flows |
 
+**Extended types:**
+
+| Type | What it extracts |
+|------|-----------------|
+| `call-sites` | Method/function call relationships with caller and callee source traceability |
+| `dependencies` | Module dependency graphs — imports, events, interfaces, inheritance |
+| `functional-requirements` | Functional requirements with acceptance criteria derived from code behavior |
+| `non-functional` | Non-functional requirements (SLAs, performance) and security findings (CWE) |
+| `architecture` | Architectural components, integration points, and design patterns |
+| `issues` | Bugs, defects, TODOs, technical debt, and operational issues |
+
+The `architecture` type supports `--subtype design-patterns|integrations|infrastructure` for focused extraction.
+
 Each extraction includes confidence levels (high/medium/low) and source location references.
+
+### `/reforge.glossary`
+
+Extract, verify, and persist a glossary of acronyms and abbreviations found in the codebase.
+
+```
+/reforge.glossary [--phase <n>] [--resume]
+```
+
+Runs a 4-phase pipeline: pattern extraction, external verification, source code audit, and self-audit. Produces `acronym-glossary.xml` and persists a lookup table to `.reforge/memory/glossary.json` for use by all other commands.
 
 ### `/reforge.generate`
 
@@ -237,6 +274,7 @@ Generate documentation and artifacts from extracted metadata.
 
 | Format | Output |
 |--------|--------|
+| `html` | Self-contained HTML reports with Stephen Few design system, inline SVG diagrams, interactive lightbox, and cross-document navigation (recommended) |
 | `markdown` | Comprehensive human-readable documentation |
 | `user-stories` | Modernization backlog items (MD, JSON, CSV) |
 | `data-dictionary` | Database entity documentation |
@@ -351,6 +389,8 @@ After installation, edit `.reforge/config.json` in your target project:
 
 ## Typical Workflow
 
+> **Note**: Steps 1-3 run in your **terminal**. Steps 4+ are **agent commands** — run them inside Claude Code (`/reforge.*`) or Copilot Chat (`@reforge.*`), not in the terminal.
+
 ```
  1. Clone:       git clone https://github.com/Aditi-Consulting/reforge.git
  2. Install:     uv tool install reforge-cli --from /path/to/reforge
@@ -362,16 +402,23 @@ After installation, edit `.reforge/config.json` in your target project:
                  /reforge.extract database
                  /reforge.extract ui
                  /reforge.extract workflows
- 8. Clarify:     /reforge.clarify                    # Resolve ambiguities
- 9. Generate:    /reforge.generate user-stories      # Create documentation
+                 /reforge.extract call-sites          # Extended types
+                 /reforge.extract dependencies
+                 /reforge.extract functional-requirements
+                 /reforge.extract non-functional
+                 /reforge.extract architecture
+                 /reforge.extract issues
+ 8. Glossary:    /reforge.glossary                    # Extract acronyms
+ 9. Clarify:     /reforge.clarify                    # Resolve ambiguities
+10. Generate:    /reforge.generate user-stories      # Create documentation
                  /reforge.generate data-dictionary
                  /reforge.generate cross-mappings
-10. Audit:       /reforge.audit                      # Check coverage
-11. Fix:         /reforge.fix                        # Fill gaps
-12. Review:      Check reforge_output/ for results
+11. Audit:       /reforge.audit                      # Check coverage
+12. Fix:         /reforge.fix                        # Fill gaps
+13. Review:      Check reforge_output/ for results
 ```
 
-The audit/fix cycle (steps 9-10) can be repeated as needed to achieve comprehensive coverage.
+The audit/fix cycle (steps 11-12) can be repeated as needed to achieve comprehensive coverage.
 
 ## What Gets Installed
 
@@ -422,10 +469,16 @@ Analysis outputs go to `reforge_output/<project-name>/`:
 reforge_output/<project-name>/
 ├── analysis/           # Codebase inventory (analysis.xml)
 ├── extractions/        # Extracted knowledge
-│   ├── business-rules/
-│   ├── database/
-│   ├── ui-flows/
-│   └── workflows/
+│   ├── business-rules.xml
+│   ├── database.xml
+│   ├── ui-flows.xml
+│   ├── workflows.xml
+│   ├── call-sites.xml
+│   ├── dependencies.xml
+│   ├── functional-requirements.xml
+│   ├── non-functional-requirements.xml
+│   ├── architecture.xml
+│   └── issues.xml
 ├── derived/            # Cross-referenced artifacts
 │   ├── cross-mappings/
 │   ├── features-requirements/
@@ -450,6 +503,26 @@ Reforge follows a zero-dependency, prompt-template architecture:
 - **Source traceability**: Every extracted element links back to file, line number, and code snippet
 - **Checkpoint/resume**: Long analyses can be interrupted and continued
 - **Agent-agnostic**: Works with any AI coding assistant that supports file operations and slash commands
+
+## Troubleshooting
+
+**"Command not found" after installation**
+Ensure `uv tool` bin directory is on your `PATH`. Run `uv tool dir --bin` to see where tools are installed, then add that directory to your shell profile.
+
+**`/reforge.*` commands not recognized in Claude Code**
+Verify the `.claude/commands/` directory was created in your target project. Re-run `reforge --claude /path/to/project` if missing.
+
+**`@reforge.*` commands not recognized in Copilot Chat**
+Check that `.github/agents/` and `.github/prompts/` directories exist. Re-run `reforge --copilot /path/to/project`. Restart VS Code if needed.
+
+**Analysis hangs on large codebases**
+Add exclusion patterns to `.reforge/config.json` for directories like `node_modules`, `vendor`, or `dist`. Reduce `chunkSize` for very large files.
+
+**Extraction produces low-confidence results**
+Run `/reforge.init` to provide domain context and `/reforge.profile` to generate language-specific extraction guidance before extracting.
+
+**"No extractions found" when generating**
+Run `/reforge.extract <type>` for at least one extraction type before `/reforge.generate`. Use `/reforge.status` to check what's been completed.
 
 ## Contributing
 
