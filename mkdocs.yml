@@ -80,6 +80,7 @@ nav:
       - Configuration: guides/configuration.md
       - Extraction Types: guides/extraction-types.md
       - HTML Reports: guides/html-reports.md
+      - Claude Code Teams: guides/claude-code-teams.md
   - Architecture:
       - How It Works: architecture/overview.md
       - Constitution: architecture/constitution.md
