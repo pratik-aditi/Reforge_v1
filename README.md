@@ -40,23 +40,10 @@ The framework installs into your target project as a set of slash commands. When
 
 ### Quick Start
 
-1. **Clone the repository**:
+1. **Install the CLI tool** (no cloning required):
 
 ```bash
-git clone https://github.com/Aditi-Consulting/reforge.git
-cd reforge
-```
-
-2. **Install the CLI tool**:
-
-```bash
-uv tool install reforge-cli --from .
-```
-
-Or from a path outside the repo:
-
-```bash
-uv tool install reforge-cli --from /path/to/reforge
+uv tool install reforge-cli --from git+https://github.com/Aditi-Consulting/reforge.git
 ```
 
 3. **Install into your target project**:
@@ -149,12 +136,10 @@ These are called automatically by the AI agent during `/reforge.*` command execu
 
 ### Managing Your Installation
 
-**Update the CLI tool** — pull the latest and reinstall:
+**Update the CLI tool** — reinstall from GitHub:
 
 ```bash
-cd /path/to/reforge
-git pull
-uv tool install reforge-cli --from . --force
+uv tool install reforge-cli --from git+https://github.com/Aditi-Consulting/reforge.git --force
 ```
 
 **Refresh framework files** in an already-installed project (preserves your configuration):
@@ -392,13 +377,12 @@ After installation, edit `.reforge/config.json` in your target project:
 > **Note**: Steps 1-3 run in your **terminal**. Steps 4+ are **agent commands** — run them inside Claude Code (`/reforge.*`) or Copilot Chat (`@reforge.*`), not in the terminal.
 
 ```
- 1. Clone:       git clone https://github.com/Aditi-Consulting/reforge.git
- 2. Install:     uv tool install reforge-cli --from /path/to/reforge
- 3. Setup:       reforge --claude /path/to/project   # or --copilot
- 4. Initialize:  /reforge.init                       # Set project context
- 5. Profile:     /reforge.profile                    # Generate extraction profile
- 6. Analyze:     /reforge.analyze                    # Inventory codebase
- 7. Extract:     /reforge.extract business-rules     # Extract knowledge
+ 1. Install:     uv tool install reforge-cli --from git+https://github.com/Aditi-Consulting/reforge.git
+ 2. Setup:       reforge --claude /path/to/project   # or --copilot
+ 3. Initialize:  /reforge.init                       # Set project context
+ 4. Profile:     /reforge.profile                    # Generate extraction profile
+ 5. Analyze:     /reforge.analyze                    # Inventory codebase
+ 6. Extract:     /reforge.extract business-rules     # Extract knowledge
                  /reforge.extract database
                  /reforge.extract ui
                  /reforge.extract workflows
@@ -408,17 +392,18 @@ After installation, edit `.reforge/config.json` in your target project:
                  /reforge.extract non-functional
                  /reforge.extract architecture
                  /reforge.extract issues
- 8. Glossary:    /reforge.glossary                    # Extract acronyms
- 9. Clarify:     /reforge.clarify                    # Resolve ambiguities
-10. Generate:    /reforge.generate user-stories      # Create documentation
+ 7. Glossary:    /reforge.glossary                    # Extract acronyms
+ 8. Clarify:     /reforge.clarify                    # Resolve ambiguities
+ 9. Generate:    /reforge.generate html               # Create documentation (recommended)
+                 /reforge.generate user-stories
                  /reforge.generate data-dictionary
                  /reforge.generate cross-mappings
-11. Audit:       /reforge.audit                      # Check coverage
-12. Fix:         /reforge.fix                        # Fill gaps
-13. Review:      Check reforge_output/ for results
+10. Audit:       /reforge.audit                      # Check coverage
+11. Fix:         /reforge.fix                        # Fill gaps
+12. Review:      Check reforge_output/ for results
 ```
 
-The audit/fix cycle (steps 11-12) can be repeated as needed to achieve comprehensive coverage.
+The audit/fix cycle (steps 10-11) can be repeated as needed to achieve comprehensive coverage.
 
 ## What Gets Installed
 

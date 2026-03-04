@@ -10,15 +10,13 @@
 
 ## Install the CLI
 
-Clone the repository and install the CLI tool:
+Install directly from GitHub -- no cloning required:
 
 ```bash
-git clone https://github.com/Aditi-Consulting/reforge.git
-cd reforge
-uv tool install reforge-cli --from .
+uv tool install reforge-cli --from git+https://github.com/Aditi-Consulting/reforge.git
 ```
 
-Or install from an arbitrary path without `cd`:
+Or if you've already cloned the repo:
 
 ```bash
 uv tool install reforge-cli --from /path/to/reforge
@@ -58,7 +56,13 @@ reforge --copilot /path/to/project
 
 ### Update the CLI tool
 
-Pull the latest changes and reinstall:
+Reinstall from GitHub to get the latest version:
+
+```bash
+uv tool install reforge-cli --from git+https://github.com/Aditi-Consulting/reforge.git --force
+```
+
+Or if updating from a local clone:
 
 ```bash
 cd /path/to/reforge

@@ -3,9 +3,15 @@
 A 5-minute walkthrough from installation to your first generated documentation.
 
 !!! note
-    Steps 1-2 run in your **terminal**. Steps 3-7 are **agent commands** -- run them inside Claude Code or Copilot Chat, not in the terminal.
+    Steps 1-3 run in your **terminal**. Steps 4-8 are **agent commands** -- run them inside Claude Code or Copilot Chat, not in the terminal.
 
-## 1. Install Reforge into your project
+## 1. Install the CLI
+
+```bash
+uv tool install reforge-cli --from git+https://github.com/Aditi-Consulting/reforge.git
+```
+
+## 2. Install Reforge into your project
 
 === "Claude Code"
 
@@ -19,7 +25,7 @@ A 5-minute walkthrough from installation to your first generated documentation.
     reforge --copilot /path/to/legacy-project
     ```
 
-## 2. Open the project in your agent
+## 3. Open the project in your agent
 
 === "Claude Code"
 
@@ -32,7 +38,7 @@ A 5-minute walkthrough from installation to your first generated documentation.
 
     Open the project folder in VS Code and launch Copilot Chat.
 
-## 3. Initialize project context
+## 4. Initialize project context
 
 === "Claude Code"
 
@@ -48,7 +54,7 @@ A 5-minute walkthrough from installation to your first generated documentation.
 
 The agent asks about your project name, tech stack, and domain concepts. This context improves all subsequent analysis.
 
-## 4. Generate an extraction profile
+## 5. Generate an extraction profile
 
 === "Claude Code"
 
@@ -64,7 +70,7 @@ The agent asks about your project name, tech stack, and domain concepts. This co
 
 Auto-discovers languages in your project and produces tailored extraction rules at `.reforge/memory/extraction-profile.md`.
 
-## 5. Analyze the codebase
+## 6. Analyze the codebase
 
 === "Claude Code"
 
@@ -83,7 +89,7 @@ The agent scans your codebase, inventories files, detects frameworks, and maps m
 !!! tip
     Large codebases support checkpoint/resume. If the analysis is interrupted, re-run the same command with `--resume` to continue where it left off.
 
-## 6. Extract business rules
+## 7. Extract business rules
 
 === "Claude Code"
 
@@ -99,7 +105,7 @@ The agent scans your codebase, inventories files, detects frameworks, and maps m
 
 The agent reads through analyzed files, identifies business logic, validation rules, and calculations, then writes structured XML to `reforge_output/<project>/extractions/business-rules.xml`. Each extraction includes confidence levels and source file references.
 
-## 7. Generate HTML documentation
+## 8. Generate HTML documentation
 
 === "Claude Code"
 
@@ -115,7 +121,7 @@ The agent reads through analyzed files, identifies business logic, validation ru
 
 Produces self-contained HTML reports from your extractions with inline diagrams and cross-document navigation.
 
-## 8. Review the output
+## 9. Review the output
 
 Check the `reforge_output/` directory in your project:
 

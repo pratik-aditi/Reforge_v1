@@ -9,37 +9,26 @@ The Reforge workflow has five phases:
 | Phase | Steps | Purpose |
 |-------|-------|---------|
 | **Planning** | Plan | Define the extraction roadmap |
-| **Setup** | Clone, Install, Init, Profile | Prepare the framework and project context |
+| **Setup** | Install, Init, Profile | Prepare the framework and project context |
 | **Extraction** | Analyze, Extract, Glossary, Clarify | Inventory the codebase and extract knowledge |
 | **Generation** | Generate | Produce documentation and artifacts |
 | **Maintenance** | Audit, Fix, Reanalyze | Validate coverage and fill gaps |
 
 ## Step-by-Step Walkthrough
 
-### Terminal Steps (1-3)
+### Terminal Steps (1-2)
 
-Steps 1 through 3 run in your **terminal** -- they are standard shell commands, not agent commands.
+Steps 1 and 2 run in your **terminal** -- they are standard shell commands, not agent commands.
 
-#### 1. Clone the Reforge repository
+#### 1. Install the CLI tool
 
-```bash
-git clone https://github.com/Aditi-Consulting/reforge.git
-cd reforge
-```
-
-#### 2. Install the CLI tool
+No cloning required -- install directly from GitHub:
 
 ```bash
-uv tool install reforge-cli --from .
+uv tool install reforge-cli --from git+https://github.com/Aditi-Consulting/reforge.git
 ```
 
-Or from elsewhere on your filesystem:
-
-```bash
-uv tool install reforge-cli --from /path/to/reforge
-```
-
-#### 3. Install into your target project
+#### 2. Install into your target project
 
 === "Claude Code"
 
