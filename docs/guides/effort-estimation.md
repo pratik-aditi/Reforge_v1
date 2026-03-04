@@ -224,11 +224,25 @@ Week 4:  Documentation generation (HTML, user stories, cross-mappings)
 
 Before committing to an estimate, run a quick characterization:
 
-```
-# Count lines and files (terminal commands, not Reforge)
-find /path/to/project -name "*.java" -o -name "*.cs" -o -name "*.py" | wc -l
-cloc /path/to/project --quiet
-```
+=== "macOS / Linux"
+
+    ```bash
+    # Count source files
+    find /path/to/project -name "*.java" -o -name "*.cs" -o -name "*.py" | wc -l
+
+    # Count lines of code (install cloc first: brew install cloc / apt install cloc)
+    cloc /path/to/project --quiet
+    ```
+
+=== "Windows (PowerShell)"
+
+    ```powershell
+    # Count source files
+    (Get-ChildItem C:\path\to\project -Recurse -Include *.java,*.cs,*.py).Count
+
+    # Count lines of code (install cloc first: winget install AlDanial.Cloc)
+    cloc C:\path\to\project --quiet
+    ```
 
 Determine:
 

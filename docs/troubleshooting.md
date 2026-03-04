@@ -21,17 +21,37 @@ Common issues and solutions when working with Reforge.
     uv tool dir --bin
     ```
 
-2. Add that directory to your shell profile (`~/.zshrc`, `~/.bashrc`, or equivalent):
+2. Add that directory to your PATH:
 
-    ```bash
-    export PATH="$HOME/.local/bin:$PATH"
-    ```
+    === "macOS / Linux"
 
-3. Reload your shell:
+        Add to your shell profile (`~/.zshrc`, `~/.bashrc`, or equivalent):
 
-    ```bash
-    source ~/.zshrc  # or ~/.bashrc
-    ```
+        ```bash
+        export PATH="$HOME/.local/bin:$PATH"
+        ```
+
+        Then reload your shell:
+
+        ```bash
+        source ~/.zshrc  # or ~/.bashrc
+        ```
+
+    === "Windows (PowerShell)"
+
+        For the current session:
+
+        ```powershell
+        $env:Path = "$env:USERPROFILE\.local\bin;$env:Path"
+        ```
+
+        To make it permanent, add the directory via **Settings > System > About > Advanced system settings > Environment Variables**, or run:
+
+        ```powershell
+        [Environment]::SetEnvironmentVariable("Path", "$env:USERPROFILE\.local\bin;$([Environment]::GetEnvironmentVariable('Path', 'User'))", "User")
+        ```
+
+        Then restart your terminal.
 
 ## `/reforge.*` commands not recognized in Claude Code
 
@@ -43,9 +63,17 @@ Common issues and solutions when working with Reforge.
 
 1. Verify the directory exists:
 
-    ```bash
-    ls .claude/commands/reforge.*.md
-    ```
+    === "macOS / Linux"
+
+        ```bash
+        ls .claude/commands/reforge.*.md
+        ```
+
+    === "Windows (PowerShell)"
+
+        ```powershell
+        Get-ChildItem .claude\commands\reforge.*.md
+        ```
 
 2. If missing, re-run the installation:
 
@@ -65,10 +93,19 @@ Common issues and solutions when working with Reforge.
 
 1. Verify the directories exist:
 
-    ```bash
-    ls .github/agents/reforge.*.agent.md
-    ls .github/prompts/reforge.*.prompt.md
-    ```
+    === "macOS / Linux"
+
+        ```bash
+        ls .github/agents/reforge.*.agent.md
+        ls .github/prompts/reforge.*.prompt.md
+        ```
+
+    === "Windows (PowerShell)"
+
+        ```powershell
+        Get-ChildItem .github\agents\reforge.*.agent.md
+        Get-ChildItem .github\prompts\reforge.*.prompt.md
+        ```
 
 2. If missing, re-run the installation:
 
@@ -184,17 +221,33 @@ The generate command requires extraction output files in `reforge_output/<projec
 
 1. Verify the checkpoint directory exists:
 
-    ```bash
-    ls .reforge/memory/checkpoints/
-    ```
+    === "macOS / Linux"
+
+        ```bash
+        ls .reforge/memory/checkpoints/
+        ```
+
+    === "Windows (PowerShell)"
+
+        ```powershell
+        Get-ChildItem .reforge\memory\checkpoints\
+        ```
 
 2. If the directory is empty or missing, the previous run did not save a checkpoint. This happens if the command completed successfully (checkpoints are cleaned up) or if it crashed before the first checkpoint.
 
 3. If checkpoint files exist but `--resume` does not work, delete the stale checkpoint and start fresh:
 
-    ```bash
-    rm -rf .reforge/memory/checkpoints/*
-    ```
+    === "macOS / Linux"
+
+        ```bash
+        rm -rf .reforge/memory/checkpoints/*
+        ```
+
+    === "Windows (PowerShell)"
+
+        ```powershell
+        Remove-Item .reforge\memory\checkpoints\* -Recurse -Force
+        ```
 
 4. Re-run the command without `--resume`.
 
@@ -239,13 +292,36 @@ The generate command requires extraction output files in `reforge_output/<projec
 
 1. Install PlantUML (requires Java):
 
-    ```bash
-    # macOS
-    brew install plantuml
+    === "macOS"
 
-    # Ubuntu/Debian
-    sudo apt-get install plantuml
-    ```
+        ```bash
+        brew install plantuml
+        ```
+
+    === "Linux (Ubuntu/Debian)"
+
+        ```bash
+        sudo apt-get install plantuml
+        ```
+
+    === "Windows"
+
+        ```powershell
+        # Using winget
+        winget install PlantUML.PlantUML
+
+        # Using Chocolatey
+        choco install plantuml
+
+        # Using Scoop
+        scoop install plantuml
+        ```
+
+        You also need Java installed. If not already present:
+
+        ```powershell
+        winget install Microsoft.OpenJDK.21
+        ```
 
 2. Verify it works:
 

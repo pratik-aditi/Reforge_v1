@@ -40,10 +40,19 @@ You can edit this file at `~/.claude/settings.json` (global) or `.claude/setting
 
 Alternatively, set it as an environment variable before launching Claude Code:
 
-```bash
-export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
-claude
-```
+=== "macOS / Linux"
+
+    ```bash
+    export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1
+    claude
+    ```
+
+=== "Windows (PowerShell)"
+
+    ```powershell
+    $env:CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS = "1"
+    claude
+    ```
 
 ### Step 2: Choose a display mode (optional)
 
@@ -52,7 +61,10 @@ Agent teams support two display modes:
 | Mode | Description | Requirement |
 |------|-------------|-------------|
 | **In-process** (default) | All teammates run inside your main terminal. Use `Shift+Down` to cycle through them. | Any terminal |
-| **Split panes** | Each teammate gets its own pane. See everyone's output at once. | tmux or iTerm2 |
+| **Split panes** | Each teammate gets its own pane. See everyone's output at once. | tmux or iTerm2 (macOS/Linux only) |
+
+!!! note "Windows users"
+    Split-pane mode requires tmux or iTerm2, which are not available on Windows. Use the default **in-process** mode and press `Shift+Down` to cycle through teammates.
 
 To set split-pane mode, add to your `settings.json`:
 

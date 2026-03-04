@@ -5,6 +5,10 @@ tags:
 
 # Installation
 
+## Platform Support
+
+Reforge works on **macOS**, **Linux**, and **Windows**. Python, uv, and Claude Code all support all three platforms. The instructions below use forward slashes for paths -- Windows users can use either forward slashes or backslashes.
+
 ## Prerequisites
 
 - **Python 3.11+** -- [Download](https://www.python.org/downloads/)
@@ -28,7 +32,27 @@ uv tool install reforge-cli --from /path/to/reforge
 ```
 
 !!! tip
-    If `reforge` is not found after installation, ensure the `uv tool` bin directory is on your `PATH`. Run `uv tool dir --bin` to find it.
+    If `reforge` is not found after installation, ensure the `uv tool` bin directory is on your `PATH`. Run `uv tool dir --bin` to find it, then add it to your PATH:
+
+    === "macOS / Linux"
+
+        ```bash
+        export PATH="$HOME/.local/bin:$PATH"
+        ```
+
+        Add this line to your `~/.zshrc` or `~/.bashrc` to make it permanent.
+
+    === "Windows (PowerShell)"
+
+        ```powershell
+        $env:Path = "$env:USERPROFILE\.local\bin;$env:Path"
+        ```
+
+        To make it permanent, add the directory via **Settings > System > About > Advanced system settings > Environment Variables**, or run:
+
+        ```powershell
+        [Environment]::SetEnvironmentVariable("Path", "$env:USERPROFILE\.local\bin;$([Environment]::GetEnvironmentVariable('Path', 'User'))", "User")
+        ```
 
 ## Install into Your Target Project
 
@@ -128,7 +152,7 @@ Usage: reforge [OPTIONS] [TARGET_PATH]
 |---------|--------------|
 | `reforge --claude .` | Install for Claude Code in current directory |
 | `reforge --copilot .` | Install for GitHub Copilot in current directory |
-| `reforge --claude /opt/legacy-app` | Install into a specific project |
+| `reforge --claude /opt/legacy-app` | Install into a specific project (use `C:\projects\legacy-app` on Windows) |
 | `reforge --claude --update .` | Update framework files for Claude Code |
 | `reforge --copilot --dry-run .` | Preview what would be installed |
 | `reforge --remove .` | Uninstall all Reforge artifacts |
