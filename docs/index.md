@@ -39,14 +39,14 @@ graph LR
   E --> F[Documentation]
   E --> G[User Stories]
   E --> H[Data Dictionary]
-  style A fill:#f3e8ff,stroke:#7c3aed,color:#1a1a2e
-  style B fill:#fef3c7,stroke:#f59e0b,color:#1a1a2e
-  style C fill:#ede9fe,stroke:#8b5cf6,color:#1a1a2e
-  style D fill:#e0e7ff,stroke:#6366f1,color:#1a1a2e
-  style E fill:#fce7f3,stroke:#ec4899,color:#1a1a2e
-  style F fill:#d1fae5,stroke:#10b981,color:#1a1a2e
-  style G fill:#d1fae5,stroke:#10b981,color:#1a1a2e
-  style H fill:#d1fae5,stroke:#10b981,color:#1a1a2e
+  style A fill:#e8f4f8,stroke:#00203A,color:#00203A
+  style B fill:#fff3d6,stroke:#FFA301,color:#00203A
+  style C fill:#d6f0f7,stroke:#1FB3D9,color:#00203A
+  style D fill:#cce7f0,stroke:#1FB3D9,color:#00203A
+  style E fill:#fff3d6,stroke:#FFA301,color:#00203A
+  style F fill:#d6f0f7,stroke:#00203A,color:#00203A
+  style G fill:#d6f0f7,stroke:#00203A,color:#00203A
+  style H fill:#d6f0f7,stroke:#00203A,color:#00203A
 ```
 
 ---

@@ -44,10 +44,10 @@ graph TB
   XML --> DOC
   XML --> AUD
 
-  style SRC fill:#f3e8ff,stroke:#7c3aed,color:#1a1a2e
-  style XML fill:#e0e7ff,stroke:#6366f1,color:#1a1a2e
-  style DOC fill:#d1fae5,stroke:#10b981,color:#1a1a2e
-  style AUD fill:#fce7f3,stroke:#ec4899,color:#1a1a2e
+  style SRC fill:#e8f4f8,stroke:#00203A,color:#00203A
+  style XML fill:#d6f0f7,stroke:#1FB3D9,color:#00203A
+  style DOC fill:#fff3d6,stroke:#FFA301,color:#00203A
+  style AUD fill:#cce7f0,stroke:#00203A,color:#00203A
 ```
 
 ## Core Concept

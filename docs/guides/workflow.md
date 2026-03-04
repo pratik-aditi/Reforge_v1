@@ -42,11 +42,11 @@ graph TD
   FX -.-> E
   AU --> GEN
 
-  style Planning fill:#fef3c7,stroke:#f59e0b,color:#1a1a2e
-  style Setup fill:#e0e7ff,stroke:#6366f1,color:#1a1a2e
-  style Extraction fill:#ede9fe,stroke:#8b5cf6,color:#1a1a2e
-  style Validation fill:#fce7f3,stroke:#ec4899,color:#1a1a2e
-  style Generation fill:#d1fae5,stroke:#10b981,color:#1a1a2e
+  style Planning fill:#fff3d6,stroke:#FFA301,color:#00203A
+  style Setup fill:#d6f0f7,stroke:#1FB3D9,color:#00203A
+  style Extraction fill:#cce7f0,stroke:#1FB3D9,color:#00203A
+  style Validation fill:#e8f4f8,stroke:#00203A,color:#00203A
+  style Generation fill:#fff3d6,stroke:#FFA301,color:#00203A
 ```
 
 ## Workflow Phases
