@@ -26,26 +26,27 @@ graph TD
     G --> CL["/reforge.clarify"]
   end
 
-  subgraph Generation
-    GEN["/reforge.generate"]
-  end
-
-  subgraph Maintenance
+  subgraph Validation
     AU["/reforge.audit"] --> FX["/reforge.fix"]
     FX --> RA["/reforge.reanalyze"]
     RA -.-> AU
   end
 
+  subgraph Generation
+    GEN["/reforge.generate"]
+  end
+
   P --> I
   A --> E
-  CL --> GEN
-  GEN --> AU
+  CL --> AU
+  FX -.-> E
+  AU --> GEN
 
   style Planning fill:#fef3c7,stroke:#f59e0b,color:#1a1a2e
   style Setup fill:#e0e7ff,stroke:#6366f1,color:#1a1a2e
   style Extraction fill:#ede9fe,stroke:#8b5cf6,color:#1a1a2e
+  style Validation fill:#fce7f3,stroke:#ec4899,color:#1a1a2e
   style Generation fill:#d1fae5,stroke:#10b981,color:#1a1a2e
-  style Maintenance fill:#fce7f3,stroke:#ec4899,color:#1a1a2e
 ```
 
 ## Workflow Phases
@@ -57,8 +58,8 @@ The Reforge workflow has five phases:
 | **Planning** | Plan | Define the extraction roadmap |
 | **Setup** | Install, Init, Profile | Prepare the framework and project context |
 | **Extraction** | Analyze, Extract, Glossary, Clarify | Inventory the codebase and extract knowledge |
-| **Generation** | Generate | Produce documentation and artifacts |
-| **Maintenance** | Audit, Fix, Reanalyze | Validate coverage and fill gaps |
+| **Validation** | Audit, Fix, Reanalyze | Validate coverage and fill gaps iteratively |
+| **Generation** | Generate | Produce documentation and artifacts from validated extractions |
 
 ## Step-by-Step Walkthrough
 
@@ -232,7 +233,42 @@ Extracts acronyms and abbreviations from the codebase through a 4-phase pipeline
 
 Walks through items the agent flagged as unclear (magic numbers, ambiguous naming, undocumented logic) and applies your decisions consistently.
 
-#### 11. Generate documentation
+#### 11. Audit coverage
+
+=== "Claude Code"
+
+    ```
+    /reforge.audit
+    ```
+
+=== "GitHub Copilot"
+
+    ```
+    @reforge.audit
+    ```
+
+Compares the analysis inventory against extraction outputs to identify coverage gaps, stale references, and missing extractions. Run this **before** generating documentation to ensure your extractions are complete.
+
+#### 12. Fix gaps
+
+=== "Claude Code"
+
+    ```
+    /reforge.fix
+    ```
+
+=== "GitHub Copilot"
+
+    ```
+    @reforge.fix
+    ```
+
+Processes corrections from the audit in dependency order: re-analyze stale files first, then re-extract affected types. Repeat the audit/fix cycle until coverage meets your threshold.
+
+!!! tip
+    For targeted fixes, use `--type` and `--items` flags: `/reforge.fix --type business-rules --items BR-045,BR-046`
+
+#### 13. Generate documentation
 
 === "Claude Code"
 
@@ -252,39 +288,7 @@ Walks through items the agent flagged as unclear (magic numbers, ambiguous namin
     @reforge.generate cross-mappings
     ```
 
-Produces documentation from the extracted XML. See [HTML Reports](html-reports.md) for the recommended HTML format.
-
-#### 12. Audit coverage
-
-=== "Claude Code"
-
-    ```
-    /reforge.audit
-    ```
-
-=== "GitHub Copilot"
-
-    ```
-    @reforge.audit
-    ```
-
-Compares the analysis inventory against extraction outputs to identify coverage gaps, stale references, and missing extractions.
-
-#### 13. Fix gaps
-
-=== "Claude Code"
-
-    ```
-    /reforge.fix
-    ```
-
-=== "GitHub Copilot"
-
-    ```
-    @reforge.fix
-    ```
-
-Processes corrections from the audit in dependency order: re-analyze stale files first, then re-extract, then regenerate affected outputs.
+Produces documentation from the validated extraction XML. Generation runs **after** the audit/fix cycle so that all outputs reflect complete, verified extractions. See [HTML Reports](html-reports.md) for the recommended HTML format.
 
 #### 14. Review results
 
@@ -292,20 +296,19 @@ All outputs are in `reforge_output/<project-name>/`. Open the generated HTML ind
 
 ## The Audit/Fix Cycle
 
-The audit and fix commands form an iterative quality loop:
+The audit and fix commands form an iterative quality loop that runs **before** documentation generation:
 
 ```
-/reforge.audit  -->  review gaps  -->  /reforge.fix  -->  /reforge.audit  -->  ...
+/reforge.extract  -->  /reforge.audit  -->  /reforge.fix  -->  /reforge.audit  -->  ...  -->  /reforge.generate
 ```
 
 Repeat until the audit report shows acceptable coverage for your needs. Each cycle:
 
 1. **Audit** identifies files with no extraction references, stale references to changed files, and per-type coverage statistics
-2. **Fix** dispatches corrections to the appropriate commands (`reanalyze`, `extract`, `generate`) in dependency order
+2. **Fix** dispatches corrections to the appropriate commands (`reanalyze`, `extract`) in dependency order
 3. **Re-audit** validates the fixes took effect
 
-!!! tip
-    For targeted fixes, use `--type` and `--items` flags: `/reforge.fix --type business-rules --items BR-045,BR-046`
+Once coverage is satisfactory, proceed to `/reforge.generate` to produce documentation from the validated extractions.
 
 ## Tips for Large Codebases
 

@@ -117,13 +117,13 @@ nav:
           - extract: commands/extract.md
           - glossary: commands/glossary.md
           - clarify: commands/clarify.md
-      - Generation:
-          - generate: commands/generate.md
-          - status: commands/status.md
-      - Maintenance:
+      - Validation:
           - audit: commands/audit.md
           - fix: commands/fix.md
           - reanalyze: commands/reanalyze.md
+      - Generation:
+          - generate: commands/generate.md
+          - status: commands/status.md
   - Guides:
       - guides/index.md
       - Typical Workflow: guides/workflow.md

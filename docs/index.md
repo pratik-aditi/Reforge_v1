@@ -34,16 +34,19 @@ graph LR
   A[Legacy Codebase] --> B[AI Agent]
   B --> C[Prompt Templates]
   C --> D[Structured XML]
-  D --> E[Documentation]
-  D --> F[User Stories]
-  D --> G[Data Dictionary]
+  D --> E[Audit / Fix]
+  E -.-> D
+  E --> F[Documentation]
+  E --> G[User Stories]
+  E --> H[Data Dictionary]
   style A fill:#f3e8ff,stroke:#7c3aed,color:#1a1a2e
   style B fill:#fef3c7,stroke:#f59e0b,color:#1a1a2e
   style C fill:#ede9fe,stroke:#8b5cf6,color:#1a1a2e
   style D fill:#e0e7ff,stroke:#6366f1,color:#1a1a2e
-  style E fill:#d1fae5,stroke:#10b981,color:#1a1a2e
+  style E fill:#fce7f3,stroke:#ec4899,color:#1a1a2e
   style F fill:#d1fae5,stroke:#10b981,color:#1a1a2e
   style G fill:#d1fae5,stroke:#10b981,color:#1a1a2e
+  style H fill:#d1fae5,stroke:#10b981,color:#1a1a2e
 ```
 
 ---
