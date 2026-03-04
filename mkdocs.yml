@@ -127,6 +127,7 @@ nav:
   - Guides:
       - guides/index.md
       - Typical Workflow: guides/workflow.md
+      - Effort Estimation: guides/effort-estimation.md
       - Configuration: guides/configuration.md
       - Extraction Types: guides/extraction-types.md
       - HTML Reports: guides/html-reports.md

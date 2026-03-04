@@ -15,6 +15,12 @@ In-depth guides for getting the most out of Reforge.
 
     Step-by-step walkthrough of a complete analysis, from installation through documentation.
 
+-   :material-calculator-variant:{ .lg .middle } **[Effort Estimation](effort-estimation.md)**
+
+    ---
+
+    Conservative guidance for scoping engagements — effort, duration, complexity multipliers, and risks.
+
 -   :material-cog:{ .lg .middle } **[Configuration](configuration.md)**
 
     ---
