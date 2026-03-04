@@ -84,6 +84,16 @@ This command does NOT mark any plan item complete — it is read-only.
 If `.reforge/memory/project-plan.md` does not exist, include in status report:
 "No project plan found. Run /reforge.plan to create one."
 
+### Step 0.8: Load Glossary (Optional)
+
+If `.reforge/memory/glossary.json` exists, read it now and record:
+- `glossary-version`: The `version` field
+- `glossary-entry-count`: The `entry-count` field
+- `glossary-generated`: The `generated` timestamp
+
+If `.reforge/memory/glossary.json` does not exist, skip this step silently.
+The glossary is optional — its absence MUST NOT affect command behavior.
+
 ### Step 1: Check Analysis State
 
 Look for analysis outputs and checkpoints:
@@ -162,6 +172,16 @@ Status: [Not Started | In Progress | Completed]
 | Database       | [status]    | [N]   | H:[x] M:[y] L:[z] |
 | UI Flows       | [status]    | [N]   | H:[x] M:[y] L:[z] |
 | Workflows      | [status]    | [N]   | H:[x] M:[y] L:[z] |
+
+--- Glossary ---
+[If glossary loaded:]
+Status: Available
+Version: [glossary-version]
+Entries: [glossary-entry-count]
+Generated: [glossary-generated]
+[If glossary not loaded:]
+Status: Not Generated
+  Run /reforge.glossary to extract acronyms and abbreviations
 
 --- Clarifications ---
 Pending: [count] items
@@ -251,6 +271,12 @@ Files with errors:
       "status": "not-started",
       "count": 0
     }
+  },
+  "glossary": {
+    "status": "available|not-generated",
+    "version": "[version]",
+    "entry_count": 42,
+    "generated": "[timestamp]"
   },
   "clarifications": {
     "pending": 5,

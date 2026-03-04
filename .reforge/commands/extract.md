@@ -111,6 +111,19 @@ If `.reforge/memory/project-plan.md` exists, read it now.
 If `.reforge/memory/project-plan.md` does not exist, skip this step silently.
 The project plan is optional — its absence MUST NOT affect command behavior.
 
+### Step 0.8: Load Glossary (Optional)
+
+If `.reforge/memory/glossary.json` exists, read it now and store the `terms` map for use during extraction.
+
+**Glossary-Informed Annotation**: When the glossary is loaded, the agent SHOULD annotate extracted items where acronyms match glossary entries:
+- When an extraction item's name, description, or identifier contains a glossary term, annotate with the full expansion in the item's description or metadata
+- Example: If extracting a business rule referencing "TMDS", and the glossary maps TMDS → "Train Management Dispatch System", include the expansion in the rule's context
+- Only use glossary terms with confidence >= 0.5
+- Glossary annotations supplement but never replace evidence found directly in source code
+
+If `.reforge/memory/glossary.json` does not exist, skip this step silently.
+The glossary is optional — its absence MUST NOT affect command behavior.
+
 ### Step 1: Load Analysis
 
 Read `$ANALYSIS_DIR/analysis.xml` to get:
