@@ -112,7 +112,12 @@ that operate alongside this constitution. The constitution takes precedence on c
 │   ├── status.md       # /reforge.status - Show analysis status
 │   ├── reanalyze.md    # /reforge.reanalyze - Incremental re-analysis
 │   ├── audit.md        # /reforge.audit - Audit extraction coverage
-│   └── fix.md          # /reforge.fix - Execute audit corrections
+│   ├── fix.md          # /reforge.fix - Execute audit corrections
+│   ├── glossary.md     # /reforge.glossary - Extract and verify acronym glossary
+│   ├── glossary-phase-1.md  # Phase 1: Pattern Extraction
+│   ├── glossary-phase-2.md  # Phase 2: External Verification
+│   ├── glossary-phase-3.md  # Phase 3: Source Code Audit
+│   └── glossary-phase-4.md  # Phase 4: Self-Audit
 ├── schemas/            # Output structure definitions
 │   ├── analysis.md     # Analysis output schema
 │   ├── business-rules.md
@@ -123,7 +128,8 @@ that operate alongside this constitution. The constitution takes precedence on c
 │   ├── cross-mappings.md
 │   ├── features-requirements.md
 │   ├── audit-report.md    # Audit coverage report schema
-│   └── correction-plan.md # Correction plan schema
+│   ├── correction-plan.md # Correction plan schema
+│   └── glossary.md        # Glossary extraction schema (acronym-glossary.xml)
 ├── templates/          # Output templates for generation
 │   ├── user-story.md
 │   ├── data-dictionary.md
@@ -148,7 +154,8 @@ reforge_output/
 │   │   ├── business-rules.xml
 │   │   ├── database.xml
 │   │   ├── ui-flows.xml
-│   │   └── workflows.xml
+│   │   ├── workflows.xml
+│   │   └── acronym-glossary.xml  # Glossary extraction output
 │   ├── derived/                # Derived artifacts
 │   │   ├── cross-mappings.xml
 │   │   ├── features-requirements.xml
@@ -165,7 +172,8 @@ reforge_output/
 │   │   └── data-dictionary.md
 │   ├── audit/                  # Audit and correction outputs
 │   │   ├── audit-report.xml
-│   │   └── correction-plan.xml
+│   │   ├── correction-plan.xml
+│   │   └── glossary-audit-report.xml  # Glossary Phase 3-4 findings
 │   └── diagrams/               # Diagram outputs
 │       ├── sources/
 │       │   ├── *.puml

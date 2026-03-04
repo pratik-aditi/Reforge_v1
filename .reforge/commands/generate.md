@@ -158,6 +158,22 @@ If `.reforge/memory/project-plan.md` exists, read it now.
 If `.reforge/memory/project-plan.md` does not exist, skip this step silently.
 The project plan is optional — its absence MUST NOT affect command behavior.
 
+### Step 0.8: Load Glossary (Optional)
+
+If `.reforge/memory/glossary.json` exists, read it now and store the `terms` map for use during content generation.
+
+**Acronym Expansion Rules** (when glossary is loaded):
+- On first occurrence of a glossary term in each document section: expand as "TERM (Full Expansion)"
+- On subsequent occurrences within the same section: use "TERM" only
+- Reset the "first occurrence" tracker at each new top-level section boundary (e.g., `## Section`)
+- Only expand terms present in the glossary with confidence >= 0.5
+- Do not expand terms inside code blocks, file paths, or XML/JSON examples
+
+**Glossary Appendix**: When generating documents that include appendices, add a "Glossary" appendix listing all glossary terms used in the document with their expansions, sorted alphabetically. Each entry should include the term, its full expansion, and a brief definition if available from the glossary data. If no glossary terms were used in the document, omit the glossary appendix.
+
+If `.reforge/memory/glossary.json` does not exist, skip this step silently.
+The glossary is optional — its absence MUST NOT affect command behavior.
+
 ---
 
 # Markdown Generation
@@ -405,7 +421,17 @@ graph LR
 
 ### B. Glossary
 
-[Entity and term definitions]
+If glossary data was loaded in Step 0.8, generate a glossary appendix listing every glossary
+term that was referenced in this document. For each term, include:
+
+| Term | Expansion | Definition |
+|------|-----------|------------|
+| [TERM] | [Full Expansion] | [Brief definition from glossary data, if available] |
+
+Sort entries alphabetically by term. Only include terms that actually appeared in the document
+body. If no glossary was loaded or no glossary terms were used, emit:
+
+[No glossary data available — run /reforge.glossary to generate]
 
 ### C. Low Confidence Items
 

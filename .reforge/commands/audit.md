@@ -105,6 +105,23 @@ If no `[type]` argument was provided (full audit):
 If `.reforge/memory/project-plan.md` does not exist, skip this step silently.
 The project plan is optional — its absence MUST NOT affect command behavior.
 
+### Step 0.8: Load Glossary (Optional)
+
+If `.reforge/memory/glossary.json` exists, read it now and store the `terms` map for use during auditing.
+
+**Glossary-Informed Verification**: When the glossary is loaded and the accuracy audit workflow is active:
+- Include glossary terms as additional verification targets using the `expansion-match` check type
+- For each glossary entry with confidence >= 0.5, verify that the term's expansion can be found near occurrences of the term in source code
+- Glossary-sourced verification targets supplement the extraction-derived targets — they do not replace them
+- Report glossary verification results in a separate subsection of the accuracy audit report
+
+**Glossary in Coverage Audit**: When the glossary is loaded and the coverage audit workflow is active:
+- Include `acronym-glossary.xml` as an additional extraction type in coverage statistics if it exists in `$EXTRACTIONS_DIR`
+- Report glossary entry count alongside other extraction type counts
+
+If `.reforge/memory/glossary.json` does not exist, skip this step silently.
+The glossary is optional — its absence MUST NOT affect command behavior.
+
 ### Step 1: Read Analysis Inventory
 
 1. **Read `$ANALYSIS_DIR/analysis.xml`**:
