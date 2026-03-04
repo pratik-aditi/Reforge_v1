@@ -1,6 +1,52 @@
+---
+tags:
+  - guides
+  - workflow
+---
+
 # Typical Workflow
 
 A step-by-step guide to analyzing a legacy codebase with Reforge, from installation through documentation generation.
+
+## Workflow Overview
+
+```mermaid
+graph TD
+  subgraph Planning
+    P["/reforge.plan"]
+  end
+
+  subgraph Setup
+    I["/reforge.init"] --> PR["/reforge.profile"]
+    PR --> A["/reforge.analyze"]
+  end
+
+  subgraph Extraction
+    E["/reforge.extract"] --> G["/reforge.glossary"]
+    G --> CL["/reforge.clarify"]
+  end
+
+  subgraph Generation
+    GEN["/reforge.generate"]
+  end
+
+  subgraph Maintenance
+    AU["/reforge.audit"] --> FX["/reforge.fix"]
+    FX --> RA["/reforge.reanalyze"]
+    RA -.-> AU
+  end
+
+  P --> I
+  A --> E
+  CL --> GEN
+  GEN --> AU
+
+  style Planning fill:#fef3c7,stroke:#f59e0b,color:#1a1a2e
+  style Setup fill:#e0e7ff,stroke:#6366f1,color:#1a1a2e
+  style Extraction fill:#ede9fe,stroke:#8b5cf6,color:#1a1a2e
+  style Generation fill:#d1fae5,stroke:#10b981,color:#1a1a2e
+  style Maintenance fill:#fce7f3,stroke:#ec4899,color:#1a1a2e
+```
 
 ## Workflow Phases
 

@@ -1,3 +1,9 @@
+---
+tags:
+  - commands
+  - generation
+---
+
 # /reforge.status
 
 Show analysis progress, coverage statistics, and pending items.

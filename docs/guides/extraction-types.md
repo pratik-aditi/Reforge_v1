@@ -1,3 +1,9 @@
+---
+tags:
+  - guides
+  - extraction
+---
+
 # Extraction Types
 
 Reforge supports 10 extraction types organized into two tiers: 4 core types that cover the most common modernization needs, and 6 extended types for deeper analysis.

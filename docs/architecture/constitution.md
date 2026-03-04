@@ -1,3 +1,8 @@
+---
+tags:
+  - architecture
+---
+
 # Constitution
 
 The Reforge Constitution defines the governing principles that all framework components must follow. It establishes non-negotiable architectural rules and guides how the framework evolves.

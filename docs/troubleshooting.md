@@ -1,3 +1,8 @@
+---
+tags:
+  - guides
+---
+
 # Troubleshooting
 
 Common issues and solutions when working with Reforge.

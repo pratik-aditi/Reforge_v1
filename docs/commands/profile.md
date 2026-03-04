@@ -1,3 +1,9 @@
+---
+tags:
+  - commands
+  - planning
+---
+
 # /reforge.profile
 
 Generate a language-specific and architecture-specific extraction profile.

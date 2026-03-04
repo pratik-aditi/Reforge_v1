@@ -1,0 +1,112 @@
+/* Reforge custom styles */
+
+/* ---- Landing page hero ---- */
+.md-typeset .hero {
+  text-align: center;
+  padding: 2rem 1rem 3rem;
+}
+
+.md-typeset .hero h1 {
+  font-size: 2.8rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+  background: linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #f59e0b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.md-typeset .hero .hero-tagline {
+  font-size: 1.25rem;
+  color: var(--md-default-fg-color--light);
+  max-width: 42rem;
+  margin: 0 auto 2rem;
+  line-height: 1.6;
+}
+
+.md-typeset .hero .hero-buttons {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.md-typeset .hero .hero-buttons .md-button {
+  font-weight: 600;
+}
+
+/* ---- Feature grid refinements ---- */
+.md-typeset .grid.cards > ul > li {
+  border: 1px solid var(--md-default-fg-color--lightest);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.md-typeset .grid.cards > ul > li:hover {
+  border-color: var(--md-accent-fg-color);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+/* ---- Before/after section ---- */
+.md-typeset .before-after {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin: 1.5rem 0;
+}
+
+@media (max-width: 768px) {
+  .md-typeset .before-after {
+    grid-template-columns: 1fr;
+  }
+}
+
+.md-typeset .before-after .panel {
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  overflow: auto;
+}
+
+.md-typeset .before-after .panel h4 {
+  margin-top: 0;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--md-default-fg-color--light);
+}
+
+/* ---- Announcement bar override (if using custom block) ---- */
+.md-banner {
+  background: linear-gradient(90deg, #7c3aed, #a855f7);
+  color: #fff;
+}
+
+.md-banner a {
+  color: #fbbf24;
+}
+
+/* ---- Mermaid diagram sizing ---- */
+.md-typeset .mermaid {
+  text-align: center;
+  margin: 1.5rem 0;
+}
+
+/* ---- Tag pill refinements ---- */
+.md-typeset .md-tags .md-tag {
+  font-weight: 500;
+}
+
+/* ---- Code block font size tweak ---- */
+.md-typeset code {
+  font-size: 0.82em;
+}
+
+/* ---- Comparison table styling ---- */
+.md-typeset table.comparison th {
+  text-align: center;
+}
+
+.md-typeset table.comparison td:nth-child(2),
+.md-typeset table.comparison td:nth-child(3) {
+  text-align: center;
+}

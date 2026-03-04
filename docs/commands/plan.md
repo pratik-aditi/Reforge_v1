@@ -1,3 +1,9 @@
+---
+tags:
+  - commands
+  - planning
+---
+
 # /reforge.plan
 
 Create and manage a project plan for the Reforge extraction workflow.

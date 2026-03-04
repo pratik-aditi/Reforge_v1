@@ -1,3 +1,9 @@
+---
+tags:
+  - commands
+  - maintenance
+---
+
 # /reforge.reanalyze
 
 Re-analyze specific files or directories without full re-processing.

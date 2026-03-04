@@ -1,3 +1,8 @@
+---
+tags:
+  - getting-started
+---
+
 # Quick Start
 
 A 5-minute walkthrough from installation to your first generated documentation.

@@ -1,3 +1,9 @@
+---
+tags:
+  - commands
+  - extraction
+---
+
 # /reforge.clarify
 
 Interactively resolve ambiguities in extracted code elements.

@@ -1,3 +1,9 @@
+---
+tags:
+  - commands
+  - extraction
+---
+
 # /reforge.glossary
 
 Extract, verify, and persist a glossary of acronyms and abbreviations found in the codebase.

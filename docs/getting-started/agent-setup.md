@@ -1,3 +1,8 @@
+---
+tags:
+  - getting-started
+---
+
 # Agent Setup
 
 When you run `reforge --claude` or `reforge --copilot`, the CLI installs framework files into your target project. This page explains exactly what gets created for each agent.

@@ -1,3 +1,9 @@
+---
+tags:
+  - commands
+  - planning
+---
+
 # /reforge.init
 
 Initialize project context with domain knowledge to guide all subsequent analysis.

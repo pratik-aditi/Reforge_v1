@@ -1,6 +1,54 @@
+---
+tags:
+  - architecture
+---
+
 # How It Works
 
 Reforge is a set of **prompt templates** that guide an AI coding agent through structured analysis workflows. There are no parsers, no compilers, no runtime dependencies -- just markdown templates and configuration files that tell the agent what to do.
+
+## Architecture Overview
+
+```mermaid
+graph TB
+  subgraph "Your Project"
+    SRC["Source Code<br/>(any language)"]
+    RF[".reforge/<br/>commands/ schemas/ templates/"]
+    CFG[".reforge/config.json"]
+  end
+
+  subgraph "AI Agent"
+    CC["Claude Code"]
+    CP["GitHub Copilot"]
+  end
+
+  subgraph "Prompt Templates"
+    CMD["Command Templates<br/>(analyze, extract, generate...)"]
+    SCH["XML Schemas<br/>(validation rules)"]
+    TPL["Output Templates<br/>(HTML, markdown)"]
+  end
+
+  subgraph "Output"
+    XML["Structured XML<br/>(extractions)"]
+    DOC["Documentation<br/>(HTML, markdown)"]
+    AUD["Audit Reports<br/>(coverage gaps)"]
+  end
+
+  SRC --> CC & CP
+  RF --> CMD & SCH & TPL
+  CC --> CMD
+  CP --> CMD
+  CMD --> XML
+  SCH --> XML
+  TPL --> DOC
+  XML --> DOC
+  XML --> AUD
+
+  style SRC fill:#f3e8ff,stroke:#7c3aed,color:#1a1a2e
+  style XML fill:#e0e7ff,stroke:#6366f1,color:#1a1a2e
+  style DOC fill:#d1fae5,stroke:#10b981,color:#1a1a2e
+  style AUD fill:#fce7f3,stroke:#ec4899,color:#1a1a2e
+```
 
 ## Core Concept
 

@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+
+{% block announce %}
+  <strong>Reforge v1.0</strong> is here — {{ extraction_types if extraction_types is defined else 10 }} extraction types, HTML reports, and full audit/fix cycle.
+  <a href="{{ 'getting-started/installation/' | url }}">Get started &rarr;</a>
+{% endblock %}

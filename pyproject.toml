@@ -16,6 +16,10 @@ dev = [
 ]
 docs = [
     "mkdocs-material>=9.5",
+    "mkdocs-glightbox",
+    "mkdocs-macros-plugin",
+    "pillow",
+    "cairosvg",
 ]
 
 [project.scripts]

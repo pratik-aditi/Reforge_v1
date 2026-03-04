@@ -1,3 +1,9 @@
+---
+tags:
+  - commands
+  - extraction
+---
+
 # /reforge.extract
 
 Extract specific knowledge elements from the analyzed codebase.

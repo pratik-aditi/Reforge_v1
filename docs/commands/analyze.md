@@ -1,3 +1,9 @@
+---
+tags:
+  - commands
+  - planning
+---
+
 # /reforge.analyze
 
 Scan and inventory a legacy codebase for analysis and documentation.

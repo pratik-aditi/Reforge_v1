@@ -1,3 +1,9 @@
+---
+tags:
+  - guides
+  - generation
+---
+
 # HTML Reports
 
 Reforge generates self-contained HTML documentation using a design system inspired by Stephen Few's data visualization principles. HTML is the recommended default format for `/reforge.generate`.

@@ -1,3 +1,9 @@
+---
+tags:
+  - commands
+  - generation
+---
+
 # /reforge.generate
 
 Generate documentation and artifacts from extracted metadata.

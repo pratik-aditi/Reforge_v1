@@ -1,3 +1,9 @@
+---
+tags:
+  - commands
+  - maintenance
+---
+
 # /reforge.fix
 
 Execute corrections from the audit correction plan.

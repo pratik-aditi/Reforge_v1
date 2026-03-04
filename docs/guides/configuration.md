@@ -1,3 +1,8 @@
+---
+tags:
+  - guides
+---
+
 # Configuration
 
 Reforge is configured through `.reforge/config.json` in your target project. This file is created during installation and can be edited at any time.

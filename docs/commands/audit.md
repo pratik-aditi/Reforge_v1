@@ -1,3 +1,9 @@
+---
+tags:
+  - commands
+  - maintenance
+---
+
 # /reforge.audit
 
 Audit extraction coverage and identify gaps against the analyzed codebase.

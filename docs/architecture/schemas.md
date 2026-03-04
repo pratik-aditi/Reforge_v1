@@ -1,3 +1,8 @@
+---
+tags:
+  - architecture
+---
+
 # Schemas
 
 Reforge uses a schema system to define the structure of all XML output files. Schemas ensure consistency across extractions and enable validation of generated output.

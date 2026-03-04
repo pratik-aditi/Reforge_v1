@@ -1,3 +1,8 @@
+---
+tags:
+  - guides
+---
+
 # Using Claude Code Teams
 
 Reforge commands can run with Claude Code's [agent teams](https://code.claude.com/docs/en/agent-teams) feature, spawning multiple teammates to work in parallel. This dramatically speeds up extraction and analysis of large codebases.

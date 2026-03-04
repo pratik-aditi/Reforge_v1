@@ -1,3 +1,8 @@
+---
+tags:
+  - commands
+---
+
 # Commands
 
 Reforge commands guide the AI agent through structured analysis workflows. Each command is a prompt template that the agent follows step-by-step using its native file tools.
