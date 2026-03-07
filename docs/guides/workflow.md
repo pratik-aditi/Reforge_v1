@@ -36,17 +36,51 @@ graph TD
     GEN["/reforge.generate"]
   end
 
+  subgraph "Validation & Quality"
+    VAL["/reforge.validate"] --> MET["/reforge.metrics"]
+    MET --> HOT["/reforge.hotspot"]
+  end
+
+  subgraph "Deep Analysis"
+    SEC["/reforge.security"]
+    DC["/reforge.dead-code"]
+    TR["/reforge.trace"]
+  end
+
+  subgraph Modernization
+    EST["/reforge.estimate"] --> MIG["/reforge.migrate"]
+    MIG --> REC["/reforge.recommend"]
+  end
+
+  subgraph Reporting
+    DASH["/reforge.dashboard"]
+    REP["/reforge.report"]
+    EXP["/reforge.export"]
+  end
+
   P --> I
   A --> E
   CL --> AU
   FX -.-> E
   AU --> GEN
+  GEN --> VAL
+  VAL -.-> SEC
+  VAL -.-> DC
+  VAL -.-> TR
+  HOT --> EST
+  MIG --> DASH
+  MIG --> REP
+  MIG --> EXP
 
   style Planning fill:#fff3d6,stroke:#FFA301,color:#00203A
   style Setup fill:#d6f0f7,stroke:#1FB3D9,color:#00203A
   style Extraction fill:#cce7f0,stroke:#1FB3D9,color:#00203A
   style Validation fill:#e8f4f8,stroke:#00203A,color:#00203A
   style Generation fill:#fff3d6,stroke:#FFA301,color:#00203A
+  style "Validation & Quality" fill:#e8f4f8,stroke:#00203A,color:#00203A
+  style "Deep Analysis" fill:#d6f0f7,stroke:#1FB3D9,color:#00203A
+  style Modernization fill:#fff3d6,stroke:#FFA301,color:#00203A
+  style Reporting fill:#cce7f0,stroke:#1FB3D9,color:#00203A
 ```
 
 ## Workflow Phases
@@ -60,6 +94,10 @@ The Reforge workflow has five phases:
 | **Extraction** | Analyze, Extract, Glossary, Clarify | Inventory the codebase and extract knowledge |
 | **Validation** | Audit, Fix, Reanalyze | Validate coverage and fill gaps iteratively |
 | **Generation** | Generate | Produce documentation and artifacts from validated extractions |
+| **Validation & Quality** | Validate, Metrics, Hotspot | Ensure extraction integrity and compute codebase metrics |
+| **Deep Analysis** | Security, Dead-code, Trace, Delta | Build comprehensive codebase understanding |
+| **Modernization** | Estimate, Migrate, Recommend | Plan the migration effort with data-driven estimates |
+| **Reporting** | Dashboard, Report, Export, Compare | Generate reports and export to external tools |
 
 ## Step-by-Step Walkthrough
 
@@ -309,6 +347,108 @@ Repeat until the audit report shows acceptable coverage for your needs. Each cyc
 3. **Re-audit** validates the fixes took effect
 
 Once coverage is satisfactory, proceed to `/reforge.generate` to produce documentation from the validated extractions.
+
+## Validation & Quality
+
+After the audit/fix cycle, validate your extraction files and compute codebase metrics:
+
+=== "Claude Code"
+
+    ```
+    /reforge.validate
+    /reforge.metrics
+    /reforge.hotspot
+    ```
+
+=== "GitHub Copilot"
+
+    ```
+    @reforge.validate
+    @reforge.metrics
+    @reforge.hotspot
+    ```
+
+- **Validate** checks all extraction XML for structural integrity (XSD conformance, ID uniqueness, cross-references)
+- **Metrics** computes complexity, coupling, cohesion, and tech debt ratio per module
+- **Hotspot** produces a risk heatmap ranking modules by composite risk score
+
+## Deep Analysis
+
+Run additional analysis commands to build a comprehensive understanding of the codebase:
+
+=== "Claude Code"
+
+    ```
+    /reforge.security
+    /reforge.dead-code
+    /reforge.trace
+    /reforge.delta --since <commit>
+    ```
+
+=== "GitHub Copilot"
+
+    ```
+    @reforge.security
+    @reforge.dead-code
+    @reforge.trace
+    @reforge.delta --since <commit>
+    ```
+
+- **Security** scans for OWASP Top 10 vulnerabilities with CWE identifiers
+- **Dead-code** identifies unreachable methods, classes, and files via call-site analysis
+- **Trace** builds end-to-end traceability chains (requirement → rule → code → UI → story)
+- **Delta** incrementally re-extracts only files changed since a given commit or date
+
+## Modernization Planning
+
+Use extraction data to plan the modernization effort:
+
+=== "Claude Code"
+
+    ```
+    /reforge.estimate
+    /reforge.migrate
+    /reforge.recommend
+    ```
+
+=== "GitHub Copilot"
+
+    ```
+    @reforge.estimate
+    @reforge.migrate
+    @reforge.recommend
+    ```
+
+- **Estimate** generates three-point (PERT) effort estimates per module with complexity multipliers
+- **Migrate** creates a phased migration playbook using 5R strategy (Rehost, Replatform, Refactor, Rearchitect, Retire)
+- **Recommend** provides scored technology stack recommendations based on architecture and requirements
+
+## Reporting & Integration
+
+Generate reports and export to external tools:
+
+=== "Claude Code"
+
+    ```
+    /reforge.dashboard
+    /reforge.report --type executive
+    /reforge.export jira-csv
+    /reforge.compare baseline.xml current.xml
+    ```
+
+=== "GitHub Copilot"
+
+    ```
+    @reforge.dashboard
+    @reforge.report --type executive
+    @reforge.export jira-csv
+    @reforge.compare baseline.xml current.xml
+    ```
+
+- **Dashboard** generates an interactive HTML dashboard summarizing all extractions
+- **Report** produces milestone, status, or executive reports
+- **Export** transforms artifacts into Jira CSV, Azure DevOps, Confluence, or GitHub Issues format
+- **Compare** diffs two extraction runs to detect regressions
 
 ## Tips for Large Codebases
 

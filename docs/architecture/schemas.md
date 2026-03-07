@@ -109,6 +109,14 @@ Item IDs follow the pattern `{PREFIX}-{CATEGORY}-{SEQUENCE}`:
 | `features-requirements.md` | `<features-requirements>` | Features and requirements derived from extractions |
 | `user-stories.md` | `<user-stories>` | Modernization backlog items |
 | `glossary.md` | `<acronym-glossary>` | Acronyms and abbreviations with definitions |
+| `codebase-metrics.md` | `<codebase-metrics>` | Complexity, coupling, cohesion, tech debt per module |
+| `hotspot-analysis.md` | `<hotspot-analysis>` | Risk heatmap with composite scoring |
+| `dead-code-report.md` | `<dead-code-report>` | Unreachable code from call-site and dependency analysis |
+| `traceability-matrix.md` | `<traceability-matrix>` | End-to-end traceability chains across extractions |
+| `effort-estimate.md` | `<effort-estimate>` | Three-point effort estimates per module |
+| `migration-playbook.md` | `<migration-playbook>` | Phased migration plan with 5R strategy |
+| `tech-recommendation.md` | `<tech-recommendation>` | Technology stack recommendations |
+| `security-audit.md` | `<security-audit>` | OWASP Top 10 findings with CWE identifiers |
 
 ### Audit Types
 
@@ -120,6 +128,7 @@ Item IDs follow the pattern `{PREFIX}-{CATEGORY}-{SEQUENCE}`:
 | `consistency-audit-report.md` | `<consistency-audit-report>` | Cross-document consistency checks |
 | `correction-plan.md` | `<correction-plan>` | Actionable corrections from audit findings |
 | `metrics-registry.md` | `<metrics-registry>` | Cross-document metrics for consistency scanning |
+| `validation-report.md` | `<validation-report>` | XSD conformance, ID uniqueness, cross-reference integrity |
 
 ## How Schemas Relate to Extraction Types
 
@@ -154,6 +163,12 @@ Formal XML Schema Definition (XSD) files are available in `.reforge/schemas/xsd/
 | `audit-report.xsd` | Audit report files |
 | `correction-plan.xsd` | Correction plan files |
 | `user-stories.xsd` | User story generation output |
+| `dead-code-report.xsd` | Dead code report files |
+| `effort-estimate.xsd` | Effort estimate files |
+| `hotspot-analysis.xsd` | Hotspot analysis files |
+| `migration-playbook.xsd` | Migration playbook files |
+| `security-audit.xsd` | Security audit files |
+| `validation-report.xsd` | Validation report files |
 
 Type-specific XSDs include the common schema via `<xs:include schemaLocation="common-schema.xsd"/>`, inheriting all shared type definitions.
 

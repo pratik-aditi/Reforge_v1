@@ -34,6 +34,20 @@ Reforge commands follow the pattern `/reforge.<action>`:
 - `/reforge.glossary` — Extract, verify, and persist a glossary of acronyms and abbreviations
 - `/reforge.audit [type]` — Audit extraction coverage and identify gaps
 - `/reforge.fix` — Execute corrections from the audit correction plan
+- `/reforge.validate` — Unified validation: XSD conformance, ID uniqueness, cross-ref integrity
+- `/reforge.metrics` — Quantitative codebase metrics (complexity, coupling, cohesion, tech debt)
+- `/reforge.hotspot` — Risk heatmap with composite scoring
+- `/reforge.estimate` — Three-point effort estimation per module
+- `/reforge.migrate` — Phased migration playbook with 5R strategy
+- `/reforge.delta` — Git diff-based incremental extraction
+- `/reforge.dead-code` — Detect unreachable code via call-site + dependency analysis
+- `/reforge.security` — OWASP Top 10 security scan with CWE identifiers
+- `/reforge.trace` — End-to-end traceability matrix (requirement -> rule -> code -> UI -> story)
+- `/reforge.compare` — Diff two extraction runs for regression detection
+- `/reforge.recommend` — Tech stack recommendation based on requirements + architecture
+- `/reforge.dashboard` — Interactive HTML dashboard summarizing all extractions
+- `/reforge.export [format]` — Export to Jira CSV, Azure DevOps, Confluence, GitHub Issues
+- `/reforge.report` — Automated milestone/status reports
 
 ## Directory Structure
 
@@ -49,9 +63,10 @@ Reforge commands follow the pattern `/reforge.<action>`:
 reforge_output/<project-name>/
 ├── analysis/           # Codebase inventory (analysis.xml)
 ├── extractions/        # Extracted knowledge (business-rules, database, ui-flows, workflows)
-├── derived/            # Derived artifacts (cross-mappings, features-requirements, registries/)
-├── generated/          # Generated documentation (markdown, user-stories, data-dictionary)
-├── audit/              # Audit outputs (audit-report.xml, correction-plan.xml)
+├── derived/            # Derived artifacts (cross-mappings, features-requirements, registries/, codebase-metrics, hotspot-analysis, dead-code-report, traceability-matrix)
+├── generated/          # Generated documentation (markdown, user-stories, data-dictionary, effort-estimate, migration-playbook, tech-recommendation, dashboard, reports/)
+├── audit/              # Audit outputs (audit-report.xml, correction-plan.xml, validation-report.xml, delta-report.xml, comparison-report.xml)
+├── exports/            # External tool exports (Jira CSV, Azure DevOps, Confluence, GitHub Issues)
 └── diagrams/           # Diagram outputs (sources/, rendered/)
 ```
 

@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Reforge Hotspot Analysis Schema
+  Defines structure for risk heatmap analysis (hotspot-analysis.xml)
+  Version: 1.0.0
+  Namespace: http://reforge.dev/schema/extraction
+
+  Shared types (ConfidenceType, SourceReferenceType, MetadataType)
+  are defined in common-schema.xsd and included via xs:include.
+  Authoritative definition: ../hotspot-analysis.md
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:rf="http://reforge.dev/schema/extraction"
+           targetNamespace="http://reforge.dev/schema/extraction"
+           elementFormDefault="qualified">
+
+  <xs:include schemaLocation="common-schema.xsd"/>
+
+  <!-- Root Element -->
+  <xs:element name="hotspot-analysis">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="metadata" type="rf:MetadataType"/>
+        <xs:element name="scoring-weights" type="rf:ScoringWeightsType" minOccurs="0"/>
+        <xs:element name="hotspots" type="rf:HotspotsContainerType"/>
+      </xs:sequence>
+      <xs:attributeGroup ref="rf:CommonRootAttributes"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Scoring Weights -->
+  <xs:complexType name="ScoringWeightsType">
+    <xs:sequence>
+      <xs:element name="weight" type="rf:WeightType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Weight -->
+  <xs:complexType name="WeightType">
+    <xs:attribute name="factor" type="xs:string" use="required"/>
+    <xs:attribute name="value" type="xs:decimal" use="required"/>
+  </xs:complexType>
+
+  <!-- Hotspots Container -->
+  <xs:complexType name="HotspotsContainerType">
+    <xs:sequence>
+      <xs:element name="hotspot" type="rf:HotspotType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:nonNegativeInteger" use="required"/>
+    <xs:attribute name="threshold" type="xs:nonNegativeInteger"/>
+  </xs:complexType>
+
+  <!-- Hotspot -->
+  <xs:complexType name="HotspotType">
+    <xs:sequence>
+      <xs:element name="complexity-score" type="rf:ComplexityScoreType"/>
+      <xs:element name="dependency-score" type="rf:DependencyScoreType"/>
+      <xs:element name="issue-density-score" type="rf:IssueDensityScoreType"/>
+      <xs:element name="business-rule-count" type="rf:BusinessRuleCountType"/>
+      <xs:element name="rationale" type="xs:string"/>
+      <xs:element name="source" type="rf:SourceReferenceType"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:string" use="required"/>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="path" type="xs:string" use="required"/>
+    <xs:attribute name="risk-score" type="xs:nonNegativeInteger" use="required"/>
+    <xs:attribute name="rank" type="xs:positiveInteger" use="required"/>
+    <xs:attribute name="confidence" type="rf:ConfidenceType" use="required"/>
+  </xs:complexType>
+
+  <!-- Complexity Score -->
+  <xs:complexType name="ComplexityScoreType">
+    <xs:attribute name="value" type="xs:nonNegativeInteger" use="required"/>
+    <xs:attribute name="cyclomatic" type="xs:nonNegativeInteger"/>
+    <xs:attribute name="cognitive" type="xs:nonNegativeInteger"/>
+  </xs:complexType>
+
+  <!-- Dependency Score -->
+  <xs:complexType name="DependencyScoreType">
+    <xs:attribute name="value" type="xs:nonNegativeInteger" use="required"/>
+    <xs:attribute name="afferent" type="xs:nonNegativeInteger"/>
+    <xs:attribute name="efferent" type="xs:nonNegativeInteger"/>
+  </xs:complexType>
+
+  <!-- Issue Density Score -->
+  <xs:complexType name="IssueDensityScoreType">
+    <xs:attribute name="value" type="xs:nonNegativeInteger" use="required"/>
+    <xs:attribute name="issue-count" type="xs:nonNegativeInteger"/>
+    <xs:attribute name="lines-of-code" type="xs:nonNegativeInteger"/>
+  </xs:complexType>
+
+  <!-- Business Rule Count -->
+  <xs:complexType name="BusinessRuleCountType">
+    <xs:attribute name="value" type="xs:nonNegativeInteger" use="required"/>
+  </xs:complexType>
+
+</xs:schema>

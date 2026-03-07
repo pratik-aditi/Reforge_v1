@@ -124,6 +124,24 @@ nav:
       - Generation:
           - generate: commands/generate.md
           - status: commands/status.md
+      - Validation & Quality:
+          - validate: commands/validate.md
+          - metrics: commands/metrics.md
+          - hotspot: commands/hotspot.md
+      - Analysis Depth:
+          - delta: commands/delta.md
+          - dead-code: commands/dead-code.md
+          - security: commands/security.md
+          - trace: commands/trace.md
+          - compare: commands/compare.md
+      - Modernization:
+          - estimate: commands/estimate.md
+          - migrate: commands/migrate.md
+          - recommend: commands/recommend.md
+      - Reporting & Integration:
+          - dashboard: commands/dashboard.md
+          - export: commands/export.md
+          - report: commands/report.md
   - Guides:
       - guides/index.md
       - Typical Workflow: guides/workflow.md

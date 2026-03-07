@@ -219,6 +219,37 @@ Where `<slug>` is the lowercased, hyphenated form of the type name.
 | Database | `database` |
 | UI Flows | `ui` |
 | Workflows | `workflows` |
+| Call Sites | `call-sites` |
+| Dependencies | `dependencies` |
+| Functional Requirements | `functional-requirements` |
+| Non-Functional | `non-functional` |
+| Architecture | `architecture` |
+| Issues | `issues` |
+
+**Modernization planning commands** (standalone, not part of the 7-step extraction pipeline):
+
+| Display Name | Command | Slug |
+|--------------|---------|------|
+| Validate | `/reforge.validate` | `validate` |
+| Metrics | `/reforge.metrics` | `metrics` |
+| Hotspot Analysis | `/reforge.hotspot` | `hotspot` |
+| Effort Estimate | `/reforge.estimate` | `estimate` |
+| Migration Playbook | `/reforge.migrate` | `migrate` |
+| Delta Extraction | `/reforge.delta` | `delta` |
+| Dead Code Detection | `/reforge.dead-code` | `dead-code` |
+| Security Audit | `/reforge.security` | `security` |
+| Traceability Matrix | `/reforge.trace` | `trace` |
+| Comparison | `/reforge.compare` | `compare` |
+| Tech Recommendation | `/reforge.recommend` | `recommend` |
+| Dashboard | `/reforge.dashboard` | `dashboard` |
+| Export | `/reforge.export` | `export` |
+| Report | `/reforge.report` | `report` |
+
+These standalone commands are added as single checklist items (not 7-step pipelines):
+
+```markdown
+- [ ] Run <command> <!-- reforge:<slug> -->
+```
 
 **User-defined types**: Use the user's declared name as the display name. Derive
 the slug by lowercasing, replacing spaces with hyphens, and removing special

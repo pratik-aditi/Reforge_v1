@@ -61,6 +61,15 @@ Every extraction XML root element MUST include these attributes:
 | architecture | `<architecture>` |
 | issues | `<issues>` |
 | glossary | `<acronym-glossary>` |
+| validation-report | `<validation-report>` |
+| codebase-metrics | `<codebase-metrics>` |
+| hotspot-analysis | `<hotspot-analysis>` |
+| effort-estimate | `<effort-estimate>` |
+| migration-playbook | `<migration-playbook>` |
+| dead-code-report | `<dead-code-report>` |
+| security-audit | `<security-audit>` |
+| traceability-matrix | `<traceability-matrix>` |
+| tech-recommendation | `<tech-recommendation>` |
 
 ## Metadata
 
@@ -182,6 +191,15 @@ Extraction item IDs MUST follow this convention:
 | `BUG` | issues | Bug or defect |
 | `ISS` | issues | Technical debt / operational issue |
 | `GLOSS` | glossary | Glossary entry |
+| `VAL` | validation-report | Validation finding |
+| `HOT` | hotspot-analysis | Risk hotspot |
+| `EST` | effort-estimate | Effort estimate item |
+| `MIG` | migration-playbook | Migration item |
+| `RISK` | migration-playbook | Risk register item |
+| `DC` | dead-code-report | Dead code item |
+| `VULN` | security-audit | Security vulnerability |
+| `TRACE` | traceability-matrix | Traceability chain |
+| `REC` | tech-recommendation | Technology recommendation |
 
 ### ID Examples
 
@@ -201,6 +219,15 @@ Extraction item IDs MUST follow this convention:
 - `BUG-NULL-001` — First null-reference bug
 - `ISS-DEBT-001` — First technical debt issue
 - `GLOSS-DOM-001` — First domain glossary entry
+- `VAL-XSD-001` — First XSD validation finding
+- `HOT-SVC-001` — First service-layer risk hotspot
+- `EST-MOD-001` — First module effort estimate
+- `MIG-PH1-001` — First phase-1 migration item
+- `RISK-DEP-001` — First dependency risk
+- `DC-METH-001` — First dead method
+- `VULN-INJ-001` — First injection vulnerability
+- `TRACE-REQ-001` — First requirement traceability chain
+- `REC-LANG-001` — First language technology recommendation
 
 ## Extensibility
 

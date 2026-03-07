@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Reforge Validation Report Schema
+  Defines structure for unified validation results (validation-report.xml)
+  Version: 1.0.0
+  Namespace: http://reforge.dev/schema/extraction
+
+  Shared types (ConfidenceType, SourceReferenceType, MetadataType)
+  are defined in common-schema.xsd and included via xs:include.
+  Authoritative definition: ../validation-report.md
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:rf="http://reforge.dev/schema/extraction"
+           targetNamespace="http://reforge.dev/schema/extraction"
+           elementFormDefault="qualified">
+
+  <xs:include schemaLocation="common-schema.xsd"/>
+
+  <!-- Root Element -->
+  <xs:element name="validation-report">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="metadata" type="rf:MetadataType"/>
+        <xs:element name="xsd-validation" type="rf:XsdValidationType" minOccurs="0"/>
+        <xs:element name="id-uniqueness" type="rf:IdUniquenessType" minOccurs="0"/>
+        <xs:element name="cross-references" type="rf:CrossReferencesType" minOccurs="0"/>
+        <xs:element name="confidence-checks" type="rf:ConfidenceChecksType" minOccurs="0"/>
+        <xs:element name="summary" type="rf:ValidationSummaryType"/>
+      </xs:sequence>
+      <xs:attributeGroup ref="rf:CommonRootAttributes"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- XSD Validation Container -->
+  <xs:complexType name="XsdValidationType">
+    <xs:sequence>
+      <xs:element name="file-result" type="rf:FileResultType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:nonNegativeInteger" use="required"/>
+    <xs:attribute name="passed" type="xs:nonNegativeInteger" use="required"/>
+    <xs:attribute name="failed" type="xs:nonNegativeInteger" use="required"/>
+  </xs:complexType>
+
+  <!-- File Result -->
+  <xs:complexType name="FileResultType">
+    <xs:sequence>
+      <xs:element name="error" type="rf:ValidationErrorType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="file" type="xs:string" use="required"/>
+    <xs:attribute name="schema" type="xs:string" use="required"/>
+    <xs:attribute name="status" type="rf:PassFailType" use="required"/>
+  </xs:complexType>
+
+  <!-- Validation Error -->
+  <xs:complexType name="ValidationErrorType">
+    <xs:sequence>
+      <xs:element name="message" type="xs:string"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:string" use="required"/>
+    <xs:attribute name="line" type="xs:positiveInteger"/>
+    <xs:attribute name="confidence" type="rf:ConfidenceType" use="required"/>
+  </xs:complexType>
+
+  <!-- ID Uniqueness Container -->
+  <xs:complexType name="IdUniquenessType">
+    <xs:sequence>
+      <xs:element name="scope-result" type="rf:ScopeResultType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:nonNegativeInteger" use="required"/>
+    <xs:attribute name="passed" type="xs:nonNegativeInteger" use="required"/>
+    <xs:attribute name="failed" type="xs:nonNegativeInteger" use="required"/>
+  </xs:complexType>
+
+  <!-- Scope Result -->
+  <xs:complexType name="ScopeResultType">
+    <xs:sequence>
+      <xs:element name="duplicate" type="rf:DuplicateType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="file" type="xs:string" use="required"/>
+    <xs:attribute name="status" type="rf:PassFailType" use="required"/>
+    <xs:attribute name="id-count" type="xs:nonNegativeInteger" use="required"/>
+  </xs:complexType>
+
+  <!-- Duplicate -->
+  <xs:complexType name="DuplicateType">
+    <xs:attribute name="id" type="xs:string" use="required"/>
+    <xs:attribute name="value" type="xs:string" use="required"/>
+    <xs:attribute name="occurrences" type="xs:positiveInteger" use="required"/>
+    <xs:attribute name="confidence" type="rf:ConfidenceType" use="required"/>
+  </xs:complexType>
+
+  <!-- Cross References Container -->
+  <xs:complexType name="CrossReferencesType">
+    <xs:sequence>
+      <xs:element name="ref-result" type="rf:RefResultType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:nonNegativeInteger" use="required"/>
+    <xs:attribute name="passed" type="xs:nonNegativeInteger" use="required"/>
+    <xs:attribute name="failed" type="xs:nonNegativeInteger" use="required"/>
+  </xs:complexType>
+
+  <!-- Ref Result -->
+  <xs:complexType name="RefResultType">
+    <xs:sequence>
+      <xs:element name="message" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:string" use="required"/>
+    <xs:attribute name="source-file" type="xs:string" use="required"/>
+    <xs:attribute name="source-id" type="xs:string" use="required"/>
+    <xs:attribute name="target-file" type="xs:string" use="required"/>
+    <xs:attribute name="target-id" type="xs:string" use="required"/>
+    <xs:attribute name="status" type="rf:RefStatusType" use="required"/>
+    <xs:attribute name="confidence" type="rf:ConfidenceType" use="required"/>
+  </xs:complexType>
+
+  <!-- Confidence Checks Container -->
+  <xs:complexType name="ConfidenceChecksType">
+    <xs:sequence>
+      <xs:element name="sum-result" type="rf:SumResultType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:nonNegativeInteger" use="required"/>
+    <xs:attribute name="passed" type="xs:nonNegativeInteger" use="required"/>
+    <xs:attribute name="failed" type="xs:nonNegativeInteger" use="required"/>
+  </xs:complexType>
+
+  <!-- Sum Result -->
+  <xs:complexType name="SumResultType">
+    <xs:sequence>
+      <xs:element name="message" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:string" use="required"/>
+    <xs:attribute name="file" type="xs:string" use="required"/>
+    <xs:attribute name="status" type="rf:PassFailType" use="required"/>
+    <xs:attribute name="total-count" type="xs:nonNegativeInteger" use="required"/>
+    <xs:attribute name="high" type="xs:nonNegativeInteger" use="required"/>
+    <xs:attribute name="medium" type="xs:nonNegativeInteger" use="required"/>
+    <xs:attribute name="low" type="xs:nonNegativeInteger" use="required"/>
+    <xs:attribute name="sum" type="xs:nonNegativeInteger" use="required"/>
+    <xs:attribute name="confidence" type="rf:ConfidenceType" use="required"/>
+  </xs:complexType>
+
+  <!-- Validation Summary -->
+  <xs:complexType name="ValidationSummaryType">
+    <xs:sequence>
+      <xs:element name="by-category" type="rf:ByCategoryType"/>
+    </xs:sequence>
+    <xs:attribute name="status" type="rf:PassFailType" use="required"/>
+    <xs:attribute name="total-checks" type="xs:nonNegativeInteger" use="required"/>
+    <xs:attribute name="passed" type="xs:nonNegativeInteger" use="required"/>
+    <xs:attribute name="failed" type="xs:nonNegativeInteger" use="required"/>
+  </xs:complexType>
+
+  <!-- By Category -->
+  <xs:complexType name="ByCategoryType">
+    <xs:sequence>
+      <xs:element name="category" type="rf:CategorySummaryType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Category Summary -->
+  <xs:complexType name="CategorySummaryType">
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="checks" type="xs:nonNegativeInteger" use="required"/>
+    <xs:attribute name="passed" type="xs:nonNegativeInteger" use="required"/>
+    <xs:attribute name="failed" type="xs:nonNegativeInteger" use="required"/>
+  </xs:complexType>
+
+  <!-- Simple Types -->
+  <xs:simpleType name="PassFailType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="pass"/>
+      <xs:enumeration value="fail"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <xs:simpleType name="RefStatusType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="valid"/>
+      <xs:enumeration value="broken"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+</xs:schema>
