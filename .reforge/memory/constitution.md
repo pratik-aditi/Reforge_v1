@@ -1,15 +1,17 @@
 <!--
 Sync Impact Report
 ==================
-Version change: 1.3.0 → 1.4.0 (Add Planning Phase: /reforge.plan command and Step 0.7 integration)
+Version change: 1.4.0 → 1.5.0 (Add 14 new modernization, analysis, and reporting commands)
 Modified principles: None
 Modified sections:
-  - Framework Architecture: Added plan.md, profile.md to commands directory listing (correcting pre-existing omissions)
-  - Command Workflow: Restructured into Planning → Setup → Extraction → Generation → Cross-Cutting phases; added "Planning is optional" workflow rule
+  - Framework Architecture: Added 14 new command files, 9 new schema files, expanded output directory (derived/, generated/, audit/, exports/)
+  - Command Workflow: Added 4 new phases (Validation & Quality, Analysis Depth, Modernization Planning, Reporting & Integration)
 Removed sections: None
 Templates requiring updates:
-  - CLAUDE.md ✅ (updated with /reforge.plan command)
-  - All 10 command templates ✅ (Step 0.7 added for plan integration)
+  - CLAUDE.md ✅ (updated with 14 new commands and directory structure)
+  - common-schema.md ✅ (9 new root elements, 9 new ID prefixes)
+  - status.md ✅ (new artifact tables and recommendations)
+  - plan.md ✅ (new extraction types and standalone commands)
 Follow-up TODOs: None
 -->
 
@@ -117,7 +119,21 @@ that operate alongside this constitution. The constitution takes precedence on c
 │   ├── glossary-phase-1.md  # Phase 1: Pattern Extraction
 │   ├── glossary-phase-2.md  # Phase 2: External Verification
 │   ├── glossary-phase-3.md  # Phase 3: Source Code Audit
-│   └── glossary-phase-4.md  # Phase 4: Self-Audit
+│   ├── glossary-phase-4.md  # Phase 4: Self-Audit
+│   ├── validate.md    # /reforge.validate - Unified XML validation
+│   ├── metrics.md     # /reforge.metrics - Codebase metrics computation
+│   ├── hotspot.md     # /reforge.hotspot - Risk hotspot analysis
+│   ├── estimate.md    # /reforge.estimate - Effort estimation
+│   ├── migrate.md     # /reforge.migrate - Migration playbook generation
+│   ├── delta.md       # /reforge.delta - Incremental extraction
+│   ├── dead-code.md   # /reforge.dead-code - Dead code detection
+│   ├── security.md    # /reforge.security - Security audit (OWASP/CWE)
+│   ├── trace.md       # /reforge.trace - Traceability matrix
+│   ├── compare.md     # /reforge.compare - Extraction diff comparison
+│   ├── recommend.md   # /reforge.recommend - Tech stack recommendation
+│   ├── dashboard.md   # /reforge.dashboard - HTML dashboard
+│   ├── export.md      # /reforge.export - Export to external tools
+│   └── report.md      # /reforge.report - Milestone/status reports
 ├── schemas/            # Output structure definitions
 │   ├── analysis.md     # Analysis output schema
 │   ├── business-rules.md
@@ -129,7 +145,16 @@ that operate alongside this constitution. The constitution takes precedence on c
 │   ├── features-requirements.md
 │   ├── audit-report.md    # Audit coverage report schema
 │   ├── correction-plan.md # Correction plan schema
-│   └── glossary.md        # Glossary extraction schema (acronym-glossary.xml)
+│   ├── glossary.md        # Glossary extraction schema (acronym-glossary.xml)
+│   ├── validation-report.md   # Validation report schema
+│   ├── codebase-metrics.md    # Codebase metrics schema
+│   ├── hotspot-analysis.md    # Hotspot analysis schema
+│   ├── effort-estimate.md     # Effort estimate schema
+│   ├── migration-playbook.md  # Migration playbook schema
+│   ├── dead-code-report.md    # Dead code report schema
+│   ├── security-audit.md      # Security audit schema
+│   ├── traceability-matrix.md # Traceability matrix schema
+│   └── tech-recommendation.md # Tech recommendation schema
 ├── templates/          # Output templates for generation
 │   ├── user-story.md
 │   ├── data-dictionary.md
@@ -159,6 +184,10 @@ reforge_output/
 │   ├── derived/                # Derived artifacts
 │   │   ├── cross-mappings.xml
 │   │   ├── features-requirements.xml
+│   │   ├── codebase-metrics.xml
+│   │   ├── hotspot-analysis.xml
+│   │   ├── dead-code-report.xml
+│   │   ├── traceability-matrix.xml
 │   │   └── registries/
 │   │       ├── business-rules-registry.md
 │   │       ├── functional-requirements-registry.md
@@ -169,11 +198,23 @@ reforge_output/
 │   │   ├── user-stories.json
 │   │   ├── user-stories.csv
 │   │   ├── user-stories.xml
-│   │   └── data-dictionary.md
+│   │   ├── data-dictionary.md
+│   │   ├── effort-estimate.xml
+│   │   ├── migration-playbook.xml
+│   │   ├── tech-recommendation.xml
+│   │   ├── dashboard.html
+│   │   └── reports/
+│   │       └── report-YYYY-MM-DD.html
+│   ├── exports/                # External tool exports
+│   │   ├── *.csv
+│   │   └── *.md
 │   ├── audit/                  # Audit and correction outputs
 │   │   ├── audit-report.xml
 │   │   ├── correction-plan.xml
-│   │   └── glossary-audit-report.xml  # Glossary Phase 3-4 findings
+│   │   ├── glossary-audit-report.xml  # Glossary Phase 3-4 findings
+│   │   ├── validation-report.xml     # Unified validation output
+│   │   ├── delta-report.xml          # Incremental extraction delta
+│   │   └── comparison-report.xml     # Extraction diff comparison
 │   └── diagrams/               # Diagram outputs
 │       ├── sources/
 │       │   ├── *.puml
@@ -208,6 +249,32 @@ For each extraction type (business-rules, database, ui, workflows), the followin
 8. **`/reforge.generate [artifact]`** — Generate documentation from extracted knowledge
 9. **`/reforge.audit [type]`** — Audit generated output for completeness
 10. **`/reforge.fix`** — Execute corrections for generated output issues
+
+### Validation & Quality Phase
+
+11. **`/reforge.validate`** — Unified validation: XSD conformance, ID uniqueness, cross-ref integrity
+12. **`/reforge.metrics`** — Quantitative codebase metrics: complexity, coupling, cohesion, tech debt
+13. **`/reforge.hotspot`** — Risk heatmap: composite scoring of complexity x dependency x issue density
+
+### Analysis Depth Phase
+
+14. **`/reforge.delta`** — Git diff-based incremental extraction (only changed files)
+15. **`/reforge.dead-code`** — Detect unreachable code via call-site + dependency graph analysis
+16. **`/reforge.security`** — OWASP Top 10 security scan with CWE identifiers
+17. **`/reforge.trace`** — End-to-end traceability chains: requirement -> rule -> code -> UI -> story
+18. **`/reforge.compare`** — Diff two extraction runs for regression detection
+
+### Modernization Planning Phase
+
+19. **`/reforge.estimate`** — Three-point effort estimation per module with complexity multipliers
+20. **`/reforge.migrate`** — Phased migration playbook with 5R strategy per module
+21. **`/reforge.recommend`** — Tech stack recommendation based on requirements + architecture
+
+### Reporting & Integration Phase
+
+22. **`/reforge.dashboard`** — Interactive HTML dashboard summarizing all extractions and quality
+23. **`/reforge.export`** — Export to Jira CSV, Azure DevOps, Confluence wiki, GitHub Issues
+24. **`/reforge.report`** — Automated milestone/status reports
 
 ### Cross-Cutting Commands
 
@@ -245,4 +312,4 @@ For each extraction type (business-rules, database, ui, workflows), the followin
 - `CLAUDE.md` (or equivalent agent file) SHOULD reference this constitution
 - Runtime guidance MUST NOT contradict constitutional principles
 
-**Version**: 1.4.0 | **Ratified**: 2025-01-12 | **Last Amended**: 2026-02-20
+**Version**: 1.5.0 | **Ratified**: 2025-01-12 | **Last Amended**: 2026-03-06

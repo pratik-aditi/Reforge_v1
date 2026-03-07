@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Reforge Effort Estimate Schema
+  Defines structure for three-point effort estimation output (effort-estimate.xml)
+  Version: 1.0.0
+  Namespace: http://reforge.dev/schema/extraction
+
+  Shared types (ConfidenceType, SourceReferenceType, MetadataType)
+  are defined in common-schema.xsd and included via xs:include.
+  Authoritative definition: ../effort-estimate.md
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:rf="http://reforge.dev/schema/extraction"
+           targetNamespace="http://reforge.dev/schema/extraction"
+           elementFormDefault="qualified">
+
+  <xs:include schemaLocation="common-schema.xsd"/>
+
+  <!-- Root Element -->
+  <xs:element name="effort-estimate">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="metadata" type="rf:MetadataType"/>
+        <xs:element name="estimates" type="rf:EstimatesContainerType"/>
+        <xs:element name="summary" type="rf:EstimateSummaryType"/>
+      </xs:sequence>
+      <xs:attributeGroup ref="rf:CommonRootAttributes"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Estimates Container -->
+  <xs:complexType name="EstimatesContainerType">
+    <xs:sequence>
+      <xs:element name="estimate" type="rf:EstimateType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:nonNegativeInteger"/>
+  </xs:complexType>
+
+  <!-- Estimate -->
+  <xs:complexType name="EstimateType">
+    <xs:sequence>
+      <xs:element name="description" type="xs:string"/>
+      <xs:element name="optimistic" type="rf:EffortValueType"/>
+      <xs:element name="most-likely" type="rf:EffortValueType"/>
+      <xs:element name="pessimistic" type="rf:EffortValueType"/>
+      <xs:element name="expected" type="rf:EffortValueType"/>
+      <xs:element name="complexity-multiplier" type="rf:ComplexityMultiplierType"/>
+      <xs:element name="risk-factors" type="rf:RiskFactorsContainerType" minOccurs="0"/>
+      <xs:element name="dependencies-count" type="rf:DependenciesCountType"/>
+      <xs:element name="source" type="rf:SourceReferenceType"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:string" use="required"/>
+    <xs:attribute name="module" type="xs:string" use="required"/>
+    <xs:attribute name="confidence" type="rf:ConfidenceType" use="required"/>
+  </xs:complexType>
+
+  <!-- Effort Value (with unit attribute) -->
+  <xs:complexType name="EffortValueType">
+    <xs:simpleContent>
+      <xs:extension base="xs:decimal">
+        <xs:attribute name="unit" type="xs:string" use="required"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!-- Complexity Multiplier -->
+  <xs:complexType name="ComplexityMultiplierType">
+    <xs:attribute name="value" type="xs:decimal" use="required"/>
+    <xs:attribute name="rationale" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <!-- Risk Factors Container -->
+  <xs:complexType name="RiskFactorsContainerType">
+    <xs:sequence>
+      <xs:element name="risk-factor" type="rf:RiskFactorType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Risk Factor -->
+  <xs:complexType name="RiskFactorType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="severity" type="xs:string" use="required"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!-- Dependencies Count -->
+  <xs:complexType name="DependenciesCountType">
+    <xs:attribute name="internal" type="xs:nonNegativeInteger" use="required"/>
+    <xs:attribute name="external" type="xs:nonNegativeInteger" use="required"/>
+  </xs:complexType>
+
+  <!-- Summary -->
+  <xs:complexType name="EstimateSummaryType">
+    <xs:sequence>
+      <xs:element name="total-effort" type="rf:EffortValueType"/>
+      <xs:element name="total-modules" type="xs:nonNegativeInteger"/>
+      <xs:element name="methodology" type="xs:string"/>
+      <xs:element name="effort-by-confidence" type="rf:EffortByConfidenceType"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Effort By Confidence -->
+  <xs:complexType name="EffortByConfidenceType">
+    <xs:sequence>
+      <xs:element name="high" type="rf:EffortValueType"/>
+      <xs:element name="medium" type="rf:EffortValueType"/>
+      <xs:element name="low" type="rf:EffortValueType"/>
+    </xs:sequence>
+  </xs:complexType>
+
+</xs:schema>

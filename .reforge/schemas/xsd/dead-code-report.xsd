@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Reforge Dead Code Report Schema
+  Defines structure for dead/unreachable code detection (dead-code-report.xml)
+  Version: 1.0.0
+  Namespace: http://reforge.dev/schema/extraction
+
+  Shared types (ConfidenceType, SourceReferenceType, MetadataType)
+  are defined in common-schema.xsd and included via xs:include.
+  Authoritative definition: ../dead-code-report.md
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:rf="http://reforge.dev/schema/extraction"
+           targetNamespace="http://reforge.dev/schema/extraction"
+           elementFormDefault="qualified">
+
+  <xs:include schemaLocation="common-schema.xsd"/>
+
+  <!-- Root Element -->
+  <xs:element name="dead-code-report">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="metadata" type="rf:MetadataType"/>
+        <xs:element name="summary" type="rf:DeadCodeSummaryType" minOccurs="0"/>
+        <xs:element name="dead-items" type="rf:DeadItemsContainerType" minOccurs="0"/>
+      </xs:sequence>
+      <xs:attributeGroup ref="rf:CommonRootAttributes"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Summary -->
+  <xs:complexType name="DeadCodeSummaryType">
+    <xs:sequence>
+      <xs:element name="by-type" type="rf:DeadCodeByTypeType" minOccurs="0"/>
+      <xs:element name="by-reason" type="rf:DeadCodeByReasonType" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="total-lines" type="xs:nonNegativeInteger"/>
+    <xs:attribute name="total-files-affected" type="xs:nonNegativeInteger"/>
+  </xs:complexType>
+
+  <xs:complexType name="DeadCodeByTypeType">
+    <xs:sequence>
+      <xs:element name="type" minOccurs="0" maxOccurs="unbounded">
+        <xs:complexType>
+          <xs:attribute name="name" type="xs:string" use="required"/>
+          <xs:attribute name="count" type="xs:nonNegativeInteger" use="required"/>
+          <xs:attribute name="lines" type="xs:nonNegativeInteger"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="DeadCodeByReasonType">
+    <xs:sequence>
+      <xs:element name="reason" minOccurs="0" maxOccurs="unbounded">
+        <xs:complexType>
+          <xs:attribute name="name" type="xs:string" use="required"/>
+          <xs:attribute name="count" type="xs:nonNegativeInteger" use="required"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Dead Items Container -->
+  <xs:complexType name="DeadItemsContainerType">
+    <xs:sequence>
+      <xs:element name="dead-item" type="rf:DeadItemType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:nonNegativeInteger"/>
+  </xs:complexType>
+
+  <!-- Dead Item -->
+  <xs:complexType name="DeadItemType">
+    <xs:sequence>
+      <xs:element name="name" type="xs:string"/>
+      <xs:element name="description" type="xs:string"/>
+      <xs:element name="containing-class" type="xs:string" minOccurs="0"/>
+      <xs:element name="lines-of-code" type="xs:nonNegativeInteger"/>
+      <xs:element name="last-modified" type="xs:string" minOccurs="0"/>
+      <xs:element name="evidence" type="rf:DeadCodeEvidenceType" minOccurs="0"/>
+      <xs:element name="source" type="rf:SourceReferenceType"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:string" use="required"/>
+    <xs:attribute name="item-type" type="xs:string" use="required"/>
+    <xs:attribute name="reason" type="xs:string" use="required"/>
+    <xs:attribute name="confidence" type="rf:ConfidenceType" use="required"/>
+    <xs:attribute name="severity" type="xs:string" use="required"/>
+  </xs:complexType>
+
+  <!-- Evidence -->
+  <xs:complexType name="DeadCodeEvidenceType">
+    <xs:sequence>
+      <xs:element name="call-site-ref" type="xs:string" minOccurs="0"/>
+      <xs:element name="dependency-ref" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+
+</xs:schema>

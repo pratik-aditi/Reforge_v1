@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Reforge Security Audit Schema
+  Defines structure for security vulnerability findings (security-audit.xml)
+  Version: 1.0.0
+  Namespace: http://reforge.dev/schema/extraction
+
+  Shared types (ConfidenceType, SourceReferenceType, MetadataType)
+  are defined in common-schema.xsd and included via xs:include.
+  Authoritative definition: ../security-audit.md
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:rf="http://reforge.dev/schema/extraction"
+           targetNamespace="http://reforge.dev/schema/extraction"
+           elementFormDefault="qualified">
+
+  <xs:include schemaLocation="common-schema.xsd"/>
+
+  <!-- Root Element -->
+  <xs:element name="security-audit">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="metadata" type="rf:MetadataType"/>
+        <xs:element name="summary" type="rf:SecuritySummaryType" minOccurs="0"/>
+        <xs:element name="vulnerabilities" type="rf:VulnerabilitiesContainerType" minOccurs="0"/>
+      </xs:sequence>
+      <xs:attributeGroup ref="rf:CommonRootAttributes"/>
+      <xs:attribute name="owasp-version" type="xs:string" use="required"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Summary -->
+  <xs:complexType name="SecuritySummaryType">
+    <xs:sequence>
+      <xs:element name="by-severity" type="rf:SecurityBySeverityType" minOccurs="0"/>
+      <xs:element name="by-owasp-category" type="rf:SecurityByOwaspType" minOccurs="0"/>
+      <xs:element name="files-scanned" type="xs:nonNegativeInteger" minOccurs="0"/>
+      <xs:element name="files-with-findings" type="xs:nonNegativeInteger" minOccurs="0"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="SecurityBySeverityType">
+    <xs:sequence>
+      <xs:element name="critical" minOccurs="0">
+        <xs:complexType>
+          <xs:attribute name="count" type="xs:nonNegativeInteger" use="required"/>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="high" minOccurs="0">
+        <xs:complexType>
+          <xs:attribute name="count" type="xs:nonNegativeInteger" use="required"/>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="medium" minOccurs="0">
+        <xs:complexType>
+          <xs:attribute name="count" type="xs:nonNegativeInteger" use="required"/>
+        </xs:complexType>
+      </xs:element>
+      <xs:element name="low" minOccurs="0">
+        <xs:complexType>
+          <xs:attribute name="count" type="xs:nonNegativeInteger" use="required"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <xs:complexType name="SecurityByOwaspType">
+    <xs:sequence>
+      <xs:element name="category" minOccurs="0" maxOccurs="unbounded">
+        <xs:complexType>
+          <xs:attribute name="id" type="xs:string" use="required"/>
+          <xs:attribute name="name" type="xs:string" use="required"/>
+          <xs:attribute name="count" type="xs:nonNegativeInteger" use="required"/>
+        </xs:complexType>
+      </xs:element>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Vulnerabilities Container -->
+  <xs:complexType name="VulnerabilitiesContainerType">
+    <xs:sequence>
+      <xs:element name="vulnerability" type="rf:VulnerabilityType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:nonNegativeInteger"/>
+  </xs:complexType>
+
+  <!-- Vulnerability -->
+  <xs:complexType name="VulnerabilityType">
+    <xs:sequence>
+      <xs:element name="cwe-id" type="xs:string"/>
+      <xs:element name="cwe-name" type="xs:string"/>
+      <xs:element name="owasp-category" type="xs:string"/>
+      <xs:element name="title" type="xs:string"/>
+      <xs:element name="description" type="xs:string"/>
+      <xs:element name="impact" type="xs:string"/>
+      <xs:element name="remediation" type="xs:string"/>
+      <xs:element name="evidence" type="rf:SecurityEvidenceType" minOccurs="0"/>
+      <xs:element name="source" type="rf:SourceReferenceType"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:string" use="required"/>
+    <xs:attribute name="severity" type="xs:string" use="required"/>
+    <xs:attribute name="confidence" type="rf:ConfidenceType" use="required"/>
+  </xs:complexType>
+
+  <!-- Evidence -->
+  <xs:complexType name="SecurityEvidenceType">
+    <xs:sequence>
+      <xs:element name="pattern" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+</xs:schema>

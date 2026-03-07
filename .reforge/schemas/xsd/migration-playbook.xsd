@@ -1,0 +1,188 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Reforge Migration Playbook Schema
+  Defines structure for phased migration playbooks (migration-playbook.xml)
+  Version: 1.0.0
+  Namespace: http://reforge.dev/schema/extraction
+
+  Shared types (ConfidenceType, SourceReferenceType, MetadataType)
+  are defined in common-schema.xsd and included via xs:include.
+  Authoritative definition: ../migration-playbook.md
+-->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:rf="http://reforge.dev/schema/extraction"
+           targetNamespace="http://reforge.dev/schema/extraction"
+           elementFormDefault="qualified">
+
+  <xs:include schemaLocation="common-schema.xsd"/>
+
+  <!-- Root Element -->
+  <xs:element name="migration-playbook">
+    <xs:complexType>
+      <xs:sequence>
+        <xs:element name="metadata" type="rf:MetadataType"/>
+        <xs:element name="phases" type="rf:PhasesContainerType"/>
+        <xs:element name="risk-register" type="rf:RiskRegisterType"/>
+        <xs:element name="strategy-summary" type="rf:StrategySummaryType"/>
+      </xs:sequence>
+      <xs:attributeGroup ref="rf:CommonRootAttributes"/>
+    </xs:complexType>
+  </xs:element>
+
+  <!-- Phases Container -->
+  <xs:complexType name="PhasesContainerType">
+    <xs:sequence>
+      <xs:element name="phase" type="rf:PhaseType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:nonNegativeInteger"/>
+  </xs:complexType>
+
+  <!-- Phase -->
+  <xs:complexType name="PhaseType">
+    <xs:sequence>
+      <xs:element name="description" type="xs:string"/>
+      <xs:element name="prerequisites" type="rf:PrerequisitesType" minOccurs="0"/>
+      <xs:element name="modules" type="rf:PhaseModulesContainerType"/>
+      <xs:element name="success-criteria" type="rf:SuccessCriteriaType"/>
+      <xs:element name="estimated-duration" type="rf:DurationValueType"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:string" use="required"/>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="order" type="xs:positiveInteger" use="required"/>
+  </xs:complexType>
+
+  <!-- Prerequisites -->
+  <xs:complexType name="PrerequisitesType">
+    <xs:sequence>
+      <xs:element name="prerequisite" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Phase Modules Container -->
+  <xs:complexType name="PhaseModulesContainerType">
+    <xs:sequence>
+      <xs:element name="module" type="rf:MigrationModuleType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:nonNegativeInteger"/>
+  </xs:complexType>
+
+  <!-- Migration Module -->
+  <xs:complexType name="MigrationModuleType">
+    <xs:sequence>
+      <xs:element name="description" type="xs:string"/>
+      <xs:element name="rationale" type="xs:string"/>
+      <xs:element name="current-stack" type="xs:string"/>
+      <xs:element name="target-stack" type="xs:string"/>
+      <xs:element name="effort-estimate" type="rf:DurationValueType"/>
+      <xs:element name="dependencies" type="rf:ModuleDependenciesType" minOccurs="0"/>
+      <xs:element name="source" type="rf:SourceReferenceType"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:string" use="required"/>
+    <xs:attribute name="name" type="xs:string" use="required"/>
+    <xs:attribute name="strategy" type="rf:MigrationStrategyType" use="required"/>
+    <xs:attribute name="confidence" type="rf:ConfidenceType" use="required"/>
+  </xs:complexType>
+
+  <!-- Migration Strategy Enumeration -->
+  <xs:simpleType name="MigrationStrategyType">
+    <xs:restriction base="xs:string">
+      <xs:enumeration value="rehost"/>
+      <xs:enumeration value="replatform"/>
+      <xs:enumeration value="refactor"/>
+      <xs:enumeration value="rearchitect"/>
+      <xs:enumeration value="retire"/>
+    </xs:restriction>
+  </xs:simpleType>
+
+  <!-- Module Dependencies -->
+  <xs:complexType name="ModuleDependenciesType">
+    <xs:sequence>
+      <xs:element name="dependency" type="rf:ModuleDependencyRefType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Module Dependency Reference -->
+  <xs:complexType name="ModuleDependencyRefType">
+    <xs:simpleContent>
+      <xs:extension base="xs:string">
+        <xs:attribute name="ref" type="xs:string" use="required"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!-- Success Criteria -->
+  <xs:complexType name="SuccessCriteriaType">
+    <xs:sequence>
+      <xs:element name="criterion" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Duration Value (with unit attribute) -->
+  <xs:complexType name="DurationValueType">
+    <xs:simpleContent>
+      <xs:extension base="xs:decimal">
+        <xs:attribute name="unit" type="xs:string" use="required"/>
+      </xs:extension>
+    </xs:simpleContent>
+  </xs:complexType>
+
+  <!-- Risk Register -->
+  <xs:complexType name="RiskRegisterType">
+    <xs:sequence>
+      <xs:element name="risk" type="rf:MigrationRiskType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+    <xs:attribute name="count" type="xs:nonNegativeInteger"/>
+  </xs:complexType>
+
+  <!-- Migration Risk -->
+  <xs:complexType name="MigrationRiskType">
+    <xs:sequence>
+      <xs:element name="title" type="xs:string"/>
+      <xs:element name="description" type="xs:string"/>
+      <xs:element name="impact" type="xs:string"/>
+      <xs:element name="affected-modules" type="rf:AffectedModulesType" minOccurs="0"/>
+      <xs:element name="mitigation" type="xs:string"/>
+      <xs:element name="contingency" type="xs:string" minOccurs="0"/>
+    </xs:sequence>
+    <xs:attribute name="id" type="xs:string" use="required"/>
+    <xs:attribute name="category" type="xs:string" use="required"/>
+    <xs:attribute name="severity" type="xs:string" use="required"/>
+    <xs:attribute name="probability" type="xs:string" use="required"/>
+    <xs:attribute name="confidence" type="rf:ConfidenceType" use="required"/>
+  </xs:complexType>
+
+  <!-- Affected Modules -->
+  <xs:complexType name="AffectedModulesType">
+    <xs:sequence>
+      <xs:element name="module-ref" type="rf:ModuleDependencyRefType" minOccurs="0" maxOccurs="unbounded"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Strategy Summary -->
+  <xs:complexType name="StrategySummaryType">
+    <xs:sequence>
+      <xs:element name="total-modules" type="xs:nonNegativeInteger"/>
+      <xs:element name="by-strategy" type="rf:ByStrategyType"/>
+      <xs:element name="total-phases" type="xs:nonNegativeInteger"/>
+      <xs:element name="total-effort" type="rf:DurationValueType"/>
+      <xs:element name="total-risks" type="xs:nonNegativeInteger"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- By Strategy -->
+  <xs:complexType name="ByStrategyType">
+    <xs:sequence>
+      <xs:element name="rehost" type="rf:StrategyCountType"/>
+      <xs:element name="replatform" type="rf:StrategyCountType"/>
+      <xs:element name="refactor" type="rf:StrategyCountType"/>
+      <xs:element name="rearchitect" type="rf:StrategyCountType"/>
+      <xs:element name="retire" type="rf:StrategyCountType"/>
+    </xs:sequence>
+  </xs:complexType>
+
+  <!-- Strategy Count -->
+  <xs:complexType name="StrategyCountType">
+    <xs:attribute name="count" type="xs:nonNegativeInteger" use="required"/>
+  </xs:complexType>
+
+</xs:schema>

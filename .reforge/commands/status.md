@@ -200,13 +200,31 @@ Pending: [count] items
 [If any pending:]
   Run /reforge.clarify to resolve ambiguities
 
+--- Derived Artifacts ---
+| Artifact             | Status      | Last Generated |
+|----------------------|-------------|----------------|
+| Codebase metrics     | [status]    | [timestamp]    |
+| Hotspot analysis     | [status]    | [timestamp]    |
+| Dead code report     | [status]    | [timestamp]    |
+| Traceability matrix  | [status]    | [timestamp]    |
+
 --- Generated Outputs ---
-| Artifact         | Status      | Last Generated |
-|------------------|-------------|----------------|
-| Markdown docs    | [status]    | [timestamp]    |
-| User stories     | [status]    | [timestamp]    |
-| Data dictionary  | [status]    | [timestamp]    |
-| UML diagrams     | [status]    | [timestamp]    |
+| Artifact             | Status      | Last Generated |
+|----------------------|-------------|----------------|
+| Markdown docs        | [status]    | [timestamp]    |
+| User stories         | [status]    | [timestamp]    |
+| Data dictionary      | [status]    | [timestamp]    |
+| UML diagrams         | [status]    | [timestamp]    |
+| Effort estimate      | [status]    | [timestamp]    |
+| Migration playbook   | [status]    | [timestamp]    |
+| Tech recommendation  | [status]    | [timestamp]    |
+| Dashboard            | [status]    | [timestamp]    |
+
+--- Audit & Validation ---
+| Artifact             | Status      | Last Generated |
+|----------------------|-------------|----------------|
+| Validation report    | [status]    | [timestamp]    |
+| Security audit       | [status]    | [timestamp]    |
 
 --- Next Steps ---
 [Contextual recommendations based on current state]
@@ -383,9 +401,19 @@ Analysis complete! All extractions and documentation generated.
 
 Available commands:
 → /reforge.audit - Verify extraction coverage completeness
+→ /reforge.validate - Unified XML validation across all extractions
 → /reforge.reanalyze [path] - Re-analyze specific files
 → /reforge.generate [format] - Regenerate documentation
 → /reforge.clarify - Review and update clarifications
+→ /reforge.metrics - Compute codebase quality metrics
+→ /reforge.hotspot - Identify risk hotspots
+→ /reforge.estimate - Generate effort estimates
+→ /reforge.migrate - Create migration playbook
+→ /reforge.security - Run security audit (OWASP/CWE)
+→ /reforge.trace - Build traceability matrix
+→ /reforge.dashboard - Generate interactive HTML dashboard
+→ /reforge.export [format] - Export to Jira, Azure DevOps, etc.
+→ /reforge.report - Generate status/milestone report
 ```
 
 ---
@@ -494,6 +522,43 @@ For each extraction file, if it exists:
 **issues.xml:**
 - Count `<bug>` and `<issue>` elements
 - Group by `@confidence` attribute
+
+**security-audit.xml:**
+- Count `<vulnerability>` elements
+- Group by `@confidence` attribute
+
+**Derived artifacts** (in `$PROJECT_OUTPUT_DIR/derived/`):
+
+**codebase-metrics.xml:**
+- Check for existence, report total modules analyzed
+
+**hotspot-analysis.xml:**
+- Count `<hotspot>` elements, report top risk score
+
+**dead-code-report.xml:**
+- Count `<dead-item>` elements
+
+**traceability-matrix.xml:**
+- Count `<trace>` elements, report orphan count
+
+**Generated artifacts** (in `$PROJECT_OUTPUT_DIR/generated/`):
+
+**effort-estimate.xml:**
+- Check for existence, report total estimated effort
+
+**migration-playbook.xml:**
+- Check for existence, report phase count and strategy distribution
+
+**tech-recommendation.xml:**
+- Check for existence, report recommendation count
+
+**dashboard.html:**
+- Check for existence, report generation timestamp
+
+**Audit artifacts** (in `$PROJECT_OUTPUT_DIR/audit/`):
+
+**validation-report.xml:**
+- Check for existence, report pass/fail counts
 
 ---
 
