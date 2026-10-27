@@ -223,8 +223,7 @@ def test_a_single_huge_block_is_deep_split_not_degraded():
     body = ["            If value = 1 Then"]
     body += [f"                Dim a{j} As Integer = {j}" for j in range(400)]
     body.append("            End If")
-    source = "
-".join(
+    source = "\n".join(
         ["Namespace Gen", "    Public Class Big", "        Public Sub Huge(value As Integer)"]
         + body
         + ["        End Sub", "    End Class", "End Namespace"]
@@ -255,8 +254,7 @@ def test_unsplittable_statement_degrades_visibly():
     body = ["            Dim total As Integer = 0 + _"]
     body += ["                1 + _" for _ in range(398)]
     body.append("                1")
-    source = "
-".join(
+    source = "\n".join(
         ["Namespace Gen", "    Public Class Big", "        Public Sub Huge(value As Integer)"]
         + body
         + ["        End Sub", "    End Class", "End Namespace"]
