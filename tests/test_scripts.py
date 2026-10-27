@@ -10,6 +10,10 @@ from unittest.mock import patch
 import pytest
 from typer.testing import CliRunner
 
+# Imported as a module object: `reforge_cli.scripts` is shadowed by a Typer
+# instance on the package, so dotted patch targets through it fail to resolve.
+from reforge_cli.scripts import validation as validation_module
+
 from reforge_cli import (
     __version__,
     app,
@@ -913,7 +917,7 @@ test.xml fails to validate"""
         xml_file = temp_repo_with_schemas / "test.xml"
         xml_file.write_text("<test/>")
 
-        with patch("reforge_cli.scripts.validation.check_xmllint_available") as mock:
+        with patch.object(validation_module, "check_xmllint_available") as mock:
             mock.return_value = (False, None, "Install xmllint: apt install libxml2-utils")
 
             result = validate_xml(
