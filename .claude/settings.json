@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls \"c:\\\\Reforge\\\\reforge\" 2>&1 | head -50; echo \"---\"; ls \"C:\\\\cobol-game\" 2>&1 | head -50)",
+      "Read(//c/cobol-game/**)",
+      "Read(//c/cobol-game/reforge-game/**)",
+      "Bash(ls -la \"C:\\\\cobol-game\" 2>&1)"
+    ]
+  }
+}

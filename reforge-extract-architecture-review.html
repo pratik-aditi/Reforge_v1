@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Architecture Review: extract.md Under a Multi-Agent Topology</title>
+<style>
+  :root {
+    --bg-primary: #f4f5f7;
+    --surface: #ffffff;
+    --surface-alt: #eef0f4;
+    --accent: #2f52d6;
+    --accent-soft: #e8edfc;
+    --accent-text: #1e3aa8;
+    --border: #dce0e8;
+    --border-strong: #c2c8d4;
+    --text-main: #171a21;
+    --text-muted: #5b6270;
+    --text-faint: #8891a0;
+    --code-bg: #10141c;
+    --code-text: #d9e2f2;
+    --code-key: #7fb7ff;
+    --code-str: #9fe0b0;
+    --code-com: #7d8699;
+    --good: #0f7a4a;
+    --good-bg: #e3f6ec;
+    --good-border: #b6e6cc;
+    --bad: #ae2b22;
+    --bad-bg: #fbe9e7;
+    --bad-border: #f0c2bc;
+    --warn: #93610a;
+    --warn-bg: #fdf1d8;
+    --warn-border: #f0d9a0;
+    --radius: 10px;
+    --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-mono: ui-monospace, "Cascadia Code", "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+  }
+
+  [data-theme="dark"] {
+    --bg-primary: #0d0f13;
+    --surface: #161920;
+    --surface-alt: #1d212b;
+    --accent: #6f96ff;
+    --accent-soft: #1d2740;
+    --accent-text: #a9c1ff;
+    --border: #2a2f3a;
+    --border-strong: #3a4152;
+    --text-main: #e8eaef;
+    --text-muted: #a2a9b8;
+    --text-faint: #6c7385;
+    --code-bg: #0a0c11;
+    --code-text: #d9e2f2;
+    --good: #52d18c;
+    --good-bg: #123023;
+    --good-border: #1e4b37;
+    --bad: #f28b7f;
+    --bad-bg: #3a1a17;
+    --bad-border: #5a2b26;
+    --warn: #e8c162;
+    --warn-bg: #362a10;
+    --warn-border: #59431a;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg-primary);
+    color: var(--text-main);
+    font-family: var(--font-sans);
+    line-height: 1.6;
+    font-size: 15px;
+  }
+
+  a { color: var(--accent); }
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  .topbar .brand {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+  }
+
+  .topbar nav {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    overflow-x: auto;
+  }
+
+  .topbar nav a {
+    font-size: 13px;
+    color: var(--text-muted);
+    text-decoration: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+
+  .topbar nav a:hover { background: var(--surface-alt); color: var(--text-main); }
+
+  .theme-toggle {
+    border: 1px solid var(--border-strong);
+    background: var(--surface-alt);
+    color: var(--text-main);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    flex-shrink: 0;
+  }
+
+  .theme-toggle:hover { border-color: var(--accent); }
+
+  .wrap {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  header.hero {
+    padding: 8px 0 32px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+
+  .kicker {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-text);
+    background: var(--accent-soft);
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    margin-bottom: 14px;
+  }
+
+  h1 { font-size: 30px; font-weight: 600; margin: 0 0 10px; letter-spacing: -0.01em; }
+  .subtitle { color: var(--text-muted); font-size: 16px; max-width: 640px; }
+
+  .meta-row {
+    display: flex;
+    gap: 24px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+    font-size: 13px;
+    color: var(--text-faint);
+  }
+  .meta-row strong { color: var(--text-muted); font-weight: 600; }
+
+  section { margin-bottom: 56px; scroll-margin-top: 72px; }
+
+  h2 {
+    font-size: 21px;
+    font-weight: 600;
+    margin: 0 0 6px;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  h2 .num { color: var(--text-faint); font-weight: 500; font-size: 16px; }
+
+  h3 { font-size: 16px; font-weight: 600; margin: 28px 0 10px; }
+  h4 { font-size: 14px; font-weight: 600; margin: 20px 0 8px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.03em; }
+
+  p { margin: 0 0 14px; }
+  .section-intro { color: var(--text-muted); margin-bottom: 24px; font-size: 15px; }
+
+  blockquote.rule {
+    margin: 16px 0;
+    padding: 16px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius);
+    font-style: italic;
+    color: var(--text-main);
+  }
+  blockquote.rule cite {
+    display: block;
+    margin-top: 8px;
+    font-style: normal;
+    font-size: 12px;
+    color: var(--text-faint);
+  }
+
+  code {
+    font-family: var(--font-mono);
+    background: var(--surface-alt);
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.88em;
+    color: var(--text-main);
+    border: 1px solid var(--border);
+  }
+
+  .code-block {
+    background: var(--code-bg);
+    color: var(--code-text);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.65;
+    margin: 16px 0;
+    border: 1px solid var(--border-strong);
+  }
+  .code-block .lbl {
+    display: block;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-faint);
+    margin-bottom: 10px;
+  }
+  .code-block .c-key { color: var(--code-key); }
+  .code-block .c-str { color: var(--code-str); }
+  .code-block .c-com { color: var(--code-com); }
+
+  /* Callouts */
+  .callout {
+    border-radius: var(--radius);
+    padding: 16px 18px;
+    margin: 18px 0;
+    border: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .callout .tag {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    display: inline-block;
+    margin-bottom: 8px;
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+  .callout.rca { border-left: 3px solid var(--accent); }
+  .callout.rca .tag { background: var(--accent-soft); color: var(--accent-text); }
+  .callout.antipattern { border-left: 3px solid var(--bad); }
+  .callout.antipattern .tag { background: var(--bad-bg); color: var(--bad); }
+  .callout.adr { border-left: 3px solid var(--good); }
+  .callout.adr .tag { background: var(--good-bg); color: var(--good); }
+  .callout p:last-child { margin-bottom: 0; }
+
+  .callout-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 14px;
+    margin: 18px 0;
+  }
+
+  /* Tables */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 13.5px;
+    background: var(--surface);
+    border-radius: var(--radius);
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  th, td {
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  th {
+    background: var(--surface-alt);
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--text-muted);
+  }
+  tr:last-child td { border-bottom: none; }
+  td.num, th.num { text-align: right; font-family: var(--font-mono); }
+
+  /* Badges */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    white-space: nowrap;
+  }
+  .badge.good { background: var(--good-bg); color: var(--good); border-color: var(--good-border); }
+  .badge.bad { background: var(--bad-bg); color: var(--bad); border-color: var(--bad-border); }
+  .badge.warn { background: var(--warn-bg); color: var(--warn); border-color: var(--warn-border); }
+  .badge.neutral { background: var(--surface-alt); color: var(--text-muted); border-color: var(--border); }
+
+  .badge-row { display: flex; flex-wrap: wrap; gap: 10px; margin: 16px 0; }
+
+  /* Diagram components */
+  .diagram {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px 20px;
+    margin: 18px 0;
+  }
+  .diagram .cap {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-faint);
+    margin-top: 14px;
+  }
+
+  .flow-row {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  .pass-card {
+    flex: 0 0 auto;
+    width: 128px;
+    background: var(--accent-soft);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 10px 8px;
+    text-align: center;
+  }
+  .pass-card .t { font-size: 12.5px; font-weight: 600; color: var(--accent-text); }
+  .pass-card .s { font-size: 10.5px; color: var(--text-muted); margin-top: 4px; }
+  .wall {
+    flex: 0 0 auto;
+    width: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+  .wall::before {
+    content: "";
+    position: absolute;
+    top: 4px; bottom: 4px;
+    left: 50%;
+    border-left: 2px dashed var(--border-strong);
+  }
+  .wall span {
+    background: var(--surface);
+    color: var(--text-faint);
+    font-size: 9px;
+    padding: 2px 3px;
+    position: relative;
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    z-index: 1;
+  }
+
+  .grid-diagram {
+    display: grid;
+    gap: 14px;
+  }
+  .node {
+    background: var(--surface-alt);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    padding: 12px 14px;
+    text-align: center;
+  }
+  .node .t { font-size: 13px; font-weight: 600; }
+  .node .s { font-size: 11px; color: var(--text-muted); margin-top: 3px; }
+  .node.accent { background: var(--accent-soft); border-color: var(--accent); }
+  .node.accent .t { color: var(--accent-text); }
+  .node.warn-node { background: var(--warn-bg); border-color: var(--warn-border); }
+  .node.warn-node .t { color: var(--warn); }
+  .node.good-node { background: var(--good-bg); border-color: var(--good-border); }
+  .node.good-node .t { color: var(--good); }
+
+  .arrow-down { text-align: center; color: var(--text-faint); font-size: 18px; line-height: 1; margin: 2px 0; }
+  .arrow-label { text-align: center; font-size: 10.5px; color: var(--text-faint); margin-top: -6px; }
+
+  .fanout {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+  }
+  @media (max-width: 640px) {
+    .fanout { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  .matrix-cols {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 18px;
+    align-items: start;
+  }
+  @media (max-width: 640px) {
+    .matrix-cols { grid-template-columns: 1fr; }
+    .matrix-cols .center-arrow { display: none; }
+  }
+  .matrix-col h4 { margin-top: 0; }
+  .chip-list { display: flex; flex-direction: column; gap: 8px; }
+  .chip {
+    background: var(--surface-alt);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12.5px;
+    font-family: var(--font-mono);
+  }
+  .chip.merged { background: var(--good-bg); border-color: var(--good-border); color: var(--good); }
+  .center-arrow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-faint);
+    font-size: 20px;
+    padding-top: 40px;
+  }
+
+  .assumptions-list {
+    columns: 2;
+    column-gap: 28px;
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+  .assumptions-list li { margin-bottom: 6px; break-inside: avoid; }
+  @media (max-width: 640px) { .assumptions-list { columns: 1; } }
+
+  .priority-list { display: flex; flex-direction: column; gap: 10px; margin: 16px 0; }
+  .priority-item {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+  }
+  .priority-item .rank {
+    font-family: var(--font-mono);
+    font-weight: 700;
+    color: var(--accent);
+    font-size: 15px;
+    flex-shrink: 0;
+    width: 22px;
+  }
+
+  footer {
+    border-top: 1px solid var(--border);
+    padding-top: 20px;
+    margin-top: 60px;
+    font-size: 12px;
+    color: var(--text-faint);
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span class="brand">Architecture Review &middot; reforge / extract.md</span>
+  <nav>
+    <a href="#context">1. Context</a>
+    <a href="#redundancy">2. Redundancy</a>
+    <a href="#rca">3. RCA</a>
+    <a href="#recommendations">4. Recommendations</a>
+    <a href="#modeling">5. Modeling</a>
+    <a href="#priorities">Priorities</a>
+  </nav>
+  <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Toggle dark mode">&#9788; Light</button>
+</div>
+
+<div class="wrap">
+
+  <header class="hero">
+    <span class="kicker">Architecture Review &middot; Internal</span>
+    <h1>extract.md under a 5&ndash;6 Sonnet sub-agent topology</h1>
+    <p class="subtitle">A correctness-first extraction pipeline, read literally, produces a redundant-I/O problem the moment it is parallelized. This review traces the mechanism, isolates the root cause, and proposes a broker-mediated architecture that preserves the correctness guarantee while removing the redundancy tax.</p>
+    <div class="meta-row">
+      <span><strong>Subject:</strong> .reforge/commands/extract.md</span>
+      <span><strong>Scope:</strong> 10 extraction types, 5&ndash;6 sub-agent dispatch model</span>
+      <span><strong>Classification:</strong> Architecture review &middot; not a production incident report</span>
+    </div>
+  </header>
+
+  <section id="context">
+    <h2><span class="num">01</span> System context &amp; the correctness paradox</h2>
+    <p class="section-intro">extract.md's single strongest guarantee is also its single largest cost center. Understanding why requires taking the rule at its word before deciding what to change.</p>
+
+    <p>Step 1 of every extraction type in <code>extract.md</code> states the constraint plainly:</p>
+    <blockquote class="rule">
+      "Do NOT extract from memory of previous sessions or from analysis.xml metadata alone... only reference files read in this session."
+      <cite>extract.md, Step 1 &mdash; CRITICAL, applies uniformly to all 10 extraction types</cite>
+    </blockquote>
+
+    <p>This exists to prevent a specific, well-documented LLM failure mode: an agent that has "seen" a file once treats its own prior summary, or the coarse metadata in <code>analysis.xml</code>, as if it were the file itself, and starts reconstructing identifiers, method signatures, and enum members from plausible-sounding memory rather than from the literal bytes on disk. The rest of the command reinforces this relentlessly &mdash; verbatim-copy mandates for identifiers and operators, a requirement to re-verify every written identifier against a fresh Read, and a confidence rubric that explicitly downgrades anything not re-confirmed against source in the current session.</p>
+
+    <div class="callout rca">
+      <span class="tag">The conflation</span>
+      <p>The rule protects one property &mdash; <strong>byte provenance</strong>: is this content genuinely, verifiably the source code, not a paraphrase? &mdash; but it enforces that property through one specific mechanism: <strong>session-scoped I/O</strong>, a fresh Read tool call inside the current invocation. Those are not the same thing. Provenance is about <em>what the content is</em>. Session-scoped I/O is about <em>how the content arrived</em>. extract.md was authored as if the second were the only possible implementation of the first &mdash; which was true for a single-agent, single-invocation design, and stops being true the moment a shared, content-verified cache enters the picture.</p>
+    </div>
+
+    <p>That distinction is the entire thesis of this review. If provenance can be guaranteed by a mechanism other than "the requesting agent personally issued the disk read," the rule's intent is preserved and its cost structure changes completely. Section 3 formalizes this as a root-cause split between trust boundary and transport mechanism; Section 4's first recommendation is the direct architectural consequence.</p>
+  </section>
+
+  <section id="redundancy">
+    <h2><span class="num">02</span> Redundancy mechanics: sequential vs. concurrent</h2>
+    <p class="section-intro">Walking one real file through the pipeline makes the abstract cost concrete.</p>
+
+    <p>Take <code>OrderController.java</code>, an illustrative ~3,500 LOC controller class typical of the cross-cutting files found in any mature service layer. It contains pricing conditionals (relevant to <code>business-rules</code>), is an entry point for order submission (relevant to <code>workflows</code>), makes several outbound calls into repository and pricing services (relevant to <code>call-sites</code>), imports and injects five or six collaborators (relevant to <code>dependencies</code>), and sits at a layer boundary worth documenting (relevant to <code>architecture</code>). Five extraction domains, one file.</p>
+
+    <h3>Sequential CLI execution</h3>
+    <p>Run as the README's typical workflow prescribes &mdash; one <code>/reforge.extract &lt;type&gt;</code> invocation after another &mdash; each of those five passes is its own session. Each one independently satisfies Step 1 by opening <code>OrderController.java</code>, reading it in full, running its own detection patterns, and discarding the raw content when the invocation ends. The file is read from disk five separate times, at five separate points on the clock, with zero memory of the previous four reads.</p>
+
+    <div class="diagram">
+      <div class="flow-row">
+        <div class="pass-card"><div class="t">business-rules</div><div class="s">full read, t&#8321;</div></div>
+        <div class="wall"><span>session wall</span></div>
+        <div class="pass-card"><div class="t">workflows</div><div class="s">full read, t&#8322;</div></div>
+        <div class="wall"><span>session wall</span></div>
+        <div class="pass-card"><div class="t">call-sites</div><div class="s">full read, t&#8323;</div></div>
+        <div class="wall"><span>session wall</span></div>
+        <div class="pass-card"><div class="t">dependencies</div><div class="s">full read, t&#8324;</div></div>
+        <div class="wall"><span>session wall</span></div>
+        <div class="pass-card"><div class="t">architecture</div><div class="s">full read, t&#8325;</div></div>
+      </div>
+      <p class="cap">Diagram 1 &mdash; Sequential flow and the session boundary wall. Each dashed wall is a hard memory reset: OrderController.java is re-ingested in full on every crossing, five times across one extraction run, in exchange for zero cross-pass state leakage.</p>
+    </div>
+
+    <h3>Naive concurrent sub-agent execution</h3>
+    <p>Parallelizing the same five domains across five or six live Sonnet sub-agents does not remove the redundancy &mdash; it compresses it into a single instant. All five domain agents that touch this file request it at approximately <code>t&#8320;</code>, independently, with no coordination layer between them. Functionally this looks identical to the sequential case from the rule's perspective (five sessions, five satisfied Step-1 mandates), but it introduces two failure modes sequential execution does not have:</p>
+
+    <div class="diagram">
+      <div class="grid-diagram" style="max-width:560px;margin:0 auto;">
+        <div class="node accent"><div class="t">OrderController.java</div><div class="s">~4,500 tokens, single canonical copy on disk</div></div>
+        <div class="arrow-down">&#8595;&#8595;&#8595;&#8595;&#8595;</div>
+        <div class="fanout">
+          <div class="node"><div class="t">rules</div><div class="s">t&#8320;</div></div>
+          <div class="node"><div class="t">workflow</div><div class="s">t&#8320;</div></div>
+          <div class="node"><div class="t">call-sites</div><div class="s">t&#8320;</div></div>
+          <div class="node"><div class="t">deps</div><div class="s">t&#8320;</div></div>
+          <div class="node"><div class="t">arch</div><div class="s">t&#8320;</div></div>
+        </div>
+        <div class="arrow-down">&#8593;&#8593;&#8593;&#8593;&#8593;</div>
+        <div class="node warn-node"><div class="t">Disk / repo mount</div><div class="s">5 concurrent open() calls on one 3,500 LOC file within the same instant</div></div>
+      </div>
+      <p class="cap">Diagram 2 &mdash; Naive parallel execution. Five sub-agents independently fire on the same file at the same instant, producing a burst of duplicate reads and a correlated spike in tokens-per-minute usage rather than five reads spread across a run.</p>
+    </div>
+
+    <table>
+      <thead><tr><th>Dimension</th><th>Sequential CLI (baseline)</th><th>Naive concurrent (5&ndash;6 agents)</th></tr></thead>
+      <tbody>
+        <tr><td>Disk I/O pattern</td><td>Redundant reads spread across the full run duration</td><td>Redundant reads compressed into a narrow burst window</td></tr>
+        <tr><td>Repo mount contention</td><td>Negligible &mdash; one reader at a time</td><td>Real, especially on network-mounted or virtualized repo storage</td></tr>
+        <tr><td>API rate limits</td><td>Requests are naturally throttled by sequencing</td><td>Concurrent large-context calls can spike tokens-per-minute (TPM) usage well above what the unique content volume would justify, risking 429 backoff on constrained tiers</td></tr>
+        <tr><td>Token billing</td><td>Same total redundant tokens, billed over time</td><td>Identical total redundant tokens, billed in the same accounting window</td></tr>
+        <tr><td>Wall-clock effect</td><td>Slow but predictable</td><td>Fast in the best case, but throughput is gated by the slowest/most-throttled agent, not the fastest</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout antipattern">
+      <span class="tag">Anti-pattern flag</span>
+      <p>Naively parallelizing extraction types without a mediation layer converts a <em>linear</em> redundancy cost into a <em>bursty</em> one. The total wasted tokens do not increase, but the shape of the waste changes from "spread thin over 30 minutes" to "concentrated in a few seconds," which is precisely the pattern that trips per-minute rate ceilings and turns a theoretical speedup into unpredictable throttling in production.</p>
+    </div>
+  </section>
+
+  <section id="rca">
+    <h2><span class="num">03</span> Root cause analysis</h2>
+    <p class="section-intro">The redundancy is not a bug in extract.md. It is the correct, intended behavior of a rule that was never asked to distinguish two things it happens to conflate.</p>
+
+    <table>
+      <thead><tr><th>Layer</th><th>Question it answers</th><th>What extract.md actually enforces</th><th>Failure mode if the layers are conflated</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><strong>Semantic trust boundary</strong></td>
+          <td>Is this content genuinely, verifiably the source code &mdash; not a paraphrase, not a hallucinated reconstruction?</td>
+          <td>Verbatim-copy mandates; mandatory re-verification of every identifier against a fresh Read; confidence downgraded to <code>medium</code>/<code>low</code> whenever verification is incomplete</td>
+          <td>A fabricated identifier gets silently promoted to <code>confidence="high"</code> because nothing checked it against real bytes</td>
+        </tr>
+        <tr>
+          <td><strong>Transport / retrieval mechanism</strong></td>
+          <td>By what physical or logical path did these bytes arrive in the agent's context?</td>
+          <td>"only reference files read in this session" &mdash; interpreted as a literal, agent-local disk read</td>
+          <td>Content that is provably identical and provably verbatim is re-fetched from disk anyway, purely because a different agent's syscall retrieved it</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p><strong>RCA finding.</strong> At the time extract.md was authored for a single-agent, single-invocation execution model, session-scoped I/O and byte provenance were <em>functionally identical</em> &mdash; the only way to guarantee you were looking at real source was to personally read it, because there was no other trustworthy channel. The rule encodes the mechanism (I/O timing) rather than the property it protects (provenance), because under the original execution model there was no daylight between the two.</p>
+
+    <p>A multi-agent topology introduces daylight. A content-hashed cache can deliver the exact same verbatim bytes, byte-for-byte, to a second, third, and fourth agent, with cryptographic proof (a SHA-256 match) that nothing was altered, paraphrased, or summarized in transit. That satisfies the trust boundary completely. It just doesn't satisfy the transport mechanism as originally &mdash; and unnecessarily &mdash; specified.</p>
+
+    <div class="callout adr">
+      <span class="tag">Architectural decision</span>
+      <p>Treat "read in this session" as shorthand for "verified, unaltered, and traceable to a specific read event" &mdash; not as a literal mandate that each agent must independently perform its own disk syscall. Any mechanism that can prove the former (hash-verified, provenance-tagged content) satisfies the rule's intent regardless of which agent originally triggered the physical read.</p>
+    </div>
+  </section>
+
+  <section id="recommendations">
+    <h2><span class="num">04</span> Strategic architecture recommendations</h2>
+    <p class="section-intro">Four changes, ordered so that each one remains valid independent of whether the others are adopted.</p>
+
+    <h3>Recommendation 1 &mdash; Verbatim content-hashed read cache (Tier 1)</h3>
+    <p>Key the cache on the tuple <code>(canonical_path, sha256_hash)</code>, not on path alone. Path-only keying is stale-prone &mdash; a file edited mid-run would silently serve outdated content. Hash-keying makes the cache self-invalidating: if the file changes, its hash changes, the tuple no longer matches, and the next request is automatically treated as a cold read. This is what makes "zero-interpretation byte streaming" defensible against the correctness mandate &mdash; the cache never summarizes, truncates, or transforms; it stores and replays the exact byte sequence the first reader saw, with a cryptographic receipt attached.</p>
+
+    <div class="code-block">
+      <span class="lbl">Cache entry contract</span>
+<span class="c-key">interface</span> CacheEntry {
+  canonicalPath: <span class="c-key">string</span>;      <span class="c-com">// repo-root-relative, normalized</span>
+  sha256: <span class="c-key">string</span>;              <span class="c-com">// content hash at time of first read</span>
+  content: <span class="c-key">string</span>;             <span class="c-com">// verbatim source text, unmodified</span>
+  firstReadByAgent: <span class="c-key">string</span>;    <span class="c-com">// provenance tag, e.g. "business-rules"</span>
+  firstReadAtMs: <span class="c-key">number</span>;
+  servedToAgents: <span class="c-key">string</span>[];    <span class="c-com">// audit trail of every cache hit consumer</span>
+}</div>
+
+    <p>Because the entry retains <code>firstReadByAgent</code> and a growing <code>servedToAgents</code> audit trail, every downstream extraction can still cite exactly which physical read event its content traces back to &mdash; satisfying any future audit of "was this actually read from disk, by whom, and when" without requiring that every consumer be that same agent.</p>
+
+    <h3>Recommendation 2 &mdash; Upstream relevance manifests</h3>
+    <p>The current design has every extraction type scan every file in <code>analysis.xml</code>'s inventory to discover relevance for itself, per invocation. A lightweight AST/parser pre-pass during <code>/reforge.analyze</code> &mdash; not a semantic extraction, just structural signal detection (presence of conditionals, SQL strings, DOM markup, import statements, annotations) &mdash; can produce a per-file relevance manifest once, shared by every downstream type and every sub-agent.</p>
+
+    <div class="code-block">
+      <span class="lbl">Relevance manifest &mdash; per-file entry</span>
+{
+  <span class="c-str">"file"</span>: <span class="c-str">"src/controller/OrderController.java"</span>,
+  <span class="c-str">"sha256"</span>: <span class="c-str">"9f2a1c...c471"</span>,
+  <span class="c-str">"size_tokens"</span>: 4500,
+  <span class="c-str">"relevance"</span>: {
+    <span class="c-str">"business-rules"</span>:  { <span class="c-str">"confidence"</span>: <span class="c-str">"high"</span>,   <span class="c-str">"signal_count"</span>: 14 },
+    <span class="c-str">"workflows"</span>:       { <span class="c-str">"confidence"</span>: <span class="c-str">"high"</span>,   <span class="c-str">"signal_count"</span>: 9  },
+    <span class="c-str">"call-sites"</span>:      { <span class="c-str">"confidence"</span>: <span class="c-str">"high"</span>,   <span class="c-str">"signal_count"</span>: 22 },
+    <span class="c-str">"dependencies"</span>:    { <span class="c-str">"confidence"</span>: <span class="c-str">"medium"</span>, <span class="c-str">"signal_count"</span>: 6  },
+    <span class="c-str">"architecture"</span>:    { <span class="c-str">"confidence"</span>: <span class="c-str">"medium"</span>, <span class="c-str">"signal_count"</span>: 3  },
+    <span class="c-str">"database"</span>:        { <span class="c-str">"confidence"</span>: <span class="c-str">"low"</span>,    <span class="c-str">"signal_count"</span>: 1  },
+    <span class="c-str">"ui"</span>:              { <span class="c-str">"confidence"</span>: <span class="c-str">"none"</span>,   <span class="c-str">"signal_count"</span>: 0  }
+  }
+}</div>
+
+    <p>A sub-agent consults this manifest before requesting a file. Types with <code>"none"</code> or negligible signal counts (here, <code>ui</code>) skip the file entirely &mdash; a false-positive read prevented, not merely a redundant one deduplicated. This is complementary to Recommendation 1, not a substitute: the manifest reduces how many agents ever ask for a file; the cache handles what happens when more than one still does.</p>
+
+    <h3>Recommendation 3 &mdash; Semantic domain consolidation</h3>
+    <p><code>workflows</code> and <code>call-sites</code> both trace method-call chains through the same execution paths; <code>dependencies</code> and <code>architecture</code> both perform module/layer-level structural analysis. Dispatching them as a single combined pass per pair &mdash; one sub-agent, one file read, two detection procedures run against the same in-context content &mdash; removes the redundancy at its source rather than caching around it.</p>
+
+    <div class="diagram">
+      <div class="matrix-cols">
+        <div class="matrix-col">
+          <h4>Before &mdash; 10 discrete passes</h4>
+          <div class="chip-list">
+            <div class="chip">business-rules</div>
+            <div class="chip">database</div>
+            <div class="chip">ui</div>
+            <div class="chip">workflows</div>
+            <div class="chip">call-sites</div>
+            <div class="chip">dependencies</div>
+            <div class="chip">architecture</div>
+            <div class="chip">functional-requirements</div>
+            <div class="chip">non-functional</div>
+            <div class="chip">issues</div>
+          </div>
+        </div>
+        <div class="center-arrow">&#8594;</div>
+        <div class="matrix-col">
+          <h4>After &mdash; 6 consolidated domains</h4>
+          <div class="chip-list">
+            <div class="chip">business-rules</div>
+            <div class="chip">database</div>
+            <div class="chip">ui</div>
+            <div class="chip merged">workflows + call-sites</div>
+            <div class="chip merged">dependencies + architecture</div>
+            <div class="chip merged">functional-req. + non-functional + issues</div>
+          </div>
+        </div>
+      </div>
+      <p class="cap">Diagram 4 &mdash; Extraction type consolidation matrix. Merging call-chain-adjacent and structure-adjacent pairs cuts the specialist catalog from 10 to 6 without removing any detection pattern &mdash; each merged pass still runs both original procedures, just against one shared read.</p>
+    </div>
+
+    <h3>Recommendation 4 &mdash; Coordinator-broker pattern</h3>
+    <p>Recommendations 1&ndash;3 describe policy. This is the runtime component that enforces it. A deterministic broker daemon sits between every sub-agent and the filesystem: it owns the content-hashed cache, holds a per-path lock so concurrent requests for the same cold file collapse into a single physical read, and serves every subsequent request &mdash; from any agent &mdash; out of the warm cache.</p>
+
+    <div class="diagram">
+      <div class="grid-diagram" style="max-width:600px;margin:0 auto;">
+        <div class="fanout">
+          <div class="node"><div class="t">rules</div></div>
+          <div class="node"><div class="t">wf+cs</div></div>
+          <div class="node"><div class="t">dep+arch</div></div>
+          <div class="node"><div class="t">database</div></div>
+          <div class="node"><div class="t">ui</div></div>
+        </div>
+        <div class="arrow-down">&#8595;&#8595;&#8595;&#8595;&#8595;</div>
+        <div class="node accent"><div class="t">File broker</div><div class="s">per-path lock &middot; request dedup queue &middot; provenance log</div></div>
+        <div class="arrow-down">&#8595;</div>
+        <div class="node good-node"><div class="t">SHA-256 cache</div><div class="s">hit &rarr; serve in ~15ms, no disk touch</div></div>
+        <div class="arrow-down">&#8595; miss</div>
+        <div class="node warn-node"><div class="t">Disk / repo mount</div><div class="s">exactly one cold read per unique file per run</div></div>
+      </div>
+      <p class="cap">Diagram 3 &mdash; Coordinator-broker topology. Sub-agents never touch the filesystem directly. The broker guarantees at most one physical read per unique file regardless of how many domains, or how many concurrent agents, request it.</p>
+    </div>
+
+    <div class="code-block">
+      <span class="lbl">Broker API interface</span>
+<span class="c-key">interface</span> FileBroker {
+  <span class="c-com">// Blocks concurrent duplicate requests behind a per-path lock</span>
+  read(request: FileReadRequest): Promise&lt;FileReadResult&gt;;
+}
+
+<span class="c-key">interface</span> FileReadRequest {
+  canonicalPath: <span class="c-key">string</span>;
+  requestingAgent: <span class="c-key">string</span>;      <span class="c-com">// e.g. "workflows-callsites"</span>
+  expectedHash?: <span class="c-key">string</span>;        <span class="c-com">// optional, from the relevance manifest</span>
+}
+
+<span class="c-key">interface</span> FileReadResult {
+  canonicalPath: <span class="c-key">string</span>;
+  sha256: <span class="c-key">string</span>;
+  content: <span class="c-key">string</span>;               <span class="c-com">// byte-for-byte verbatim source</span>
+  cacheStatus: <span class="c-str">"MISS_COLD_READ"</span> | <span class="c-str">"HIT_WARM_CACHE"</span>;
+  firstReadByAgent: <span class="c-key">string</span>;
+  servedAtMs: <span class="c-key">number</span>;
+}</div>
+
+    <p>The lock is the detail that matters most under concurrency: without it, five sub-agents that all miss the cache at <code>t&#8320;</code> would still fire five simultaneous cold reads before any of them populates the cache. The broker must treat a cold request for a path that is already <em>in flight</em> as a queue-and-wait, not a new read, collapsing the Diagram 2 burst into the single cold read shown in Diagram 3.</p>
+  </section>
+
+  <section id="modeling">
+    <h2><span class="num">05</span> Quantitative financial &amp; throughput modeling</h2>
+    <p class="section-intro">Modeled, not measured. Every figure below follows deterministically from the stated assumptions and Anthropic's published Sonnet&nbsp;5 API rates; none of it is a benchmark from a live run.</p>
+
+    <h4>Assumptions</h4>
+    <ul class="assumptions-list">
+      <li>Repository size: 5,000 files</li>
+      <li>Total unique raw code volume: 15,000,000 tokens</li>
+      <li>Cross-cutting file share: 25% (1,250 files)</li>
+      <li>Single-domain file share: 75% (3,750 files)</li>
+      <li>Avg. tokens / cross-cutting file: 4,500</li>
+      <li>Avg. tokens / single-domain file: 2,500</li>
+      <li>Avg. domain touches per cross-cutting file, 10-type catalog: 4</li>
+      <li>Avg. domain touches per cross-cutting file, 6-domain consolidated catalog: 3.2 (scaled proportionally to the 10&rarr;8 specialist reduction from Recommendation 3)</li>
+      <li>Sonnet 5 standard input rate: $2.00 / MTok</li>
+      <li>Sonnet 5 prompt-cache write rate: $2.50 / MTok</li>
+      <li>Sonnet 5 prompt-cache read (hit) rate: $0.20 / MTok</li>
+      <li>Illustrative cold read + tokenize latency: 220ms / file</li>
+      <li>Illustrative warm cache-hit latency: 15ms / file</li>
+    </ul>
+
+    <h3>Disk operations</h3>
+    <table>
+      <thead><tr><th>Scenario</th><th class="num">Physical disk reads</th><th class="num">Logical read requests</th><th>Reduction vs. baseline</th></tr></thead>
+      <tbody>
+        <tr><td>Baseline &mdash; 10 passes, no cache</td><td class="num">8,750</td><td class="num">8,750</td><td>&mdash;</td></tr>
+        <tr><td>Consolidation only (Rec. 3), no cache</td><td class="num">7,750</td><td class="num">7,750</td><td><span class="badge good">-11.4%</span></td></tr>
+        <tr><td>Broker cache only (Rec. 1+4), 10 passes</td><td class="num">5,000</td><td class="num">8,750</td><td><span class="badge good">-42.9% physical</span></td></tr>
+        <tr><td><strong>Fully optimized</strong> &mdash; cache + consolidation</td><td class="num"><strong>5,000</strong></td><td class="num">7,750</td><td><span class="badge good">-42.9% physical</span></td></tr>
+      </tbody>
+    </table>
+    <p>Physical disk reads floor at 5,000 &mdash; one per unique file &mdash; the moment a content-hashed cache exists, regardless of how many domains or agents request it. Consolidation cannot push physical reads below that floor; its contribution is reducing <em>logical</em> dispatch and lock-contention volume on top of the cache.</p>
+
+    <h3>Token ingestion &amp; API cost</h3>
+    <table>
+      <thead><tr><th>Scenario</th><th class="num">Tokens ingested</th><th class="num">Est. cost @ Sonnet 5</th><th>vs. baseline</th></tr></thead>
+      <tbody>
+        <tr><td>Baseline &mdash; 10 passes, no cache, all fresh input</td><td class="num">31,875,000</td><td class="num">$63.75</td><td>&mdash;</td></tr>
+        <tr><td>Consolidation only, still no cache</td><td class="num">27,375,000</td><td class="num">$54.75</td><td><span class="badge good">-14.1%</span></td></tr>
+        <tr><td>Broker cache only &mdash; 15.0M write + 16.875M read</td><td class="num">31,875,000</td><td class="num">$40.88</td><td><span class="badge good">-35.9%</span></td></tr>
+        <tr><td><strong>Fully optimized</strong> &mdash; 15.0M write + 12.375M read</td><td class="num">27,375,000</td><td class="num"><strong>$39.98</strong></td><td><span class="badge good">-37.3%</span></td></tr>
+      </tbody>
+    </table>
+    <p>Caching alone does not deliver the naive "cache = free" intuition: Anthropic's prompt-cache <em>write</em> rate ($2.50/MTok) carries a 25% premium over standard input, so the first touch of every file is slightly more expensive than a normal read. The savings come entirely from converting redundant re-reads &mdash; billed at full $2.00/MTok in the baseline &mdash; into cache reads at $0.20/MTok, a 90% discount on exactly the tokens that were pure waste.</p>
+
+    <h3>Latency</h3>
+    <table>
+      <thead><tr><th>Execution mode</th><th class="num">Estimated wall-clock</th><th>Note</th></tr></thead>
+      <tbody>
+        <tr><td>Sequential, baseline (10 passes, no cache)</td><td class="num">~32.1 min</td><td>8,750 &times; 220ms, pure I/O time, excludes reasoning time</td></tr>
+        <tr><td>Sequential, fully optimized (cache + consolidation)</td><td class="num">~19.0 min</td><td>5,000 cold &times; 220ms + 2,750 warm &times; 15ms</td></tr>
+        <tr><td>Naive concurrent, 6 agents, unthrottled best case</td><td class="num">~5.4 min</td><td>Theoretical only &mdash; ignores repo-mount contention and TPM throttling risk from Section 2</td></tr>
+        <tr><td>Concurrent + broker, 8 parallel cold-read workers</td><td class="num">~2.3&ndash;2.5 min</td><td>Cold reads parallelized across unique files only; warm hits add negligible time</td></tr>
+      </tbody>
+    </table>
+
+    <div class="callout antipattern">
+      <span class="tag">Anti-pattern flag</span>
+      <p>The naive-concurrent row looks fastest on paper. It is also the least reliable: its 5.4-minute estimate assumes no rate-limit backoff and no storage contention, both of which Section 2 identifies as realistic risks precisely because five to six large-context requests for the same file land in the same narrow time window. The broker topology's ~2.3&ndash;2.5 minute estimate is slower on paper than the unthrottled naive case, but it is the only one of the four that does not depend on an optimistic assumption holding true in production.</p>
+    </div>
+
+    <h3>Peak memory footprint</h3>
+    <table>
+      <thead><tr><th>Scenario</th><th class="num">Peak footprint (illustrative, 4 bytes/token)</th><th>Character</th></tr></thead>
+      <tbody>
+        <tr><td>Broker cache, coherent single copy of unique corpus</td><td class="num">~57 MB</td><td>One authoritative copy; grows only with unique content, not with domain count</td></tr>
+        <tr><td>Naive concurrent, duplicated cross-cutting content across agent contexts</td><td class="num">~86 MB transient, fragmented across processes</td><td>Same information held redundantly in up to 4&ndash;5 separate agent contexts at peak overlap</td></tr>
+      </tbody>
+    </table>
+    <p>In absolute terms neither number is large at this repository scale &mdash; the real constraint the fragmented pattern hits first is each sub-agent's context-window budget, not host RAM. The broker's coherent cache is the version of this cost that scales linearly with unique repository size rather than with (repository size &times; average domain multiplicity).</p>
+
+    <div class="badge-row">
+      <span class="badge good">-42.9% physical disk reads</span>
+      <span class="badge good">-37.3% estimated API cost</span>
+      <span class="badge good">-40.7% sequential wall-clock</span>
+      <span class="badge neutral">1.0x reads per unique file (vs. 1.75x baseline)</span>
+      <span class="badge warn">Naive concurrency: real TPM burst risk</span>
+    </div>
+  </section>
+
+  <section id="priorities">
+    <h2><span class="num">06</span> Recommended adoption order</h2>
+    <p class="section-intro">Each recommendation is independently valid; this is the order that front-loads the highest ratio of savings to implementation risk.</p>
+    <div class="priority-list">
+      <div class="priority-item">
+        <span class="rank">1</span>
+        <div><strong>Content-hashed read cache (Rec. 1).</strong> Delivers the entire 42.9% disk-read reduction and the bulk of the 37.3% cost reduction on its own. Self-contained, no changes to <code>/reforge.analyze</code> required, and it is the recommendation that most directly resolves the RCA's core conflation.</div>
+      </div>
+      <div class="priority-item">
+        <span class="rank">2</span>
+        <div><strong>Coordinator-broker pattern (Rec. 4).</strong> Required to make Rec. 1 safe under concurrency &mdash; without the per-path lock, a parallel sub-agent topology will still fire simultaneous cold reads before the cache populates.</div>
+      </div>
+      <div class="priority-item">
+        <span class="rank">3</span>
+        <div><strong>Semantic domain consolidation (Rec. 3).</strong> Cuts dispatch volume and lock contention on top of the cache. Lower urgency than 1&ndash;2 because its savings are additive, not foundational &mdash; but it is the only lever that reduces the number of agents in the first place.</div>
+      </div>
+      <div class="priority-item">
+        <span class="rank">4</span>
+        <div><strong>Upstream relevance manifests (Rec. 2).</strong> Highest implementation cost (an AST/parser pre-pass is new surface area for a framework whose constitution otherwise forbids parsers in the core workflow). Adopt last, and treat it as an optional tooling-layer extension per extract.md's own Constitution Principle&nbsp;VI, not a core-path requirement.</div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    Architecture review generated for internal engineering discussion. All quantitative figures in Section 5 are illustrative models built from stated assumptions and Anthropic's published Sonnet&nbsp;5 pricing (Sept. 2026); they are not measured production benchmarks.
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  function getPreferredTheme() {
+    try {
+      var saved = localStorage.getItem('arch-review-theme');
+      if (saved === 'dark' || saved === 'light') return saved;
+    } catch (e) {}
+    try {
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) return 'dark';
+    } catch (e) {}
+    return 'light';
+  }
+
+  function applyTheme(theme) {
+    if (theme === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+    var btn = document.getElementById('themeToggle');
+    if (btn) btn.innerHTML = theme === 'dark' ? '&#9789; Dark' : '&#9788; Light';
+  }
+
+  window.toggleTheme = function () {
+    var current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+    var next = current === 'dark' ? 'light' : 'dark';
+    applyTheme(next);
+    try { localStorage.setItem('arch-review-theme', next); } catch (e) {}
+  };
+
+  applyTheme(getPreferredTheme());
+})();
+</script>
+
+</body>
+</html>

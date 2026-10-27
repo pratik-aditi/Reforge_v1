@@ -1,0 +1,835 @@
+# Goal: Implement Deterministic Source Intelligence Layer
+
+## Objective
+
+Implement **only the new deterministic source-processing architecture** for Reforge.
+
+The purpose is to solve large-file context saturation and Lost-in-the-Middle behavior before source is given to extraction sub-agents.
+
+Do NOT implement, modify, or depend on the separate architectural work related to:
+
+- ownership reconciliation
+- semantic review
+- scoped repair
+- review severity
+- Explorer projection
+- proposal salvage
+- source ledgers
+- quality-gap remediation
+- other senior-architect changes
+
+This task is limited to the deterministic source layer and its integration with Reforge extraction agents.
+
+---
+
+# Problem
+
+Current large-file behavior is effectively:
+
+```text
+Large Legacy File
+      ↓
+Read huge amount of source
+      ↓
+Context becomes saturated
+      ↓
+Sub-agent remembers source
+      ↓
+Extraction starts later
+      ↓
+Middle information is lost
+```
+
+Example stress case:
+
+```text
+Track.vb
+~37,408 lines
+~566 members
+some very large methods
+```
+
+The architecture must prevent a sub-agent from using the entire large file as working memory.
+
+---
+
+# Proposed Architecture
+
+```text
+                 LEGACY SOURCE
+                       │
+                       ▼
+             ┌───────────────────┐
+             │ STRUCTURAL SCAN   │
+             └─────────┬─────────┘
+                       │
+                       ▼
+                Structural Map
+                       │
+                       ▼
+             ┌───────────────────┐
+             │ SEGMENT PLANNER   │
+             └─────────┬─────────┘
+                       │
+                       ▼
+             ┌───────────────────┐
+             │ BUDGET CONTROLLER │
+             └─────────┬─────────┘
+                       │
+          ┌────────────┴────────────┐
+          │                         │
+     normal member            oversized member
+          │                         │
+          │                         ▼
+          │                ┌─────────────────┐
+          │                │ BLOCK SPLITTER  │
+          │                └────────┬────────┘
+          │                         │
+          └──────────────┬──────────┘
+                         ▼
+                 Segment Manifest
+                         │
+                         ▼
+             ┌────────────────────┐
+             │ COVERAGE VALIDATOR │
+             └─────────┬──────────┘
+                       │
+                       ▼
+                 Extraction Tasks
+                       │
+              ┌────────┼─────────┐
+              ▼        ▼         ▼
+           Agent 1  Agent 2   Agent N
+              │        │         │
+             READ     READ      READ
+              │        │         │
+           EXTRACT   EXTRACT   EXTRACT
+              │        │         │
+           PERSIST   PERSIST   PERSIST
+```
+
+---
+
+# Core Principle
+
+The deterministic layer decides:
+
+```text
+WHERE is the code?
+WHERE does a method begin/end?
+WHAT belongs together?
+HOW large should one extraction task be?
+WHAT exact source should a sub-agent receive?
+```
+
+The LLM decides:
+
+```text
+WHAT does the code mean?
+WHAT business rule exists?
+WHAT workflow exists?
+WHAT requirement exists?
+```
+
+Never allow an LLM to decide source segmentation boundaries.
+
+---
+
+# Agent 1 — Existing Reforge Flow Analyst
+
+## Responsibility
+
+Understand only what is necessary to insert the new deterministic layer.
+
+Find:
+
+- where source files are discovered
+- where `/reforge.extract` starts
+- how sub-agents are currently spawned
+- how source is currently passed to sub-agents
+- where extraction outputs are written
+- current checkpoint/resume mechanism if relevant
+
+Do NOT redesign unrelated Reforge components.
+
+## Deliverable
+
+```text
+current-extraction-flow.md
+deterministic-layer-integration-point.md
+```
+
+Main question:
+
+> Where can the new deterministic source layer be inserted with minimum disruption?
+
+---
+
+# Agent 2 — Structural Analyzer
+
+## Responsibility
+
+Build deterministic structural discovery.
+
+Start with VB.NET.
+
+Recognize:
+
+```text
+Namespace
+Class
+Module
+Interface
+Structure
+Enum
+
+Sub
+Function
+Property
+
+#Region
+```
+
+Each structure should contain:
+
+```text
+type
+name
+file
+start_line
+end_line
+parent
+nesting_depth
+```
+
+Example:
+
+```json
+{
+  "type": "function",
+  "name": "TrackTrainIDOn",
+  "file": "Track.vb",
+  "start_line": 24556,
+  "end_line": 25808,
+  "parent": "Track"
+}
+```
+
+## Technology evaluation
+
+Compare:
+
+```text
+Regex/state machine
+vs
+Lexer/token scanning
+vs
+Roslyn
+```
+
+Prefer deterministic parsing.
+
+Do not perform business-rule interpretation.
+
+---
+
+# Agent 3 — Segment Planner
+
+## Responsibility
+
+Convert structural units into bounded extraction segments.
+
+Primary policy:
+
+```text
+Small file
+   ↓
+KEEP WHOLE
+
+
+Large file
+   ↓
+Structural map
+   ↓
+Complete methods
+   ↓
+Pack adjacent methods
+   ↓
+Bounded segments
+```
+
+Example:
+
+```text
+Method A   120 lines
+Method B   180 lines
+Method C    90 lines
+
+        ↓
+
+SEG-001
+A + B + C
+```
+
+Do not use:
+
+```text
+every 800 lines → split
+```
+
+as the primary strategy.
+
+Preserve method integrity whenever possible.
+
+---
+
+# Agent 4 — Budget + Oversized Method Strategy
+
+## Responsibility
+
+Control segment size.
+
+Use:
+
+```text
+PRIMARY
+Token budget
+
+SECONDARY
+Line budget
+```
+
+Do not make line count alone the architecture.
+
+Example:
+
+```text
+Methods A+B+C
+     ↓
+estimated tokens
+     ↓
+fits budget?
+   /        \
+ YES         NO
+  │           │
+pack       close segment
+```
+
+## Oversized Method
+
+Some legacy methods may individually exceed the allowed budget.
+
+Example:
+
+```text
+TrackTrainIDOn()
+1,253 lines
+```
+
+For these:
+
+```text
+Oversized Method
+       ↓
+Control-Structure Scan
+       ↓
+safe top-level boundaries
+       ↓
+subsegments
+```
+
+Recognize:
+
+```text
+If / End If
+
+Select Case / End Select
+
+Try / Catch / Finally / End Try
+
+For / Next
+
+While / End While
+
+Using / End Using
+
+With / End With
+```
+
+Only split at safe structural boundaries.
+
+---
+
+# Agent 5 — Manifest + Coverage Validator
+
+## Responsibility
+
+Create deterministic source-segment metadata.
+
+Example:
+
+```json
+{
+  "file": "Track.vb",
+  "file_hash": "...",
+  "segments": [
+    {
+      "segment_id": "track-001",
+      "start_line": 1,
+      "end_line": 715,
+      "strategy": "member-pack",
+      "members": [
+        "Initialize",
+        "LoadTrack",
+        "ValidateTrack"
+      ]
+    }
+  ]
+}
+```
+
+Validate:
+
+```text
+✓ beginning of source covered
+✓ end of source covered
+
+✓ no accidental gaps
+
+✓ overlaps explicitly recorded
+
+✓ every method assigned
+
+✓ non-method source accounted for
+
+✓ stable segment IDs
+
+✓ source ordering preserved
+```
+
+Mandatory invariant:
+
+```text
+Source line 1
+      ↓
+      ↓
+      ↓
+Final source line
+
+NO SILENT GAP
+```
+
+---
+
+# Agent 6 — Extraction Orchestration + Benchmark
+
+## Responsibility
+
+Connect the new segments to the existing Sonnet extraction sub-agents.
+
+Change the execution model from:
+
+```text
+READ WHOLE FILE
+       ↓
+READ MORE
+       ↓
+READ MORE
+       ↓
+Huge Context
+       ↓
+EXTRACT EVERYTHING
+```
+
+to:
+
+```text
+SEGMENT 1
+   ↓
+READ
+   ↓
+EXTRACT
+   ↓
+WRITE RESULT
+   ↓
+
+SEGMENT 2
+   ↓
+READ
+   ↓
+EXTRACT
+   ↓
+WRITE RESULT
+   ↓
+
+SEGMENT 3
+...
+```
+
+A sub-agent task should contain:
+
+```text
+Task ID
+
+Source file
+
+Segment ID
+
+Exact source range
+
+Contained methods
+
+Required extraction types
+
+Small structural context
+
+Output destination
+```
+
+Example:
+
+```text
+TASK: Track-021
+
+FILE:
+Track.vb
+
+SOURCE:
+lines 24556–25080
+
+PARENT METHOD:
+TrackTrainIDOn
+
+TASK:
+Extract applicable Reforge information
+from this exact bounded source.
+```
+
+---
+
+# Parallel Agent Strategy
+
+The parent orchestrator should spawn approximately:
+
+```text
+Agent 1
+Existing-flow analysis
+
+Agent 2
+Structural analyzer
+
+Agent 3
+Segment planner
+
+Agent 4
+Budget / oversized methods
+
+Agent 5
+Manifest / coverage
+
+Agent 6
+Extraction integration / benchmark
+```
+
+Do NOT ask all six agents:
+
+> Design the deterministic layer.
+
+Each agent must have a separate responsibility.
+
+---
+
+# Final Orchestrator Merge
+
+After agents finish:
+
+```text
+Agent 1 ──────────┐
+Agent 2 ──────────┤
+Agent 3 ──────────┤
+Agent 4 ──────────┼──► ORCHESTRATOR
+Agent 5 ──────────┤
+Agent 6 ──────────┘
+                         │
+                         ▼
+                Unified Design
+                         │
+                         ▼
+                  Implementation
+```
+
+The orchestrator resolves disagreements between agent proposals.
+
+---
+
+# Target Runtime Architecture
+
+```text
+             analysis.xml / source inventory
+                         │
+                         ▼
+                    SOURCE FILE
+                         │
+                         ▼
+                STRUCTURAL ANALYZER
+                         │
+                         ▼
+                  STRUCTURAL MAP
+                         │
+                         ▼
+                   SEGMENT PLANNER
+                         │
+                         ▼
+                  BUDGET CONTROLLER
+                         │
+                ┌────────┴────────┐
+                │                 │
+             normal          oversized
+             member            method
+                │                 │
+                │          BLOCK SPLITTER
+                │                 │
+                └────────┬────────┘
+                         ▼
+                 SEGMENT MANIFEST
+                         │
+                         ▼
+                 COVERAGE VALIDATOR
+                         │
+                         ▼
+                    TASK QUEUE
+                         │
+           ┌─────────────┼──────────────┐
+           ▼             ▼              ▼
+        Sonnet        Sonnet          Sonnet
+        Agent         Agent           Agent
+           │             │              │
+          READ          READ           READ
+           ↓             ↓              ↓
+        EXTRACT       EXTRACT        EXTRACT
+           ↓             ↓              ↓
+         RESULT        RESULT         RESULT
+```
+
+---
+
+# Critical Extraction Rule
+
+For large files:
+
+> A sub-agent must not depend on previously accumulated whole-file context as the primary source for extraction.
+
+The expected cycle is:
+
+```text
+READ
+ ↓
+UNDERSTAND
+ ↓
+EXTRACT
+ ↓
+WRITE
+ ↓
+MOVE TO NEXT SOURCE UNIT
+```
+
+---
+
+# Fallback Strategy
+
+Structural discovery may fail for unsupported or malformed legacy files.
+
+Use:
+
+```text
+Structural parser
+      ↓
+success?
+ /          \
+YES          NO
+ │            │
+normal     deterministic
+packing    token windows
+             +
+          small overlap
+```
+
+Fallback must also guarantee complete source coverage.
+
+---
+
+# Benchmark Files
+
+Use actual legacy files.
+
+### Small
+
+```text
+AdministrativeEvent.vb
+```
+
+Expected:
+
+```text
+KEEP WHOLE
+```
+
+### Large
+
+```text
+Track.vb
+~37,408 lines
+```
+
+Expected:
+
+```text
+Structural Scan
+      ↓
+Member Packing
+      ↓
+Oversized Member Handling
+      ↓
+Many bounded segments
+```
+
+### Known Lost-in-Middle case
+
+```text
+Signal.vb
+~9,095 lines
+```
+
+Compare against previous extraction behavior.
+
+---
+
+# Metrics
+
+Measure:
+
+```text
+Source coverage %
+
+Methods discovered
+
+Methods represented in extraction
+
+Segment count
+
+Average segment tokens
+
+Maximum segment tokens
+
+Context size at extraction
+
+Citations by source-line decile
+
+Zero-citation source ranges
+
+Output / 1,000 LOC
+
+Duplicate extraction
+
+Token usage
+
+Runtime
+
+Failed segments
+
+Retry count
+```
+
+---
+
+# Success Criteria
+
+The architecture succeeds when:
+
+```text
+✓ Same source + config gives same segments
+
+✓ Full source coverage
+
+✓ No silent line gaps
+
+✓ Methods remain intact when possible
+
+✓ Oversized methods are safely subdivided
+
+✓ Sub-agents operate on bounded source
+
+✓ Extraction happens close to source reading
+
+✓ One failed segment does not require
+  rereading the entire huge source file
+
+✓ Signal.vb middle coverage improves
+
+✓ Track.vb can be processed without
+  building one enormous model context
+```
+
+---
+
+# NON-GOALS
+
+Do NOT implement or modify:
+
+```text
+Senior architect's quality-gap remediation
+
+Ownership reconciliation
+
+Review severity system
+
+Scoped repair
+
+Proposal salvage
+
+Explorer lossless export
+
+Existing semantic validation architecture
+
+Existing client publication architecture
+```
+
+Those are separate architectural initiatives.
+
+This goal is exclusively:
+
+> **Deterministic source understanding, segmentation, bounded task creation, and source-local sub-agent extraction.**
+
+---
+
+# Final Architectural Principle
+
+```text
+DETERMINISTIC SYSTEM
+decides what source the AI should see.
+
+AI
+decides what that bounded source means.
+```
+
+The new Reforge flow should therefore become:
+
+```text
+DISCOVER
+   ↓
+STRUCTURE
+   ↓
+PLAN
+   ↓
+BOUND
+   ↓
+VALIDATE COVERAGE
+   ↓
+READ
+   ↓
+EXTRACT
+   ↓
+PERSIST
+   ↓
+NEXT
+```
